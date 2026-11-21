@@ -35,7 +35,7 @@
 .signal-band:focus-visible { outline-offset: -5px; }
 .signal-track { width: max-content; padding-left: var(--gutter); }
 .signal-marquee { display: flex; }
-.signal-words { display: flex; flex-shrink: 0; align-items: center; gap: .43em; padding-right: .43em; font: 800 clamp(48px, 7.1vw, 118px)/1.15 var(--display); letter-spacing: -.053em; white-space: nowrap; }
+.signal-words { display: flex; flex-shrink: 0; align-items: center; gap: .43em; padding-right: .43em; font: 800 clamp(42px, 6.2vw, 104px)/1.15 var(--display); letter-spacing: -.05em; white-space: nowrap; }
 .signal-words svg { width: .36em; height: .36em; rotate: -15deg; }
 .signal-words span:nth-of-type(2) { color: transparent; -webkit-text-stroke: 1px var(--ink); }
 .signal-arrow {
@@ -100,7 +100,7 @@
   padding: clamp(15px, 2.7vw, 38px);
   border-top: 1px solid #664052;
 }
-.study figcaption h3 { font-size: clamp(31px, 4.6vw, 70px); font-weight: 760; line-height: 1; letter-spacing: -.047em; }
+.study figcaption h3 { font-size: clamp(29px, 4vw, 60px); line-height: 1; letter-spacing: -.045em; }
 .study figcaption p { max-width: 42ch; color: #eadde7; }
 .study figcaption p:first-child { grid-column: 1 / -1; color: var(--lime); }
 .study figcaption svg { position: absolute; z-index: -1; width: 27%; right: -5%; top: -23%; color: #382233; rotate: -13deg; }
@@ -114,7 +114,7 @@
   color: var(--paper);
   font-size: 14px;
 }
-.reel-controls button span { margin-right: .35em; font-family: var(--mono); font-size: 11px; }
+.reel-controls button span { margin-right: .35em; font-family: var(--mono); font-size: 12px; }
 .reel-controls button[aria-pressed="true"] { background: var(--lime); border-color: var(--lime); color: var(--ink); }
 .reel-controls button:hover { border-color: var(--lime); }
 
