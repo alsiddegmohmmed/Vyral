@@ -104,6 +104,9 @@ export const questions = [
 ];
 export const priority = [2,4,1,0,3];
 export const whatsapp = "250780586157";
+export const whatsappDisplay = "+250 780 586 157";
+export const email = "vyralrwanda@gmail.com";
+export const instagram = { handle: "@vyral.rw", url: "https://www.instagram.com/vyral.rw/" };
 export function chatLink(message: string) {
   return `https://wa.me/${whatsapp}?text=${encodeURIComponent(message)}`;
 }

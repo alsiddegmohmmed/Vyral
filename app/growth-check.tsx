@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
-import { chatLink, priority, questions } from './brand-data';
+import { chatLink, email, priority, questions, whatsappDisplay } from './brand-data';
 import { Mark } from './mark';
 
 const storageKey = 'vyral-check';
@@ -45,6 +45,14 @@ export function GrowthCheckProvider({children}: {children: ReactNode}) {
   );
 }
 
+function WhatsAppIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+      <path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.6 2.6 0 0 0 1.7-1.2 2.1 2.1 0 0 0 .2-1.2c-.1-.1-.3-.2-.5-.3Z" />
+    </svg>
+  );
+}
+
 export function AuditLink() {
   const { answers, name, setName } = useContext(AnswersContext);
   const business = name.trim();
@@ -54,6 +62,47 @@ export function AuditLink() {
     ? ` Growth check: ${answers.filter(Boolean).length}/${questions.length} in place.${gaps.length ? ` Gaps: ${gaps.map(index => questions[index].label).join(', ')}.` : ''}`
     : '';
   const href = chatLink(`Hi Vyral, I'd like a free audit${business ? ` for ${business}` : ''}.${summary}`);
+  const [sent, setSent] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const number = useRef<HTMLSpanElement>(null);
+  const done = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (sent) done.current?.focus({ preventScroll: true });
+  }, [sent]);
+
+  function copyNumber() {
+    const select = () => {
+      if (number.current) window.getSelection()?.selectAllChildren(number.current);
+    };
+    try {
+      navigator.clipboard.writeText(whatsappDisplay).then(() => {
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 1600);
+      }, select);
+    } catch {
+      select();
+    }
+  }
+
+  if (sent) {
+    return (
+      <div className="audit-link audit-done" ref={done} tabIndex={-1} role="status">
+        <p className="audit-done-title">Did WhatsApp open?</p>
+        <p>Send the message there and we’ll reply with {business ? `the free audit for ${business}` : 'your free audit'}. If it didn’t open, message us on this number or send an email.</p>
+        <p className="audit-done-number">
+          <span ref={number}>{whatsappDisplay}</span>
+          <button type="button" className="text-button" onClick={copyNumber}>{copied ? 'Copied' : 'Copy number'}</button>
+        </p>
+        <p><a className="audit-done-email" href={`mailto:${email}`}>{email}</a></p>
+        <p className="audit-done-actions">
+          <a className="text-button" href={href} target="_blank" rel="noopener noreferrer">Open WhatsApp again</a>
+          <button type="button" className="text-button" onClick={() => setSent(false)}>Edit message</button>
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="audit-link">
       <label>
@@ -66,8 +115,8 @@ export function AuditLink() {
           placeholder="Your business name"
         />
       </label>
-      <a className="button button-primary" target="_blank" rel="noopener noreferrer" href={href}>
-        Get a free audit on WhatsApp <span className="button-icon" aria-hidden="true">↗</span>
+      <a className="button button-primary" target="_blank" rel="noopener noreferrer" href={href} onClick={() => window.setTimeout(() => setSent(true), 60)}>
+        get my free audit <span className="button-icon" aria-hidden="true"><WhatsAppIcon /></span>
       </a>
       <p className="audit-note">{complete ? 'Your draft includes the growth check results.' : 'Opens WhatsApp with a draft ready to send.'}</p>
     </div>
@@ -110,8 +159,8 @@ export default function GrowthCheck() {
       <h3 ref={heading} tabIndex={-1}>{question.question}</h3>
       <p>{question.hint}</p>
       <div className="answer-buttons">
-        <button className="button button-lime" type="button" onClick={() => moveTo([...answers, true])}>Yes</button>
-        <button className="button button-outline" type="button" onClick={() => moveTo([...answers, false])}>Not yet</button>
+        <button className="button button-lime" type="button" onClick={() => moveTo([...answers, true])}>yes</button>
+        <button className="button button-outline" type="button" onClick={() => moveTo([...answers, false])}>not yet</button>
       </div>
     </div> : <div className="check-content results">
       <h3 ref={heading} tabIndex={-1}>{answers.filter(Boolean).length} out of {questions.length} in place.</h3>

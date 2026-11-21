@@ -11,7 +11,7 @@ export default function Services() {
     <section className="services wrap" id="services" aria-labelledby="services-title" data-mode={mode}>
       <div className="services-intro">
         <p className="eyebrow section-label">What we do</p>
-        <h2 id="services-title">Where do you<br />want to grow?</h2>
+        <h2 id="services-title">where do you<br />want to grow?</h2>
         <p>Start with the outcome you need. We’ll connect the channels your customers already use.</p>
         <ServiceArt />
       </div>

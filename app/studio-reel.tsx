@@ -5,14 +5,14 @@ import { Mark } from './mark';
 
 const studies = [
   {
-    title: 'The Strain',
+    title: 'the strain',
     type: 'Vyral Labs print exploration',
     image: './art/strain-identity.webp',
     alt: 'Vyral Labs prints in hot pink, ink black and acid lime on textured ivory paper.',
     description: 'An organic mark that holds its own on screen, on paper and at the scale of a poster.',
   },
   {
-    title: 'Kigali in Motion',
+    title: 'kigali in motion',
     type: 'Campaign concept',
     image: './art/kigali-campaign.webp',
     alt: 'A woman in a vivid jacket looks over the hills of Kigali.',
