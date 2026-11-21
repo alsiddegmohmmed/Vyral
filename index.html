@@ -1,0 +1,706 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Vyral Labs Growth Check</title>
+<meta name="description" content="Vyral Labs is a marketing agency in Kigali. Take the 30-second growth check and get a free audit on WhatsApp.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Schibsted+Grotesk:wght@400;500&family=DM+Mono:wght@500&display=swap">
+<style>
+/* Layout: a petri-white studio page where strains drift behind everything. The hero is a working growth check on a white card, held by one large living strain. Ink bands pace the scroll (reach insight, close). One committed light world with ink bands, by choice. */
+:root {
+  --petri: #F5F2F4;     /* ground */
+  --white: #FFFFFF;     /* the card */
+  --ink: #0C0A0D;       /* culture black */
+  --coal: #151116;
+  --mag: #FF3DCB;       /* strain magenta */
+  --mag-deep: #CC0096;  /* magenta for text on light */
+  --lime: #C8FF3D;      /* GFP lime, on ink only */
+  --text-2: #5E5860;    /* secondary on petri and white */
+  --line: #DCD6DA;
+  --line-ink: #2A1D27;
+  --text-ink-2: #B3ABB1;
+  --err: #B4232A;
+  --f-display: "Syne", "Arial Black", system-ui, sans-serif;
+  --f-body: "Schibsted Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "DM Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --gut-l: max(24px, env(safe-area-inset-left, 0px));
+  --gut-r: max(24px, env(safe-area-inset-right, 0px));
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 88px; scrollbar-color: #CFC7CC var(--petri); }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { margin: 0; background: var(--petri); color: var(--ink); font-family: var(--f-body); font-size: 17px; line-height: 1.55; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+::selection { background: var(--mag); color: var(--ink); }
+a { color: inherit; text-underline-offset: .22em; text-decoration-thickness: 1px; }
+:focus-visible { outline: 2px solid var(--mag-deep); outline-offset: 3px; border-radius: 6px; }
+.ink :focus-visible { outline-color: var(--lime); }
+h1, h2, h3, h4 { margin: 0; text-wrap: balance; }
+p { margin: 0; text-wrap: pretty; }
+.in { max-width: 1320px; margin: 0 auto; padding-left: var(--gut-l); padding-right: var(--gut-r); }
+.mono { font-family: var(--f-mono); font-size: 12.5px; letter-spacing: .08em; text-transform: uppercase; font-variant-numeric: tabular-nums; }
+.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.sv svg { display: block; width: 100%; height: 100%; }
+
+/* ---------- floating culture ---------- */
+#float { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+.page { position: relative; z-index: 1; }
+
+/* ---------- buttons ---------- */
+.btn { appearance: none; border: 0; cursor: pointer; font: 500 13px/1 var(--f-mono); letter-spacing: .07em; text-transform: uppercase; padding: 17px 24px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none; white-space: nowrap; transition: transform 160ms var(--ease-out), background-color 200ms ease, color 200ms ease, box-shadow 200ms ease; }
+.btn:active { transform: scale(.97); }
+.btn-ink { background: var(--ink); color: var(--petri); }
+.btn-line { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
+.btn-lime { background: var(--lime); color: var(--ink); }
+@media (hover: hover) and (pointer: fine) {
+  .btn-ink:hover { background: #2A1D27; }
+  .btn-line:hover { background: var(--ink); color: var(--petri); }
+  .btn-lime:hover { background: #D8FF6E; }
+}
+.wa { width: 17px; height: 17px; flex: none; }
+.txt-link { color: var(--ink); font-size: 16px; text-decoration: underline; text-underline-offset: 5px; }
+.ink .txt-link { color: var(--petri); }
+
+/* ---------- header ---------- */
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: var(--petri); }
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: rgba(245, 242, 244, .82); backdrop-filter: blur(14px) saturate(1.2); -webkit-backdrop-filter: blur(14px) saturate(1.2); border-bottom: 1px solid transparent; transition: border-color 300ms ease; }
+.top.scrolled { border-bottom-color: var(--line); }
+.top { transition: border-color 300ms ease, background-color 250ms ease, color 250ms ease; }
+.top.on-ink { background: rgba(12, 10, 13, .86); color: var(--petri); border-bottom-color: var(--line-ink); }
+.top.on-ink nav a { color: var(--text-ink-2); }
+.top.on-ink nav a:hover { color: var(--petri); }
+.top.on-ink .btn-ink { background: var(--petri); color: var(--ink); }
+.top .in { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding-block: 16px; }
+.wm { display: inline-flex; align-items: center; gap: 9px; font-family: var(--f-display); font-weight: 700; font-size: 23px; letter-spacing: -.045em; text-decoration: none; white-space: nowrap; }
+.wm svg { width: 28px; height: 28px; color: var(--mag); }
+.wm i { font-style: normal; font-weight: 700; opacity: .55; }
+.top nav { display: flex; gap: 32px; font-size: 15px; }
+.top nav a { text-decoration: none; color: var(--text-2); transition: color 200ms ease; padding-block: 12px; }
+.top nav a:hover { color: var(--ink); }
+.top .btn { padding: 12px 18px; min-height: 44px; }
+@media (max-width: 920px) { .top nav { display: none; } }
+@media (max-width: 440px) { .top .btn .lbl { display: none; } .top .btn { padding: 12px 16px; min-height: 44px; } }
+
+/* ---------- hero ---------- */
+.hero { overflow: clip; }
+.hero .in { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 600px); grid-template-areas: "copy card" "facts card"; column-gap: clamp(40px, 6vw, 96px); row-gap: 28px; align-items: center; padding-block: clamp(40px, 6vw, 84px) clamp(64px, 8vw, 112px); }
+.hero-copy { grid-area: copy; display: grid; gap: 28px; min-width: 0; align-self: end; }
+.hero h1 { font-family: var(--f-display); font-weight: 700; font-size: clamp(50px, 7.4vw, 108px); line-height: .9; letter-spacing: -.05em; }
+.hero h1 em { font-style: normal; color: var(--mag-deep); }
+.hero-sub { font-size: clamp(18px, 1.5vw, 20px); color: var(--text-2); max-width: 30em; }
+.hero-sub b { color: var(--ink); font-weight: 500; }
+.hero-act { display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: center; }
+.hero-act .txt-link { padding-block: 10px; }
+.facts { position: relative; z-index: 1; grid-area: facts; align-self: start; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; border-top: 1px solid var(--line); padding-top: 16px; font-size: 14.5px; color: var(--text-2); max-width: 560px; }
+.facts b { display: block; color: var(--ink); font-weight: 500; }
+.stagewrap { grid-area: card; position: relative; min-width: 0; }
+.hero-org { position: absolute; width: 132%; aspect-ratio: 1; left: -12%; top: 50%; translate: 0 -50%; color: var(--mag); pointer-events: none; will-change: transform; }
+@media (max-width: 1100px) {
+  .hero .in { grid-template-columns: minmax(0, 1fr); grid-template-areas: "copy" "card" "facts"; row-gap: 36px; padding-top: 28px; }
+  .stagewrap { max-width: none; }
+  .hero .in { max-width: 820px; }
+  .hero-act { display: none; }
+  .hero-org { width: min(92%, 520px); left: auto; right: -14%; top: auto; bottom: 0; translate: none; }
+}
+@media (max-width: 560px) { .hero h1 { font-size: 41px; } .hero-sub .wide { display: none; } .hero-sub { font-size: 16.5px !important; } .q h2 { font-size: 25px; } .yn { order: 2; } .q > p { order: 3; } .hero .in { row-gap: 22px; padding-top: 14px; } .hero-copy { gap: 16px; } .hero-sub { font-size: 17px; } .card { gap: 18px; } .q { gap: 18px; } .facts { grid-template-columns: minmax(0, 1fr); gap: 10px; } }
+
+/* ---------- the check card ---------- */
+.card { position: relative; background: var(--white); border-radius: 18px; box-shadow: 0 1px 0 rgba(12, 10, 13, .06), 0 30px 60px -24px rgba(12, 10, 13, .28); padding: clamp(22px, 3vw, 34px); display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; gap: 22px; overflow: hidden; }
+.bars { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.bars i { height: 4px; border-radius: 2px; background: var(--line); position: relative; overflow: hidden; }
+.bars i::after { content: ""; position: absolute; inset: 0; background: var(--ink); transform: scaleX(0); transform-origin: left; transition: transform 300ms var(--ease-out); }
+.bars i.done::after { transform: scaleX(1); }
+.card-meta { display: flex; justify-content: space-between; align-items: center; gap: 12px; color: var(--text-2); min-height: 24px; }
+.back { appearance: none; border: 0; background: none; padding: 4px 0; color: var(--text-2); font: 500 12.5px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; transition: color 200ms ease; }
+.back:hover { color: var(--ink); }
+.back[hidden] { display: none; }
+.q { display: grid; gap: 22px; align-content: start; transition: transform 220ms var(--ease-out), opacity 220ms var(--ease-out); }
+.q.out { transform: translateX(-14px); opacity: 0; transition-duration: 150ms; }
+.q.in { transform: translateX(14px); opacity: 0; transition: none; }
+.q h2 { font-family: var(--f-display); font-weight: 700; font-size: clamp(27px, 2.7vw, 38px); line-height: 1.04; letter-spacing: -.04em; outline: none; }
+.q p { color: var(--text-2); font-size: 16px; }
+.yn { display: flex; flex-wrap: wrap; gap: 10px; }
+.yn .btn { font-size: 14px; padding: 19px 32px; }
+.res { display: grid; gap: 18px; }
+.res h2 { font-size: clamp(32px, 3.2vw, 44px); }
+.res .strong { color: var(--text-2); font-size: 15.5px; }
+.res .strong b { color: var(--ink); font-weight: 500; }
+.gaps { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; border-top: 1px solid var(--line); }
+.gaps li { position: relative; display: grid; gap: 2px; padding: 11px 0 11px 18px; border-bottom: 1px solid var(--line); font-size: 16px; }
+.gaps li b { font-weight: 500; }
+.gaps li span { color: var(--text-2); font-size: 14.5px; line-height: 1.45; }
+.gaps li .do { color: var(--ink); }
+.gaps li .do::before { content: "→ "; color: var(--mag-deep); }
+.gaps li i.mono { font-style: normal; font-size: 11px; color: var(--mag-deep); margin-bottom: 4px; }
+.more { border-bottom: 1px solid var(--line); }
+.more summary { cursor: pointer; list-style: none; padding: 12px 0; font: 500 12.5px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--text-2); }
+.more summary::-webkit-details-marker { display: none; }
+.more summary::before { content: "+ "; color: var(--mag-deep); }
+.more[open] summary::before { content: "– "; }
+.more .gaps { border-top: 0; }
+.more .gaps li:last-child { border-bottom: 0; }
+.gaps li::before { content: ""; position: absolute; left: 1px; top: 20px; width: 6px; height: 6px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--line); }
+.gaps li.first::before { content: ""; position: absolute; left: 0; top: 37px; width: 8px; height: 8px; border-radius: 50%; background: var(--mag); }
+.send { display: grid; gap: 10px; }
+.field { display: flex; align-items: center; gap: 8px; border-radius: 999px; box-shadow: inset 0 0 0 1px var(--line); padding: 6px 6px 6px 22px; transition: box-shadow 200ms ease; }
+.field:focus-within { box-shadow: inset 0 0 0 1.5px var(--ink); }
+.field input { flex: 1; min-width: 0; border: 0; outline: none; background: none; font: 500 17px var(--f-body); color: var(--ink); padding-block: 10px; }
+.field input::placeholder { color: var(--text-2); }
+.assure { font-size: 14.5px; color: var(--text-2); display: flex; gap: 8px; align-items: flex-start; }
+.assure svg { width: 16px; height: 16px; flex: none; margin-top: 3px; color: var(--ink); }
+.done-msg { display: grid; gap: 10px; padding: 18px 20px; border-radius: 14px; background: var(--petri); }
+.done-msg b { font-family: var(--f-display); font-weight: 700; font-size: 22px; letter-spacing: -.03em; }
+.done-msg p { color: var(--text-2); font-size: 15.5px; }
+.numline { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font-size: 15.5px; }
+.numline output { font-variant-numeric: tabular-nums; font-weight: 500; user-select: all; }
+.copy { appearance: none; border: 0; background: none; padding: 0; font: 500 12.5px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--text-2); cursor: pointer; text-decoration: underline; text-underline-offset: 4px; }
+.again { appearance: none; border: 0; background: none; padding: 12px 0; color: var(--text-2); text-decoration: underline; text-underline-offset: 4px; font: 15px var(--f-body); cursor: pointer; justify-self: start; }
+.lab { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; align-items: end; border-top: 1px solid var(--line); padding-top: 18px; }
+.lab div { display: grid; justify-items: center; gap: 8px; color: var(--text-2); text-align: center; }
+.lab .mono { font-size: 11px; letter-spacing: .05em; line-height: 1.3; white-space: nowrap; }
+.card.done .len { visibility: hidden; }
+.lab .sv { width: clamp(38px, 4vw, 54px); aspect-ratio: 1; color: var(--line); transition: color 300ms ease, transform 300ms var(--ease-out); }
+.lab .sv path { transition: fill 300ms ease, stroke 300ms ease; }
+.lab .yes .sv { color: var(--mag); transform: scale(1.08); }
+.lab .no .sv path { fill: none; stroke: var(--ink); stroke-width: 7; }
+@media (max-width: 560px) {
+  .card-meta .len { display: none; }
+  .card { min-height: 0; }
+  .field { flex-wrap: wrap; border-radius: 20px; padding: 10px; } .field input { padding: 8px 10px; } .field .btn { width: 100%; }
+}
+
+/* ---------- section heads ---------- */
+.sec { padding-block: clamp(84px, 11vw, 160px); }
+.sec.tight { padding-top: 0; }
+.sec-head { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 28px 60px; align-items: end; margin-bottom: clamp(40px, 5vw, 64px); }
+.sec-head h2 { font-family: var(--f-display); font-weight: 700; font-size: clamp(40px, 5.6vw, 84px); line-height: .92; letter-spacing: -.048em; }
+.sec-head h2 em { font-style: normal; color: var(--mag-deep); }
+.sec-head p { color: var(--text-2); max-width: 32em; font-size: 18px; }
+@media (max-width: 820px) { .sec-head { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------- ink bands ---------- */
+.ink { background: var(--ink); color: var(--petri); }
+.ink .sec-head p, .ink .soft { color: var(--text-ink-2); }
+
+/* ---------- reach ---------- */
+.reach .in { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(40px, 6vw, 96px); align-items: center; }
+.reach h2 { font-family: var(--f-display); font-weight: 700; font-size: clamp(38px, 4.6vw, 68px); line-height: .95; letter-spacing: -.045em; }
+.reach h2 em { font-style: normal; color: var(--mag); }
+.reach-copy { display: grid; gap: 28px; min-width: 0; }
+.reach-copy > p { font-size: 18.5px; color: var(--text-ink-2); max-width: 32em; }
+.keys { display: grid; }
+.key { appearance: none; border: 0; background: none; color: var(--text-ink-2); font: inherit; text-align: left; cursor: pointer; display: grid; grid-template-columns: 14px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 14px 0 14px 0; border-top: 1px solid var(--line-ink); transition: color 200ms ease, padding 250ms var(--ease-out); }
+.key:last-child { border-bottom: 1px solid var(--line-ink); }
+.key i { width: 12px; height: 12px; border-radius: 50%; transition: transform 250ms var(--ease-out); }
+.key b { font-family: var(--f-display); font-weight: 700; font-size: clamp(22px, 2.2vw, 28px); letter-spacing: -.03em; color: var(--petri); font-variant-numeric: tabular-nums; }
+.key.on { color: var(--petri); }
+.key.on span { text-decoration: underline; text-decoration-color: var(--mag); text-decoration-thickness: 2px; text-underline-offset: 6px; }
+.key.on i { transform: scale(1.4); }
+.reach-fig { display: grid; gap: 12px; min-width: 0; margin: 0; }
+.reach-fig canvas { width: 100%; max-width: 620px; aspect-ratio: 1; justify-self: center; }
+.reach-fig figcaption { color: #8E8890; text-align: right; font-size: 11.5px; }
+.reach-fig figcaption a { color: var(--text-ink-2); }
+@media (max-width: 900px) { .reach .in { grid-template-columns: minmax(0, 1fr); } .reach-fig figcaption { text-align: left; } }
+
+/* ---------- services ---------- */
+.goals { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0 clamp(20px, 2.6vw, 40px); }
+.goal { display: grid; gap: 4px; align-content: start; border-top: 1.5px solid var(--ink); padding-top: 18px; }
+.goal h3 { font-family: var(--f-display); font-weight: 700; font-size: clamp(26px, 2.4vw, 34px); letter-spacing: -.04em; line-height: 1; margin-bottom: 14px; }
+.svc { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 4px 14px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.svc .sv { width: 30px; height: 30px; color: var(--mag); grid-row: span 2; transition: transform 400ms var(--ease-out); }
+.svc b { font-weight: 500; font-size: 17.5px; }
+.svc span { color: var(--text-2); font-size: 15.5px; line-height: 1.45; }
+@media (hover: hover) and (pointer: fine) { .svc:hover .sv { transform: rotate(-12deg) scale(1.12); } }
+.also { margin-top: 36px; color: var(--text-2); max-width: 64em; }
+.also b { color: var(--ink); font-weight: 500; }
+@media (max-width: 1000px) { .goals { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 40px; } }
+@media (max-width: 600px) { .goals { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------- who ---------- */
+.vm { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(28px, 5vw, 80px); }
+.vm article { display: grid; gap: 14px; align-content: start; border-top: 1px solid var(--line); padding-top: 20px; }
+.vm h3 { display: flex; align-items: center; gap: 12px; font-family: var(--f-display); font-weight: 700; font-size: 26px; letter-spacing: -.035em; }
+.vm h3 .sv { width: 34px; height: 34px; color: var(--mag); }
+.vm p { font-size: clamp(19px, 1.7vw, 23px); line-height: 1.4; letter-spacing: -.01em; }
+@media (max-width: 760px) { .vm { grid-template-columns: minmax(0, 1fr); } }
+.flow-wrap { margin-top: clamp(64px, 8vw, 112px); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2.4fr); gap: 28px clamp(40px, 6vw, 96px); align-items: start; }
+.flow-wrap h3 { font-family: var(--f-display); font-weight: 700; font-size: clamp(30px, 3vw, 44px); line-height: .98; letter-spacing: -.04em; max-width: 9ch; }
+.flow-wrap h3 em { font-style: normal; color: var(--mag-deep); }
+.flow { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(20px, 2.4vw, 36px); counter-reset: f; }
+.flow li { counter-increment: f; display: grid; gap: 10px; align-content: start; padding-top: 16px; border-top: 1.5px solid var(--ink); }
+.flow li::before { content: "step " counter(f) " of 3"; font-family: var(--f-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--text-2); }
+.flow b { font-family: var(--f-display); font-weight: 700; font-size: clamp(22px, 1.9vw, 27px); letter-spacing: -.035em; line-height: 1.05; }
+.flow p { color: var(--text-2); font-size: 16px; }
+@media (max-width: 1100px) { .flow-wrap { grid-template-columns: minmax(0, 1fr); } .flow-wrap h3 { max-width: none; } }
+.promise { margin-top: clamp(56px, 7vw, 96px); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 32px clamp(40px, 6vw, 96px); align-items: center; }
+.promise h3 { font-family: var(--f-display); font-weight: 700; font-size: clamp(30px, 3vw, 44px); line-height: .98; letter-spacing: -.04em; }
+.promise h3 em { font-style: normal; color: var(--mag-deep); }
+.promise-copy { display: grid; gap: 16px; }
+.promise-copy p { color: var(--text-2); font-size: 17.5px; max-width: 30em; }
+.sample { margin: 0; background: var(--white); border-radius: 16px 16px 16px 4px; padding: clamp(20px, 2.4vw, 28px); box-shadow: 0 1px 0 rgba(12, 10, 13, .05), 0 18px 40px -22px rgba(12, 10, 13, .25); display: grid; gap: 12px; font-size: 16px; }
+.sample figcaption { color: var(--mag-deep); font-size: 11.5px; }
+.sample ol { margin: 0; padding-left: 20px; display: grid; gap: 10px; color: var(--text-2); }
+.sample ol b { color: var(--ink); font-weight: 500; }
+.sample-end { color: var(--ink); }
+@media (max-width: 900px) { .promise { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 640px) { .flow { grid-template-columns: minmax(0, 1fr); gap: 0; } .flow li { padding-block: 16px 20px; border-top-width: 1px; border-top-color: var(--line); } .flow li:first-child { border-top: 1.5px solid var(--ink); } }
+
+
+/* ---------- faq ---------- */
+.faq { border-top: 1px solid var(--line); }
+.fq { border-bottom: 1px solid var(--line); }
+.fq button { all: unset; box-sizing: border-box; cursor: pointer; width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 20px; padding-block: 22px; font-family: var(--f-display); font-weight: 700; font-size: clamp(21px, 2vw, 27px); letter-spacing: -.03em; }
+.fq button:focus-visible { outline: 2px solid var(--mag-deep); outline-offset: 2px; }
+.fq .pm { width: 34px; height: 34px; flex: none; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--line); position: relative; transition: transform 300ms var(--ease-out), box-shadow 200ms ease; }
+.fq .pm::before, .fq .pm::after { content: ""; position: absolute; left: 50%; top: 50%; width: 12px; height: 1.5px; background: var(--ink); translate: -50% -50%; }
+.fq .pm::after { rotate: 90deg; }
+.fq.open .pm { transform: rotate(45deg); box-shadow: inset 0 0 0 1.5px var(--ink); }
+.fq-body { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 300ms var(--ease-out); }
+.fq.open .fq-body { grid-template-rows: 1fr; }
+.fq-body > div { overflow: hidden; }
+.fq-body p { padding-bottom: 24px; color: var(--text-2); max-width: 62ch; font-size: 17.5px; }
+
+/* ---------- close ---------- */
+.close { position: relative; overflow: hidden; }
+.close > .in { position: relative; z-index: 1; display: grid; gap: 28px; padding-block: clamp(96px, 12vw, 180px) clamp(140px, 16vw, 240px); }
+.close h2 { font-family: var(--f-display); font-weight: 800; font-size: clamp(56px, 10vw, 156px); line-height: .84; letter-spacing: -.055em; max-width: 9ch; }
+.close h2 em { font-style: normal; color: var(--mag-deep); }
+.close .soft { font-size: 19px; max-width: 30em; color: var(--text-2); }
+.close-send { display: grid; gap: 14px; max-width: 580px; }
+.close .field { background: var(--white); }
+.close-org { position: absolute; right: -7%; bottom: 5%; width: min(44vw, 620px); aspect-ratio: 1; color: var(--mag); pointer-events: none; z-index: 0; will-change: transform; }
+@media (max-width: 900px) { .close > .in { padding-bottom: calc(56vw + 40px); } .close-org { right: -22%; bottom: 2%; width: 72vw; } }
+@media (max-width: 560px) { .close .field { flex-wrap: wrap; border-radius: 22px; } }
+.close { border-top: 1px solid var(--line); }
+footer { position: relative; z-index: 1; border-top: 1px solid var(--line); background: var(--petri); }
+footer .in { display: flex; justify-content: space-between; align-items: center; gap: 18px; flex-wrap: wrap; padding-block: 28px; color: var(--text-2); font-size: 15px; }
+footer .wm { color: var(--ink); font-size: 20px; }
+footer .wm svg { color: var(--mag); }
+.foot-meta { display: flex; flex-wrap: wrap; gap: 6px 24px; align-items: center; }
+.foot-meta a { color: var(--ink); text-decoration: none; display: inline-flex; align-items: center; gap: 8px; padding-block: 10px; font-variant-numeric: tabular-nums; }
+.foot-meta a svg { color: var(--mag-deep); }
+@media (hover: hover) and (pointer: fine) { .foot-meta a:hover { text-decoration: underline; } }
+
+@media (prefers-reduced-motion: reduce) { .q, .fq-body { transition-duration: 1ms; } .q.out, .q.in { transform: none; } }
+</style>
+
+</head>
+<body>
+<canvas id="float" aria-hidden="true"></canvas>
+
+<div class="page">
+<header class="top" id="top">
+  <div class="in">
+    <a class="wm" href="#check" aria-label="vyral labs home"><svg data-sym viewBox="20 22 216 216" aria-hidden="true"></svg>vyral<i>labs</i></a>
+    <nav aria-label="Main"><a href="#services">services</a><a href="#about">about</a></nav>
+    <a class="btn btn-ink" href="#card"><span class="lbl">get my </span>free audit</a>
+  </div>
+</header>
+
+<main>
+  <!-- 1 · hero: the growth check -->
+  <section class="hero" id="check" aria-labelledby="h1">
+    <div class="in">
+      <div class="hero-copy">
+        <h1 id="h1">online presence that <em>spreads.</em></h1>
+        <p class="hero-sub">Vyral Labs is a marketing agency in Kigali. <span class="wide">We help businesses get seen, found and chosen. </span><b>Take the 30-second growth check</b> to see where yours stands.</p>
+        <div class="hero-act"><a class="btn btn-ink" href="#card" id="startCheck">take the 30-second check</a><a class="txt-link" href="#services">see the services</a></div>
+      </div>
+      <div class="stagewrap">
+        <div class="hero-org" id="heroOrg" aria-hidden="true"><svg viewBox="20 22 216 216"><path fill-rule="evenodd" fill="currentColor"/></svg></div>
+        <div class="card" id="card" role="region" aria-labelledby="cardTitle">
+          <span class="vh" id="cardTitle">Growth check, 5 questions</span>
+          <div class="bars" id="bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="card-meta mono"><span id="step" aria-live="polite">question 1 of 5</span><button class="back" id="back" type="button" hidden>← back</button><span class="len">30 seconds</span></div>
+          <div class="q" id="q"></div>
+          <div class="lab" id="lab" aria-hidden="true"></div>
+        </div>
+      </div>
+      <div class="facts"><div><b>Based in Kigali</b>Face to face when you need it</div><div><b>Free audit</b>No commitment</div><div><b>One team</b>Brand, social, ads, search, web</div></div>
+    </div>
+  </section>
+
+  <!-- 2 · reach insight -->
+  <section class="ink reach sec" aria-labelledby="reach-h">
+    <div class="in">
+      <div class="reach-copy">
+        <h2 id="reach-h">most internet users in rwanda aren't on <em>social media.</em></h2>
+        <p>Social media is one channel. Google, maps and AI answers reach the people who aren't on it, and we grow your presence across all of them.</p>
+        <div class="keys" id="keys">
+          <button class="key" type="button" data-l="0" aria-pressed="false"><i style="background:#6A5664"></i><span>mobile connections</span><b>13.3M</b></button>
+          <button class="key" type="button" data-l="1" aria-pressed="false"><i style="background:#F5F2F4"></i><span>internet users</span><b>4.93M</b></button>
+          <button class="key on" type="button" data-l="2" aria-pressed="true"><i style="background:#FF3DCB"></i><span>social media accounts</span><b>1.30M</b></button>
+        </div>
+      </div>
+      <figure class="reach-fig">
+        <canvas id="reach" role="img" aria-label="A strain made of dots, one per 50,000: 266 mobile connections, of which 99 are internet users, of which 26 are social media accounts."></canvas>
+        <figcaption class="mono">1 dot = 50,000 · many people have more than one SIM · <a href="https://datareportal.com/reports/digital-2025-rwanda">DataReportal, Digital 2025: Rwanda</a></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- 3 · services -->
+  <section class="sec" id="services" aria-labelledby="svc-h">
+    <div class="in">
+      <div class="sec-head"><h2 id="svc-h">ten services, <em>one team.</em></h2><p>Grouped by what you want to happen, so you can start from your goal.</p></div>
+      <div class="goals" id="goals"></div>
+      <p class="also"><b>Also on offer:</b> influencer and creator content, marketing strategy and audits, custom web apps and workflow automation. If it's marketing and it isn't listed, ask and we'll scope it.</p>
+    </div>
+  </section>
+
+  <!-- 5 · who we are -->
+  <section class="sec tight who" id="about" aria-label="About Vyral Labs">
+    <div class="in">
+      <div class="vm">
+        <article><h3><span class="sv" data-name="our vision"></span>our vision</h3><p>To be the growth lab African brands trust, starting in Kigali, and to grow brands people can't stop talking about.</p></article>
+        <article><h3><span class="sv" data-name="our mission"></span>our mission</h3><p>To build brands that lead their category, with sharp strategy, standout creative and growth you can measure.</p></article>
+      </div>
+      <div class="flow-wrap">
+        <h3>how the free audit <em>works.</em></h3>
+        <ol class="flow">
+          <li><b>you message us</b><p>Take the growth check or just say hi on WhatsApp. Tell us your business name.</p></li>
+          <li><b>we look</b><p>The Vyral team reviews your social media, Google and maps, AI answers and any ads you run.</p></li>
+          <li><b>you get your fixes</b><p>A short list of what we'd change first, sent on WhatsApp within 24 hours. No commitment, no fee.</p></li>
+        </ol>
+      </div>
+      <div class="promise">
+        <div class="promise-copy"><h3>we reply within <em>24 hours.</em></h3><p>Every audit is written by the Vyral team for your business, and sent on WhatsApp. Here's the shape of one.</p></div>
+        <figure class="sample" aria-label="Sample audit message">
+          <figcaption class="mono">sample · what an audit looks like</figcaption>
+          <p>Hi, here's your free audit. Three things we'd change first:</p>
+          <ol>
+            <li><b>Google Maps.</b> Your listing isn't claimed, so nearby searches show other places first. We'd claim it and add photos, hours and what you sell.</li>
+            <li><b>WhatsApp.</b> Ordering takes a lot of back and forth. A catalog and quick replies would make it a few taps.</li>
+            <li><b>Instagram.</b> Posts have gone quiet. A weekly plan keeps you in people's feeds.</li>
+          </ol>
+          <p class="sample-end">Want us to start on the first one?</p>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 · faq -->
+  <section class="sec tight" aria-labelledby="f-h">
+    <div class="in">
+      <div class="sec-head"><h2 id="f-h">good <em>questions.</em></h2><p>Questions you might have before the audit.</p></div>
+      <div class="faq" id="faq">
+        <div class="fq"><button id="fqb1" aria-expanded="false" aria-controls="fq1">What's in the free audit?<span class="pm" aria-hidden="true"></span></button><div class="fq-body" id="fq1" role="region" aria-labelledby="fqb1"><div><p>We look at your social media, your Google and maps presence, whether AI assistants mention you, and any ads you run. You get a short list of what we'd change first, on WhatsApp. No commitment.</p></div></div></div>
+        <div class="fq"><button id="fqb2" aria-expanded="false" aria-controls="fq2">How much does it cost?<span class="pm" aria-hidden="true"></span></button><div class="fq-body" id="fq2" role="region" aria-labelledby="fqb2"><div><p>Work is usually month to month. We quote after the free audit, once we know your goal and which channels matter, so you only pay for what moves your business.</p></div></div></div>
+        <div class="fq"><button id="fqb3" aria-expanded="false" aria-controls="fq3">Who do you work with?<span class="pm" aria-hidden="true"></span></button><div class="fq-body" id="fq3" role="region" aria-labelledby="fqb3"><div><p>Restaurants and cafés, shops and supermarkets, hotels and real estate, and service businesses like clinics, salons, schools and gyms. If it markets, we grow it.</p></div></div></div>
+        <div class="fq"><button id="fqb4" aria-expanded="false" aria-controls="fq4">Do I have to be on Instagram?<span class="pm" aria-hidden="true"></span></button><div class="fq-body" id="fq4" role="region" aria-labelledby="fqb4"><div><p>No. Plenty of customers find businesses through Google, maps and AI answers. We put you where your customers look, and social media is one part of that.</p></div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 · close -->
+  <section class="close" id="join" aria-labelledby="c-h">
+    <div class="close-org" id="closeOrg" aria-hidden="true"><svg viewBox="20 22 216 216"><path fill-rule="evenodd" fill="currentColor"/></svg></div>
+    <div class="in">
+      <h2 id="c-h">your brand, <em>next.</em></h2>
+      <p class="soft">Tell us your business name and we'll start the chat on WhatsApp. We reply with your free audit within 24 hours.</p>
+      <div class="close-send" id="closeSend"></div>
+    </div>
+    <footer>
+      <div class="in">
+        <a class="wm" href="#check"><svg data-sym viewBox="20 22 216 216" aria-hidden="true"></svg>vyral<i>labs</i></a>
+        <div class="foot-meta"><span>Kigali, Rwanda</span><a data-wa="general" data-foot href="#join" target="_blank" rel="noopener"><svg class="wa" data-waicon viewBox="0 0 24 24" aria-hidden="true"></svg><span data-num>WhatsApp</span></a></div>
+      </div>
+    </footer>
+  </section>
+</main>
+</div>
+
+
+<script>
+(function () {
+  // ---------- Vyral's WhatsApp number: international format, digits only ----------
+  const WA_NUMBER = '250780586157';
+  const WA_SHOW = '+' + WA_NUMBER.replace(/^(\d{3})(\d{3})(\d{3})(\d{3})$/, '$1 $2 $3 $4');
+  const waUrl = text => `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(text)}`;
+  const WA_ICON = '<path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.6 2.6 0 0 0 1.7-1.2 2.1 2.1 0 0 0 .2-1.2c-.1-.1-.3-.2-.5-.3Z"/>';
+  const LOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+  document.querySelectorAll('[data-waicon]').forEach(s => s.innerHTML = WA_ICON);
+  document.querySelectorAll('[data-num]').forEach(s => s.textContent = WA_SHOW);
+
+  // ---------- strain geometry (the Strain kit generator) ----------
+  const f = n => (Math.round(n * 100) / 100).toString();
+  function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  function coef(seed) { const r = rng(seed * 7919 + 13); return [2, 3, 4, 5, 7].map(k => ({ k, a: .018 + r() * .05, p: r() * Math.PI * 2 })); }
+  function seedFromName(name) { let h = 0x811c9dc5; for (const ch of name.trim().toLowerCase()) { h ^= ch.codePointAt(0); h = Math.imul(h, 0x01000193) >>> 0; } return (h % 9999) + 1; }
+  function pts(co, t = 0, n = 72) { const R = 94, cx = 128, cy = 130, p = []; for (let i = 0; i < n; i++) { const th = i / n * Math.PI * 2; let rr = 1; co.forEach(c => { rr += c.a * Math.sin(c.k * th + c.p + t * (0.35 + c.k * 0.11)); }); p.push([cx + R * rr * Math.cos(th), cy + R * rr * Math.sin(th)]); } return p; }
+  function outline(co, t = 0, n = 72) { const P = pts(co, t, n); let d = `M${f(P[0][0])},${f(P[0][1])}`;
+    for (let i = 0; i < n; i++) { const p0 = P[(i - 1 + n) % n], p1 = P[i], p2 = P[(i + 1) % n], p3 = P[(i + 2) % n];
+      d += `C${f(p1[0] + (p2[0] - p0[0]) / 6)},${f(p1[1] + (p2[1] - p0[1]) / 6)} ${f(p2[0] - (p3[0] - p1[0]) / 6)},${f(p2[1] - (p3[1] - p1[1]) / 6)} ${f(p2[0])},${f(p2[1])}`; } return d + 'Z'; }
+  const NUC = 'M174,102A16,16 0 1 0 142,102A16,16 0 1 0 174,102Z';
+  const sd = n => n === 'master' ? 1 : seedFromName(n);
+  const svg = n => `<svg viewBox="20 22 216 216" aria-hidden="true"><path fill-rule="evenodd" fill="currentColor" d="${outline(coef(sd(n))) + NUC}"/></svg>`;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const fine = matchMedia('(hover: hover) and (pointer: fine)').matches;
+  const MASTER = outline(coef(1)) + NUC;
+  document.querySelectorAll('svg[data-sym]').forEach(s => s.innerHTML = `<path fill-rule="evenodd" fill="currentColor" d="${MASTER}"/>`);
+  document.querySelectorAll('.sv[data-name]').forEach(el => el.innerHTML = svg(el.dataset.name));
+  const sess = { get(k) { try { return JSON.parse(sessionStorage.getItem(k)); } catch (e) { return null; } }, set(k, v) { try { sessionStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
+  try { localStorage.removeItem('vyral-sent'); } catch (e) {}
+  const store = { get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
+  const clean = s => s.replace(/[<>"]/g, '').replace(/\s+/g, ' ').trim().slice(0, 60);
+  const esc = s => s.replace(/&/g, '&amp;');
+
+  // ---------- content ----------
+  const SVC = {
+    'brand identity': 'Names, logos and visual systems people remember.',
+    'campaigns': 'Launches and seasonal pushes, planned end to end.',
+    'social media': 'A feed that looks like a brand, posted on schedule.',
+    'content + reels': 'Reels and edits people watch to the end.',
+    'instagram + facebook ads': 'Instagram and Facebook campaigns built to sell.',
+    'search + ai answers': 'Found on Google and maps, and named in AI answers.',
+    'google ads': 'Show up when people search for what you sell.',
+    'websites': 'Sites and landing pages that turn visits into enquiries.',
+    'whatsapp': 'Catalogs, quick replies and booking flows.',
+    'email': 'Newsletters and sequences that bring people back.'
+  };
+  const GOALS = [['be remembered', ['brand identity', 'campaigns']], ['be seen', ['social media', 'content + reels', 'instagram + facebook ads']], ['be found', ['search + ai answers', 'google ads']], ['be chosen', ['websites', 'whatsapp', 'email']]];
+  document.getElementById('goals').innerHTML = GOALS.map(([g, list]) => `<div class="goal"><h3>${g}</h3>${list.map(n => `<div class="svc"><span class="sv">${svg(n)}</span><b>${n}</b><span>${SVC[n]}</span></div>`).join('')}</div>`).join('');
+
+  // ---------- growth check ----------
+  // [short label, plain phrase, service, question, hint]; priority = order we'd fix gaps in.
+  const Q = [
+    ['brand', 'a consistent brand', 'brand identity', 'Does your brand look the same on every post, sign and page?', 'Logo, colours and tone, used the same way everywhere.', 'A brand that looks different everywhere is harder to remember and to trust.', 'We\'d build one logo, colour and type kit and roll it out everywhere.'],
+    ['posting', 'posting every week', 'social media', 'Do you post on social media at least once a week?', 'On the platforms your customers actually use.', 'When a page goes quiet, people assume the business has too.', 'We\'d plan a month of posts and reels and keep you on schedule.'],
+    ['maps', 'showing up on Google Maps', 'search + ai answers', 'Do you show up on Google Maps when people search for what you sell?', 'Try searching your category plus "Kigali".', 'People searching for what you sell nearby find someone else first.', 'We\'d claim and fill in your Google Maps listing: photos, hours and what you sell.'],
+    ['ai', 'being named in AI answers', 'search + ai answers', 'If someone asks an AI assistant like ChatGPT for the best place like yours in Kigali, does it name you?', 'Not sure counts as not yet. It\'s one of the newest ways people find businesses.', 'People who ask an assistant where to go won\'t hear your name.', 'We\'d make sure the pages AI assistants read describe you clearly and name your area.'],
+    ['whatsapp', 'ordering on WhatsApp', 'whatsapp', 'Can a customer order or book with you on WhatsApp in under a minute?', 'A catalog, quick replies and a clear way to pay.', 'Every extra step between hello and order is a chance to lose the sale.', 'We\'d set up your catalog, quick replies and a simple way to order or book.']
+  ];
+  const PRIORITY = [2, 4, 1, 0, 3];
+  const q = document.getElementById('q'), lab = document.getElementById('lab'), bars = [...document.getElementById('bars').children], step = document.getElementById('step'), back = document.getElementById('back');
+  lab.innerHTML = Q.map(x => `<div><span class="sv">${svg(x[0])}</span><span class="mono">${x[0]}</span></div>`).join('');
+  const cells = [...lab.children];
+  let qi = 0, ans = [];
+  const card = document.getElementById('card'), startBtn = document.getElementById('startCheck');
+  // each answered step is a history entry, so the phone's back gesture steps back through the check
+  // entries are tagged with this page load, so entries left over from a reload are skipped
+  const LOAD = Math.random().toString(36).slice(2);
+  try { history.replaceState({ vc: 0, id: LOAD }, ''); } catch (e) {}
+  const push = n => { try { history.pushState({ vc: n, id: LOAD }, ''); } catch (e) {} };
+  const inCheck = () => { try { return !!history.state && history.state.id === LOAD; } catch (e) { return false; } };
+  function setDone(on) { card.classList.toggle('done', on); startBtn.textContent = on ? 'see your result' : 'take the 30-second check'; }
+  const gapsOf = a => PRIORITY.filter(i => a[i] === false);
+
+  // WhatsApp message built from whatever we know
+  function message(kind, biz) {
+    const name = biz ? ` for ${biz}` : '';
+    const a = store.get('vyral-check');
+    if (Array.isArray(a) && a.length === 5) {
+      const yes = a.filter(Boolean).length, gaps = gapsOf(a).map(i => Q[i][1]);
+      return `Hi Vyral, I'd like my free audit${name}. I took the growth check: strong on ${yes} of 5.` + (gaps.length ? ` Gaps: ${gaps.join(', ')}.` : '');
+    }
+    return `Hi Vyral, I'd like my free audit${name}.`;
+  }
+  function wireLinks() { document.querySelectorAll('[data-wa]').forEach(a => a.href = waUrl(message(a.dataset.wa))); document.querySelectorAll('[data-assure]').forEach(el => el.textContent = assureText()); }
+
+  // one send block, used in the result and the close
+  const hasCheck = () => { const a = store.get('vyral-check'); return Array.isArray(a) && a.length === 5; };
+  const assureText = () => `Opens WhatsApp with ${hasCheck() ? 'your answers typed in' : 'a message ready to send'}. You chat with the Vyral team, and we never share your number.`;
+  function sendBlock(id) {
+    return `<div class="send" data-send="${id}">
+      <div class="field"><label class="vh" for="biz-${id}">Your business name (optional)</label><input id="biz-${id}" autocomplete="organization" maxlength="60" placeholder="your business name (optional)">
+        <a class="btn btn-ink" href="#" data-open="${id}" target="_blank" rel="noopener"><svg class="wa" viewBox="0 0 24 24" aria-hidden="true">${WA_ICON}</svg>get my free audit</a></div>
+      <p class="assure">${LOCK}<span data-assure>${assureText()}</span></p></div>`;
+  }
+  function doneBlock(biz) {
+    return `<div class="done-msg" tabindex="-1"><b>Did WhatsApp open?</b><p>Send the message there and we'll reply with ${biz ? `the free audit for ${esc(biz)}` : 'your free audit'}. If it didn't open, message us on this number.</p>
+      <div class="numline"><output>${WA_SHOW}</output><button class="copy" type="button" data-copy>copy number</button><a class="txt-link" data-open-again href="#" target="_blank" rel="noopener">open WhatsApp again</a></div></div>`;
+  }
+  function bindSend(root) {
+    root.querySelectorAll('[data-send]').forEach(box => {
+      const input = box.querySelector('input'), a = box.querySelector('[data-open]');
+      const refresh = () => { a.href = waUrl(message('', clean(input.value))); };
+      input.addEventListener('input', refresh); refresh();
+      a.addEventListener('click', () => {
+        const biz = clean(input.value); a.href = waUrl(message('', biz)); sess.set('vyral-sent', { biz, at: Date.now() });
+        setTimeout(() => { box.outerHTML = doneBlock(biz); const d = root.querySelector('.done-msg'); bindDone(d, biz); d.focus({ preventScroll: true }); }, 60);
+      });
+    });
+  }
+  function bindDone(d, biz) {
+    if (!d) return;
+    const again = d.querySelector('[data-open-again]'); if (again) again.href = waUrl(message('', biz));
+    const c = d.querySelector('[data-copy]');
+    if (c) c.addEventListener('click', () => { const out = d.querySelector('output');
+      const ok = () => { c.textContent = 'copied'; setTimeout(() => c.textContent = 'copy number', 1600); };
+      try { navigator.clipboard.writeText(WA_SHOW).then(ok, () => { getSelection().selectAllChildren(out); }); } catch (e) { getSelection().selectAllChildren(out); } });
+  }
+
+  function swap(html, after) {
+    const put = () => { q.innerHTML = html; if (after) after(); };
+    if (reduce) { put(); return; }
+    q.classList.add('out');
+    setTimeout(() => { put(); q.classList.remove('out'); q.classList.add('in'); void q.offsetWidth; q.classList.remove('in'); }, 150);
+  }
+  function paintLab() { cells.forEach((c, i) => { c.classList.toggle('yes', ans[i] === true); c.classList.toggle('no', ans[i] === false); }); bars.forEach((b, i) => b.classList.toggle('done', ans[i] !== undefined)); }
+  function ask(first) {
+    const [, , , text, hint] = Q[qi];
+    step.textContent = `question ${qi + 1} of 5`; back.hidden = qi === 0; setDone(false);
+    const html = `<h2 id="qh" tabindex="-1">${text}</h2><p>${hint}</p><div class="yn"><button class="btn btn-ink" type="button" data-a="1" aria-describedby="qh">yes</button><button class="btn btn-line" type="button" data-a="0">not yet</button></div>`;
+    first ? (q.innerHTML = html) : swap(html, () => { const t = fine ? q.querySelector('[data-a="1"]') : q.querySelector('h2'); if (t) t.focus({ preventScroll: true }); });
+  }
+  const gapLi = (i, k) => `<li class="${k === 0 ? 'first' : ''}">${k === 0 ? '<i class="mono">your audit starts here</i>' : ''}<b>${Q[i][1]}</b><span>${Q[i][5]}</span><span class="do">${Q[i][6]}</span></li>`;
+  function result(first, welcome) {
+    const yes = ans.filter(Boolean).length, gaps = gapsOf(ans);
+    store.set('vyral-check', ans); wireLinks();
+    step.textContent = welcome ? 'welcome back · your last result' : 'your result'; back.hidden = true; setDone(true);
+    const sent = sess.get('vyral-sent');
+    const list = gaps.length ? `<p>${gaps.length === 1 ? 'One thing to fix:' : gaps.length === 5 ? 'Most important first:' : 'Where to grow, most important first:'}</p><ul class="gaps">${gaps.slice(0, 2).map(gapLi).join('')}</ul>${gaps.length > 2 ? `<details class="more"><summary>${gaps.length - 2} more to grow</summary><ul class="gaps">${gaps.slice(2).map((i, k) => gapLi(i, k + 2)).join('')}</ul></details>` : ''}`
+      : `<p>You've got the basics. The free audit shows where to spread next: ads, reels or new channels.</p>`;
+    const good = Q.map((x, i) => i).filter(i => ans[i] === true).map(i => Q[i][1]);
+    const strong = yes > 0 && yes < 5 ? `<p class="strong"><b>Already working:</b> ${good.join(', ')}.</p>` : '';
+    const head = yes === 5 ? 'You\'re strong on all 5.' : yes === 0 ? 'Five quick wins to grow.' : `You're strong on ${yes} of 5.`;
+    const html = `<div class="res"><h2 tabindex="-1">${head}</h2>${strong}${list}
+      <div class="send-slot">${sent ? doneBlock(sent.biz) : sendBlock('res')}</div>
+      <button class="again" type="button">take the check again</button></div>`;
+    const after = () => { const slot = q.querySelector('.send-slot'); sent ? bindDone(slot.querySelector('.done-msg'), sent.biz) : bindSend(slot); const h = q.querySelector('h2'); if (!first) h.focus({ preventScroll: true }); };
+    first ? (q.innerHTML = html, after()) : swap(html, after);
+  }
+  q.addEventListener('click', e => {
+    const b = e.target.closest('[data-a]');
+    if (b) { ans[qi] = b.dataset.a === '1'; paintLab(); qi++; push(qi); qi < Q.length ? ask() : result(); return; }
+    if (e.target.closest('.again')) { const n = inCheck() ? history.state.vc : 0; qi = 0; ans = []; store.set('vyral-check', null); wireLinks(); paintLab(); ask(); if (n > 0) { rewinding = true; try { history.go(-n); } catch (e) { rewinding = false; } }
+      if (card.getBoundingClientRect().top < 90) card.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' }); }
+  });
+  function stepBack(to) { if (to >= qi) return; qi = Math.max(0, to); ans.length = qi; store.set('vyral-check', null); wireLinks(); paintLab(); ask(); }
+  back.addEventListener('click', () => { if (qi === 0) return; if (inCheck() && history.state.vc === qi) history.back(); else stepBack(qi - 1); });
+  let rewinding = false;
+  addEventListener('popstate', e => {
+    if (rewinding) { rewinding = false; return; }
+    const st = e.state;
+    if (!st || st.id !== LOAD) { try { history.back(); } catch (x) {} return; }
+    stepBack(st.vc);
+  });
+  startBtn.addEventListener('click', e => { e.preventDefault();
+    card.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' }); const t = card.querySelector('[data-a="1"], .res h2'); if (t) setTimeout(() => t.focus({ preventScroll: true }), reduce ? 0 : 450); });
+  const saved = store.get('vyral-check');
+  if (Array.isArray(saved) && saved.length === 5) { ans = saved; qi = 5; paintLab(); result(true, true); } else ask(true);
+
+  // close section send block
+  const closeSend = document.getElementById('closeSend');
+  const sentNow = sess.get('vyral-sent');
+  closeSend.innerHTML = sentNow ? doneBlock(sentNow.biz) : sendBlock('end');
+  sentNow ? bindDone(closeSend.querySelector('.done-msg'), sentNow.biz) : bindSend(closeSend);
+  wireLinks();
+
+  // ---------- header ----------
+  const top = document.getElementById('top');
+  addEventListener('scroll', () => { top.classList.toggle('scrolled', scrollY > 8); }, { passive: true });
+  // header and phone-bar buttons lead into the check (or its send box) instead of skipping it
+  document.querySelectorAll('.top .btn').forEach(b => b.addEventListener('click', e => {
+    e.preventDefault();
+    const target = q.querySelector('.res input, .res .done-msg') ? card.querySelector('.send-slot') : card;
+    target.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: target === card ? 'start' : 'center' });
+    const f = target.querySelector('input, [data-a="1"]'); if (f && fine) setTimeout(() => f.focus({ preventScroll: true }), reduce ? 0 : 450);
+  }));
+  // header goes ink over the ink bands
+  const inks = new Set();
+  const inkObs = new IntersectionObserver(es => { es.forEach(x => x.isIntersecting ? inks.add(x.target) : inks.delete(x.target)); top.classList.toggle('on-ink', inks.size > 0); }, { rootMargin: '-30px 0px -92% 0px' });
+  document.querySelectorAll('section.ink').forEach(el => inkObs.observe(el));
+
+  // ---------- faq ----------
+  document.getElementById('faq').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; const fq = b.parentElement, on = !fq.classList.contains('open'); fq.classList.toggle('open', on); b.setAttribute('aria-expanded', on); });
+
+  // ================= reach map =================
+  (function () {
+    const cv = document.getElementById('reach'), cx = cv.getContext('2d');
+    const P = pts(coef(1), 0, 180).map(([x, y]) => [(x - 20) / 216 * 700, (y - 22) / 216 * 700]);
+    const inside = (x, y) => { let c = false; for (let i = 0, j = P.length - 1; i < P.length; j = i++) { const [xi, yi] = P[i], [xj, yj] = P[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; };
+    const nx = (158 - 20) / 216 * 700, ny = (102 - 22) / 216 * 700, nr = 16 / 216 * 700;
+    const N = 266, NET = 99, SOC = 26, r = rng(42), dots = []; let guard = 0;
+    while (dots.length < N && guard++ < 300000) { const x = 20 + r() * 660, y = 20 + r() * 660;
+      if (!inside(x, y) || Math.hypot(x - nx, y - ny) < nr + 10) continue;
+      if (dots.some(d => Math.hypot(d.x - x, d.y - y) < 24)) continue; dots.push({ x, y }); }
+    dots.sort((a, b) => Math.hypot(a.x - nx, a.y - ny) - Math.hypot(b.x - nx, b.y - ny));
+    const COL = ['#6A5664', '#F5F2F4', '#FF3DCB'];
+    let layer = 2, t0 = 0, started = false;
+    dots.forEach((d, k) => { d.tier = k < SOC ? 2 : k < NET ? 1 : 0; d.delay = k * 4; d.a = d.tier >= layer ? 1 : .15; });
+    let W = 0, dpr = 1;
+    function size() { const b = cv.getBoundingClientRect(); dpr = Math.min(devicePixelRatio || 1, 2); W = b.width; cv.width = Math.round(W * dpr); cv.height = Math.round(W * dpr); draw(performance.now()); }
+    function draw(now) {
+      if (!W) return; const s = W / 700; cx.setTransform(dpr * s, 0, 0, dpr * s, 0, 0); cx.clearRect(0, 0, 700, 700);
+      cx.beginPath(); P.forEach(([x, y], i) => i ? cx.lineTo(x, y) : cx.moveTo(x, y)); cx.closePath(); cx.strokeStyle = '#2A1D27'; cx.lineWidth = 1.2; cx.stroke();
+      cx.beginPath(); cx.arc(nx, ny, nr, 0, 6.283); cx.stroke();
+      let busy = false;
+      dots.forEach(d => {
+        const show = reduce ? 1 : !started ? 0 : Math.min(1, Math.max(0, (now - t0 - d.delay) / 420)); if (started && show < 1) busy = true;
+        const e = 1 - Math.pow(1 - show, 3), want = d.tier >= layer ? 1 : .15;
+        d.a += (want - d.a) * (reduce ? 1 : .2); if (Math.abs(want - d.a) > .01) busy = true;
+        cx.globalAlpha = e * d.a; cx.fillStyle = COL[d.tier]; cx.beginPath(); cx.arc(d.x, d.y, 7.5 * (.5 + .5 * e), 0, 6.283); cx.fill(); });
+      cx.globalAlpha = 1; if (busy) requestAnimationFrame(draw);
+    }
+    new ResizeObserver(size).observe(cv);
+    const keys = [...document.querySelectorAll('#keys .key')];
+    const setL = l => { layer = l; keys.forEach(k => { const on = +k.dataset.l === l; k.classList.toggle('on', on); k.setAttribute('aria-pressed', on); }); requestAnimationFrame(draw); };
+    keys.forEach(k => { if (fine) k.addEventListener('pointerenter', () => setL(+k.dataset.l)); k.addEventListener('click', () => setL(+k.dataset.l)); });
+    new IntersectionObserver((es, ob) => { if (es[0].isIntersecting) { started = true; t0 = performance.now(); ob.disconnect(); requestAnimationFrame(draw); } }, { threshold: .35 }).observe(cv);
+  })();
+
+  // ================= living strains =================
+  const heroOrg = document.getElementById('heroOrg'), heroPath = heroOrg.querySelector('path');
+  const closeOrg = document.getElementById('closeOrg'), closePath = closeOrg.querySelector('path');
+  const coM = coef(1), coC = coef(seedFromName('your brand'));
+  heroPath.setAttribute('d', MASTER); closePath.setAttribute('d', outline(coC) + NUC);
+  // a spring that follows the pointer a little (decorative, so a spring and not a direct mapping)
+  const spring = { x: 0, y: 0, vx: 0, vy: 0, tx: 0, ty: 0 };
+  if (fine && !reduce) addEventListener('pointermove', e => { spring.tx = (e.clientX / innerWidth - .5) * 28; spring.ty = (e.clientY / innerHeight - .5) * 22; }, { passive: true });
+
+  // floating culture in the background: fewer, smaller and slower on phones
+  const fl = document.getElementById('float'), fx = fl.getContext('2d');
+  const small = innerWidth < 760;
+  const R0 = rng(7);
+  const floaters = Object.keys(SVC).concat(['our vision', 'our mission']).slice(0, small ? 6 : 12).map(n => ({
+    path: new Path2D(outline(coef(seedFromName(n)), 0, 40) + NUC),
+    x: (k => k < .5 ? k * .3 - .04 : .74 + (k - .5) * .6)(R0()), y: R0(), size: 70 + R0() * 230, depth: .08 + R0() * .32, rot: R0() * 6.28, vr: (R0() - .5) * .00012,
+    ph: R0() * 6.28, sp: .00006 + R0() * .00008, amp: 18 + R0() * 34, alpha: .05 + R0() * .06
+  }));
+  let FW = 0, FH = 0, fdpr = 1;
+  function fsize() { fdpr = Math.min(devicePixelRatio || 1, small ? 1.5 : 2); FW = innerWidth; FH = innerHeight; fl.width = Math.round(FW * fdpr); fl.height = Math.round(FH * fdpr); }
+  fsize(); addEventListener('resize', () => { fsize(); drawFloat(performance.now()); });
+  function drawFloat(now) {
+    fx.setTransform(fdpr, 0, 0, fdpr, 0, 0); fx.clearRect(0, 0, FW, FH);
+    const sy = scrollY, span = FH + 600;
+    floaters.forEach(o => {
+      const baseY = o.y * span - sy * o.depth;
+      const y = ((baseY % span) + span) % span - 300 + Math.sin(now * o.sp + o.ph) * o.amp;
+      const x = o.x * FW + Math.cos(now * o.sp * .8 + o.ph) * o.amp;
+      const s = o.size * (FW < 760 ? .55 : 1) / 216;
+      fx.save(); fx.translate(x, y); fx.rotate(o.rot + now * o.vr); fx.scale(s, s); fx.translate(-128, -130);
+      fx.globalAlpha = o.alpha; fx.fillStyle = '#FF3DCB'; fx.fill(o.path, 'evenodd'); fx.restore();
+    });
+  }
+  drawFloat(0);
+  if (reduce) addEventListener('scroll', () => drawFloat(0), { passive: true });
+
+  let heroOn = true, closeOn = false;
+  new IntersectionObserver(es => { heroOn = es[0].isIntersecting; }).observe(heroOrg);
+  new IntersectionObserver(es => { closeOn = es[0].isIntersecting; }).observe(closeOrg);
+  // ~24fps is plenty for slow drift, and it halves the work on mid-range phones
+  let last = 0;
+  function loop(now) {
+    if (!document.hidden && now - last > 42) {
+      last = now;
+      drawFloat(now);
+      if (heroOn) {
+        spring.vx += (spring.tx - spring.x) * .035; spring.vy += (spring.ty - spring.y) * .035; spring.vx *= .86; spring.vy *= .86; spring.x += spring.vx; spring.y += spring.vy;
+        heroPath.setAttribute('d', outline(coM, now / 3200, 56) + NUC);
+        heroOrg.style.transform = `translate(${spring.x}px, ${spring.y}px) rotate(${Math.sin(now / 9000) * 4}deg)`;
+      }
+      if (closeOn) { closePath.setAttribute('d', outline(coC, now / 3600, 56) + NUC); closeOrg.style.transform = `rotate(${Math.sin(now / 10000) * 5}deg)`; }
+    }
+    requestAnimationFrame(loop);
+  }
+  if (!reduce) requestAnimationFrame(loop);
+})();
+</script>
+
+</body>
+</html>
