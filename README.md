@@ -1,29 +1,37 @@
-# Vyral Labs website
+# Vyral Labs
 
-The Vyral Labs homepage: **online presence that spreads.**
+Vyral Labs is a branding and digital growth agency in Kigali, Rwanda. The homepage introduces the studio and includes a five-question growth check. Visitors see which fixes to prioritize and can open a WhatsApp draft with their results.
 
-Vyral Labs is a marketing and digital growth agency in Kigali, Rwanda. The homepage is built around a 30-second growth check. Visitors answer five yes / not yet questions, see their gaps with what Vyral would do first, and open WhatsApp with their answers already typed in.
+## Run locally
 
-## What's here
-
-- `index.html` is the whole site: one static page with inline CSS and JavaScript. No build step.
-- Fonts load from Google Fonts: Syne (headlines), Schibsted Grotesk (body) and DM Mono (labels).
-
-## Run it locally
-
-Open `index.html` in a browser, or serve the folder:
+Use Node.js 22 and npm.
 
 ```bash
-python3 -m http.server 8000
+npm ci
+npm run dev
 ```
 
-Then visit http://localhost:8000.
+Open [localhost:3000](http://localhost:3000).
 
-## Publish with GitHub Pages
+## Build and preview
 
-In the repository settings, open **Pages**, choose **Deploy from a branch**, pick `main` and `/ (root)`, and save.
+```bash
+npm run typecheck
+npm run build
+npm run preview
+```
 
-## Things to change in one place
+Open [localhost:4173](http://localhost:4173). The preview command uses Python 3 to serve the static export. To publish, upload the generated `out/` directory to a static host at the domain root. The old GitHub Pages instructions for publishing the repository root applied to the original HTML prototype.
 
-- WhatsApp number: `WA_NUMBER` near the top of the script in `index.html`.
-- Growth check questions, reasons and first moves: the `Q` array in the script.
+## Edit the site
+
+- `app/page.tsx` contains the homepage content.
+- `app/site.css` contains the base design. `app/motion.css` contains the animated chapters and their responsive layouts.
+- `app/strain.ts` contains the shared logo and its morph poses. `app/strain-specimen.tsx` contains the interactive hero artwork.
+- `app/brand-data.ts` contains services, quiz questions, priorities and the WhatsApp number.
+- `public/art/` contains the generated Strain artwork and studio concept visuals.
+- `public/fonts/` contains locally hosted fonts and their licenses.
+
+The Strain identity and campaign concept are studio examples. The growth check saves completed answers in the visitor’s browser. Opening the WhatsApp link prepares a draft for the visitor to send.
+
+The header motion control pauses the visual effects. The site also follows the visitor’s system reduced-motion preference.
