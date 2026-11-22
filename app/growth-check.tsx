@@ -152,7 +152,7 @@ export default function GrowthCheck() {
     </div>
     <div className="progress" aria-hidden="true">
       {questions.map((item, index) => (
-        <span key={item.key} data-done={index < step} data-current={index === step}><Mark /></span>
+        <span key={item.key} data-current={index === step} data-answer={answers[index] === undefined ? undefined : answers[index] ? 'yes' : 'no'}><Mark /></span>
       ))}
     </div>
     {question ? <div className="check-content" key={question.key}>

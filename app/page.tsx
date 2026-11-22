@@ -47,14 +47,12 @@ export default function Home() {
       <main id="main">
         <section className="hero wrap" aria-labelledby="headline">
           <div className="hero-copy">
-            <p className="eyebrow hero-location"><span className="status-dot" /> Kigali, Rwanda</p>
             <h1 id="headline"><span><b>make your</b></span> <span><b>brand</b></span> <span><b className="hero-accent">spread<span className="hero-period">.</span></b></span></h1>
             <p className="hero-description">We build brands, launch campaigns and help businesses get seen, found and chosen.</p>
             <div className="hero-actions">
               <a className="button button-primary" href="#growth-check">
-                take the growth check <span className="button-icon" aria-hidden="true">↘</span>
+                take the 30-second check <span className="button-icon" aria-hidden="true">↘</span>
               </a>
-              <span className="eyebrow hero-duration">Free<br />30 seconds</span>
             </div>
           </div>
 
