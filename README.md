@@ -29,9 +29,10 @@ Open [localhost:4173](http://localhost:4173). The preview command uses Python 3 
 - `app/site.css` contains the base design. `app/motion.css` contains the animated chapters and their responsive layouts.
 - `app/strain.ts` contains the shared logo and its morph poses. `app/strain-specimen.tsx` contains the interactive hero artwork.
 - `app/brand-data.ts` contains services, quiz questions, priorities and the WhatsApp number.
-- `public/art/` contains the generated Strain artwork and studio concept visuals.
+- `app/field-notes.tsx` and `app/field-notes.css` contain the daylight-to-night scroll sequence.
+- `public/art/` contains the generated Strain artwork, the Field Notes photographs and the studio concept visuals.
 - `public/fonts/` contains locally hosted fonts and their licenses.
 
-The Strain identity and campaign concept are studio examples. The growth check saves completed answers in the visitor’s browser. Opening the WhatsApp link prepares a draft for the visitor to send.
+The Strain identity, Kigali in Motion and After Hours are studio examples. The growth check saves completed answers in the visitor’s browser. Opening the WhatsApp link prepares a draft for the visitor to send.
 
 The header motion control pauses the visual effects. The site also follows the visitor’s system reduced-motion preference.

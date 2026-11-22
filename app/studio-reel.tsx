@@ -18,7 +18,27 @@ const studies = [
     alt: 'A woman in a vivid jacket looks over the hills of Kigali.',
     description: 'A fashion campaign concept rooted in the city, designed to move from street posters to social.',
   },
+  {
+    title: 'after hours',
+    type: 'Music launch concept',
+    image: './art/after-hours.webp',
+    alt: 'Layered magenta and acid-lime gig posters on a black concrete venue wall.',
+    description: 'A night-time poster system for an imagined Kigali music launch, built for walls, sleeves and phone screens.',
+  },
 ];
+
+function snapPoints(track: HTMLDivElement) {
+  const first = track.firstElementChild as HTMLElement;
+  const end = track.scrollWidth - track.clientWidth;
+  return Array.from(track.children, slide => Math.min((slide as HTMLElement).offsetLeft - first.offsetLeft, end));
+}
+
+function nearestStudy(track: HTMLDivElement) {
+  const points = snapPoints(track);
+  return points.reduce((nearest, offset, index) => (
+    Math.abs(offset - track.scrollLeft) < Math.abs(points[nearest] - track.scrollLeft) ? index : nearest
+  ), 0);
+}
 
 export default function StudioReel() {
   const rail = useRef<HTMLDivElement>(null);
@@ -27,12 +47,11 @@ export default function StudioReel() {
 
   function select(index: number) {
     const track = rail.current;
-    if (track) track.scrollTo({ left: index === 0 ? 0 : track.scrollWidth - track.clientWidth });
+    if (track) track.scrollTo({ left: snapPoints(track)[index] });
   }
 
   function updateSelection(event: UIEvent<HTMLDivElement>) {
-    const { scrollLeft, scrollWidth, clientWidth } = event.currentTarget;
-    setCurrent(Number(scrollLeft > (scrollWidth - clientWidth) / 2));
+    setCurrent(nearestStudy(event.currentTarget));
   }
 
   function startDrag(event: PointerEvent<HTMLDivElement>) {
@@ -51,10 +70,10 @@ export default function StudioReel() {
 
   function finishDrag(event: PointerEvent<HTMLDivElement>) {
     if (!drag.current) return;
-    const { scrollWidth, clientWidth, scrollLeft, dataset } = event.currentTarget;
+    const track = event.currentTarget;
     drag.current = null;
-    delete dataset.dragging;
-    select(Number(scrollLeft > (scrollWidth - clientWidth) / 2));
+    delete track.dataset.dragging;
+    select(nearestStudy(track));
   }
 
   return (
@@ -84,8 +103,8 @@ export default function StudioReel() {
         role="region"
         aria-label="Studio projects, scroll horizontally"
       >
-        {studies.map(study => (
-          <figure className="study" key={study.title}>
+        {studies.map((study, index) => (
+          <figure className="study" key={study.title} data-current={current === index}>
             <div className="study-image">
               <img src={study.image} alt={study.alt} width={1050} height={788} loading="lazy" draggable={false} />
             </div>

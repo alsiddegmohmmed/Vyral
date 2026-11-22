@@ -82,8 +82,16 @@
   scroll-snap-align: start;
 }
 .study:last-child { scroll-snap-align: end; }
-.study-image { aspect-ratio: 2.05; overflow: hidden; background: #3a2737; }
+.study-image { position: relative; aspect-ratio: 2.05; overflow: hidden; background: #3a2737; }
 .study-image img { width: 100%; height: 100%; object-fit: cover; object-position: center 45%; }
+.study-image::after {
+  position: absolute;
+  inset: 0;
+  background: var(--lime);
+  content: '';
+  opacity: 0;
+  pointer-events: none;
+}
 @media (hover: hover) and (pointer: fine) {
   .study-image img { cursor: grab; user-select: none; }
   .studio-studies[data-dragging] { scroll-behavior: auto; scroll-snap-type: none; cursor: grabbing; }
@@ -230,6 +238,8 @@
   .signal-marquee[data-in-view] { animation-play-state: running; }
   .signal-band:is(:hover, :focus-within) .signal-marquee { animation-play-state: paused; }
   .studio-studies { scroll-behavior: smooth; }
+  .study[data-current="true"] .study-image::after { animation: reel-cut 690ms var(--ease) both; }
+  .study[data-current="true"] figcaption h3 { animation: reel-title 590ms var(--ease) both; }
   .service-art { transition: color 460ms ease, background-color 460ms ease; }
   .service-art-mode { transition: opacity 290ms ease, transform 660ms var(--ease); }
   .service summary::before { transition: scale 460ms var(--ease); }
@@ -247,6 +257,15 @@
     to { opacity: 1; translate: 0 0; }
   }
   @keyframes signal-loop { to { translate: -25% 0; } }
+  @keyframes reel-cut {
+    0% { opacity: .93; clip-path: polygon(0 0, 18% 0, 0 100%, 0 100%); }
+    68% { opacity: .84; }
+    100% { opacity: 0; clip-path: polygon(102% 0, 124% 0, 103% 100%, 102% 100%); }
+  }
+  @keyframes reel-title {
+    from { opacity: .45; translate: -12px 0; clip-path: inset(0 66% 0 0); }
+    to { opacity: 1; translate: 0 0; clip-path: inset(-10% -3% -16%); }
+  }
   @keyframes icon-nudge {
     45% { scale: 1.14; rotate: 13deg; }
   }
@@ -330,5 +349,6 @@ html[data-motion="off"] .specimen-pulse { display: none; }
   .site-header { column-gap: 8px; }
   .site-header .wordmark { gap: 6px; font-size: 22px; }
   .site-header .wordmark svg { width: 24px; height: 24px; }
-  .site-header .header-cta { gap: 6px; padding-inline: 10px; font-size: 13px; }
+  .site-header .header-cta { padding-inline: 9px; font-size: 12px; letter-spacing: .025em; }
+  .site-header .header-cta span { display: none; }
 }

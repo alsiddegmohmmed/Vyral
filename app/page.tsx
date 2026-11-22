@@ -5,6 +5,7 @@ import StrainSpecimen from './strain-specimen';
 import StudioReel from './studio-reel';
 import MotionToggle from './motion-toggle';
 import Services from './services';
+import FieldNotes from './field-notes';
 
 const steps = [
   ['tell us what you’re building.', 'Share your growth check on WhatsApp, or tell us about your business directly.'],
@@ -80,12 +81,14 @@ export default function Home() {
               <p className="eyebrow section-label">Inside the studio</p>
               <h2 id="work-title"><span>from mark</span><br /><span>to market.</span></h2>
             </div>
-            <p>Our own identity and a campaign concept show how an idea can take shape across different formats.</p>
+            <p>Posters, campaigns and the odd experiment. A look at what we’ve been making in the studio.</p>
           </div>
           <StudioReel />
         </section>
 
         <Services />
+
+        <FieldNotes />
 
         <section id="growth-check" className="growth" aria-labelledby="growth-title">
           <div className="growth-scan" aria-hidden="true">

@@ -1,0 +1,121 @@
+.field-notes {
+  --field-height: clamp(500px, 86svh, 850px);
+  --field-runway: clamp(420px, 60svh, 680px);
+  position: relative;
+  background: #130e16;
+  color: var(--paper);
+}
+
+.field-stage {
+  position: relative;
+  display: grid;
+  min-height: var(--field-height);
+  isolation: isolate;
+  overflow: clip;
+}
+
+.field-media {
+  position: absolute;
+  z-index: -2;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: #130e16;
+}
+
+.field-shot { overflow: hidden; min-width: 0; }
+.field-shot img { width: 100%; height: 100%; object-fit: cover; object-position: 61% 50%; }
+
+.field-stage::after {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: linear-gradient(90deg, #130d16ed 0%, #130d16ba 28%, #130d1634 70%, #130d162c 100%);
+  content: '';
+}
+
+.field-content {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: clamp(24px, 4vw, 64px);
+  padding-block: clamp(23px, 4.2vw, 60px);
+}
+
+.field-index {
+  border-top: 1px solid #f8f6f186;
+  padding-top: 14px;
+}
+
+.field-index p { display: flex; align-items: center; gap: 9px; }
+.field-index svg { color: var(--lime); width: 19px; height: 19px; }
+.field-copy { align-self: center; }
+.field-copy h2 {
+  font-size: clamp(55px, 8.3vw, 128px);
+  letter-spacing: -.064em;
+  line-height: .88;
+}
+.field-copy h2 span { color: var(--lime); }
+.field-copy > p {
+  max-width: 34ch;
+  margin-top: 25px;
+  font-size: clamp(16px, 1.6vw, 22px);
+  line-height: 1.38;
+}
+.field-timing {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 14px;
+  align-items: center;
+}
+.field-meter { height: 1px; background: #f8f6f181; }
+.field-meter span { display: block; height: 2px; background: var(--lime); transform-origin: left; }
+
+@supports (animation-timeline: view()) and (animation-range: contain) {
+  @media (prefers-reduced-motion: no-preference) {
+    html:not([data-motion="off"]) .field-notes {
+      --field-height: max(100svh, 440px);
+      min-height: calc(var(--field-height) + var(--field-runway));
+      view-timeline: --field block;
+    }
+
+    html:not([data-motion="off"]) .field-stage { position: sticky; top: 0; }
+    html:not([data-motion="off"]) .field-media { display: block; }
+    html:not([data-motion="off"]) .field-shot { position: absolute; inset: 0; }
+
+    .field-shot img { animation: field-pan linear both; animation-timeline: --field; animation-range: contain; }
+    .field-night { animation: field-shutters linear both; animation-timeline: --field; animation-range: contain; }
+    .field-meter span { animation: field-advance linear both; animation-timeline: --field; animation-range: contain; }
+    .field-index svg { animation: field-roll linear both; animation-timeline: --field; animation-range: contain; }
+
+    @keyframes field-pan {
+      from { transform: scale(1); }
+      to { transform: scale(1.12) translateX(-1.5%); }
+    }
+
+    /* Equal polygon point counts let the three shutters move at staggered rates. */
+    @keyframes field-shutters {
+      0%, 11% { clip-path: polygon(0 0, 100% 0, 100% 0, 66.66% 0, 66.66% 0, 33.33% 0, 33.33% 0, 0 0); }
+      38% { clip-path: polygon(0 0, 100% 0, 100% 0, 66.66% 0, 66.66% 34%, 33.33% 34%, 33.33% 89%, 0 89%); }
+      61% { clip-path: polygon(0 0, 100% 0, 100% 61%, 66.66% 61%, 66.66% 93%, 33.33% 93%, 33.33% 100%, 0 100%); }
+      78%, 100% { clip-path: polygon(0 0, 100% 0, 100% 100%, 66.66% 100%, 66.66% 100%, 33.33% 100%, 33.33% 100%, 0 100%); }
+    }
+
+    @keyframes field-advance { from { scale: 0 1; } to { scale: 1 1; } }
+    @keyframes field-roll { to { rotate: 175deg; } }
+  }
+}
+
+@media (max-width: 620px) {
+  .field-notes {
+    --field-height: clamp(415px, 71svh, 640px);
+    --field-runway: clamp(340px, 53svh, 460px);
+  }
+  .field-stage::after {
+    background: linear-gradient(90deg, #130d16e6, #130d1660 93%);
+  }
+  .field-shot img { object-position: 64% 50%; }
+  .field-copy h2 { font-size: clamp(37px, 11.3vw, 65px); }
+  .field-copy > p { max-width: 28ch; }
+  .field-timing { gap: 9px; }
+}
