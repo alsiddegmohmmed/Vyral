@@ -1,0 +1,18 @@
+# Motion and interaction
+
+Motion should explain where an element came from, which decision changed state, or where the visitor is going. Use transforms and opacity for moving layers where practical. Keep text legible throughout and leave interaction available while decorative effects play.
+
+| Area | Current files | Behavior to preserve when editing |
+| --- | --- | --- |
+| Intro | `app/brand-intro.tsx`, `app/brand-intro.css`, `app/strain.ts` | The four-second opening replays on reload, including refreshes with a section hash. Fresh deep links and history restoration can bypass it. Skip and Escape work. Motion off and reduced motion bypass the opening. Keep the timeout bounded and the modal closed in the base HTML. |
+| Hero and exhibit | `app/hero-exhibit.tsx`, `app/hero.css`, `app/demos.css`, `app/demo-artwork.tsx`, `app/capability-demos.ts` | Clicking a thumbnail or work image opens the matching project. The thumbnail flies into the viewer, with details appearing separately. Close returns toward the originating card when the same project is selected. Keep native dialog focus, Escape, background click, project browsing, comparison, and focus return. |
+| Scroll scenes | `app/scroll-scenes.css`, `app/motion.css`, `app/field-notes.css` | Scroll progresses and reverses through hero departure, work shutters, chapter reveals, Field Notes, and contact. Effects enhance the page only where supported. Wheel, trackpad, and touch scrolling use the browser’s native behavior. Section links use CSS smooth scrolling and retain their URL and history. Motion off and reduced motion turn off the smooth section navigation. |
+| Growth Check | `app/growth-check.tsx`, `app/site.css`, `app/motion.css` | Yes and Not yet each advance one question immediately. Back reverses the step and Start over clears results. Keep the answer controls mounted and give varying question lengths room without displacing the buttons. Animate the question copy, progress, and noninteractive accents. Both audit links use the completed score and gaps in the WhatsApp draft. |
+
+## Regressions worth checking
+
+- **Taps that appear to do nothing.** Keep moving layers off the quiz buttons and check hit targets while the previous transition is still running. The quiz reserves space for different question lengths and focuses the new heading with `preventScroll`. Avoid wrapping the entire interactive region in a scroll-driven transform, remounting the answer buttons on each step, or waiting on animation completion to update answers.
+- **Conflicting scroll input.** Keep document scrolling and the horizontal gallery gestures native. Check a section link clicked during scrolling, reverse scrolling, page history, and dialog scroll isolation.
+- **Intro and browser chrome.** Use the same dark header color on the root and body canvas, and match the viewport theme color. The paper main and footer surfaces belong on their own elements. Test the color after the intro closes without moving header controls into the phone’s status area. The browser's native status bar needs on-device verification.
+- **Viewer dismissal during motion.** Test Escape while the opening animation is still running and after browsing to another project. The viewer should release background scroll and return focus after close. Use the plain dialog path when animations are unavailable or disabled.
+- **Non-interactive fallback.** Decorative overlays stay out of hit testing. Content and controls remain visible with CSS scroll timelines unavailable or Motion off. Keep native links and buttons so access does not depend on pointer effects.

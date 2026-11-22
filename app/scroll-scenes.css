@@ -1,0 +1,217 @@
+/* Keep the base layout complete when scroll timelines are unavailable. */
+.scroll-track, .work-contours, .growth-sweep, .closing-rings, .demo-shutters { display: none; }
+
+@supports (animation-timeline: view()) and (animation-range: entry) {
+  @media (prefers-reduced-motion: no-preference) {
+    html:not([data-motion="off"]) .scroll-track {
+      position: fixed;
+      z-index: 4;
+      inset: 0 0 auto;
+      display: block;
+      height: 3px;
+      pointer-events: none;
+      background: var(--lime);
+      transform-origin: left;
+      animation: page-progress linear both;
+      animation-timeline: scroll(root block);
+    }
+
+    .hero { view-timeline: --hero-scene block; }
+    .hero-copy > :is(.hero-location, h1, .hero-description) {
+      animation: scroll-hero-copy linear both;
+      animation-timeline: --hero-scene;
+      animation-range: exit 0% exit 67%;
+    }
+
+    .hero .hero-tile {
+      animation: var(--atlas-arrival), tile-flight linear both;
+      animation-timeline: auto, --hero-scene;
+      animation-range: normal, exit 1% exit 85%;
+    }
+    .hero .hero-tile-left { --leave-x: -39%; --leave-y: -28%; }
+    .hero .hero-tile-right { --leave-x: 39%; --leave-y: -36%; }
+    .hero .hero-tile-wide { --leave-x: 7%; --leave-y: 34%; }
+    .hero .hero-tile:focus-visible {
+      animation: var(--atlas-arrival);
+    }
+    .hero .hero-atlas-stamp {
+      animation: var(--atlas-arrival), stamp-flight linear both;
+      animation-timeline: auto, --hero-scene;
+      animation-range: normal, exit 0% exit 75%;
+    }
+
+    .signal-band {
+      animation: signal-cut linear both;
+      animation-timeline: --signal;
+      animation-range: entry 0% entry 100%;
+    }
+    .signal-band:focus-visible { animation: none; }
+
+    .work { isolation: isolate; view-timeline: --work-scene block; }
+    .work-contours {
+      position: absolute;
+      z-index: -1;
+      inset: 0;
+      display: block;
+      pointer-events: none;
+    }
+    .work-contours svg {
+      position: absolute;
+      width: clamp(430px, 83vw, 1370px);
+      right: -38%;
+      top: 0;
+      color: #8243708c;
+      rotate: -17deg;
+      animation: contour-track linear both;
+      animation-timeline: --work-scene;
+      animation-range: entry 0% exit 70%;
+    }
+    .work-contours svg:nth-child(2) { right: -34%; top: 2%; opacity: .58; }
+    .work-contours svg:nth-child(3) { right: -30%; top: 4%; opacity: .38; }
+    .work-contours path { fill: none; stroke: currentColor; stroke-width: .55; }
+
+    .demo-example-art {
+      position: relative;
+      isolation: isolate;
+      overflow: clip;
+      background: #21151e;
+      view-timeline: --demo-frame block;
+    }
+    .demo-reveal-art {
+      animation: frame-camera linear both;
+      animation-timeline: --demo-frame;
+      animation-range: entry 2% entry 94%;
+    }
+    .demo-shutters {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      pointer-events: none;
+    }
+    .demo-shutters i {
+      background: var(--shutter-ink, #5b2375);
+      animation: pull-shutter linear both;
+      animation-timeline: --demo-frame;
+      animation-range: entry 0% entry 69%;
+    }
+    .demo-shutters i:nth-child(2) {
+      --shutter-exit: 101%;
+      background: var(--shutter-mid, #a82c8a);
+      animation-range: entry 10% entry 86%;
+    }
+    .demo-shutters i:nth-child(3) {
+      background: var(--shutter-edge, #ff75c1);
+      animation-range: entry 17% entry 96%;
+    }
+    .demo-example:nth-child(even) {
+      --shutter-ink: #243b37;
+      --shutter-mid: #6c9646;
+      --shutter-edge: #c8ff3d;
+    }
+    .demo-example:focus-within .demo-reveal-art { animation: none; }
+    .demo-example:focus-within .demo-shutters { display: none; }
+
+    .services { view-timeline: --services-scene block; }
+    .service-art::after {
+      position: absolute;
+      inset: 0;
+      content: '';
+      pointer-events: none;
+      border-left: 2px solid currentColor;
+      background: linear-gradient(90deg, color-mix(in srgb, currentColor 19%, transparent), transparent 30%);
+      animation: services-scan linear both;
+      animation-timeline: --services-scene;
+      animation-range: entry 20% cover 56%;
+    }
+
+    .growth-sweep {
+      position: absolute;
+      z-index: -1;
+      display: block;
+      inset: 0;
+      pointer-events: none;
+      background: #361a3be6;
+      animation: growth-iris linear both;
+      animation-timeline: --scan;
+      animation-range: entry 0% cover 43%;
+    }
+    .growth-scan svg {
+      animation: growth-traces linear both;
+      animation-timeline: --scan;
+      animation-range: entry 0% exit 82%;
+    }
+
+    .steps li {
+      animation: step-cascade linear both;
+      animation-timeline: --steps;
+      animation-range: entry 0% cover 36%;
+    }
+    .steps li:nth-child(2) { --step-angle: -3deg; animation-range: entry 12% cover 45%; }
+    .steps li:nth-child(3) { --step-angle: 4deg; animation-range: entry 21% cover 53%; }
+
+    .closing { isolation: isolate; }
+    .closing-rings {
+      position: absolute;
+      z-index: -1;
+      display: block;
+      inset: 0;
+      pointer-events: none;
+    }
+    .closing-rings span {
+      position: absolute;
+      left: 56%;
+      top: 63%;
+      translate: -50% -50%;
+      width: min(90vw, 1300px);
+      aspect-ratio: 1;
+      border: 1px solid #6a0d4b66;
+      border-radius: 50%;
+      animation: close-rings linear both;
+      animation-timeline: --closing;
+      animation-range: entry 0% cover 61%;
+    }
+    .closing-rings span:nth-child(2) { width: min(75vw, 1020px); animation-range: entry 7% cover 66%; }
+    .closing-rings span:nth-child(3) { width: min(55vw, 810px); animation-range: entry 13% cover 70%; }
+
+    @keyframes page-progress { from { scale: 0 1; } to { scale: 1 1; } }
+    @keyframes scroll-hero-copy { to { translate: 0 -88px; opacity: .55; } }
+    @keyframes tile-flight { to { translate: var(--leave-x) var(--leave-y); } }
+    @keyframes stamp-flight { to { rotate: 41deg; translate: -85% 36%; } }
+    @keyframes signal-cut {
+      from { clip-path: polygon(0 0, 66% 0, 49% 100%, 0 100%); }
+      to { clip-path: polygon(0 0, 113% 0, 100% 100%, 0 100%); }
+    }
+    @keyframes contour-track { from { translate: 17% -25%; } to { translate: -11% 21%; rotate: 9deg; } }
+    @keyframes frame-camera { from { scale: 1.19; translate: 0 -7%; } to { scale: 1; translate: 0 0; } }
+    @keyframes pull-shutter { from { translate: 0 0; } to { translate: 0 var(--shutter-exit, -101%); } }
+    @keyframes services-scan {
+      from { translate: 0 0; opacity: .55; }
+      to { translate: 104% 0; opacity: 0; }
+    }
+    @keyframes growth-iris {
+      from { clip-path: polygon(0 0, 17% 0, 0 55%); }
+      to { clip-path: polygon(0 0, 100% 0, 115% 100%, 0 100%); }
+    }
+    @keyframes growth-traces { from { scale: .68; opacity: .45; } to { scale: 1.16; translate: 20% -14%; } }
+    @keyframes step-cascade { from { translate: 0 39px; rotate: var(--step-angle, 3deg); opacity: .59; } }
+    @keyframes close-rings { from { scale: .3; opacity: 0; } 55% { opacity: .8; } to { scale: 1.05; opacity: 1; } }
+  }
+
+  @media (min-width: 1000px) and (prefers-reduced-motion: no-preference) {
+    html:not([data-motion="off"]) .services-intro { position: sticky; top: clamp(36px, 11vh, 108px); }
+  }
+
+  @media (max-width: 760px) and (prefers-reduced-motion: no-preference) {
+    .hero-copy > :is(.hero-location, h1, .hero-description) { animation: none; }
+    .hero .hero-tile { --leave-x: 0%; --leave-y: -13%; }
+    .hero .hero-tile-right { --leave-y: -24%; }
+    .hero .hero-tile-wide { --leave-y: -9%; }
+    .steps li { animation-range: entry 0% cover 24%; }
+  }
+
+  html[data-motion="off"] .demo-shutters,
+  html[data-motion="off"] .work-contours,
+  html[data-motion="off"] .growth-sweep,
+  html[data-motion="off"] .closing-rings { display: none; }
+}

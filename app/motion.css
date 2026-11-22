@@ -20,7 +20,6 @@
 
 .motion-toggle span:first-child { font: 14px/1 system-ui, sans-serif; }
 .motion-toggle:hover, .motion-toggle[aria-pressed="false"] { color: var(--pink-ink); }
-.hero h1 b { display: inline-block; font-weight: inherit; }
 
 .signal-band {
   position: relative;
@@ -144,13 +143,15 @@
 .service-art-grid, .service-art-outline { fill: none; stroke: currentColor; stroke-width: 1; }
 .service-art-grid { opacity: .27; }
 .service-art-mode { fill: currentColor; opacity: 0; transform-origin: 240px 122px; transform: translateX(-12px) scale(.89); }
-.services[data-mode="0"] .service-art-brand,
-.services[data-mode="1"] .service-art-social,
-.services[data-mode="2"] .service-art-search,
-.services[data-mode="3"] .service-art-convert { opacity: 1; transform: none; }
-.services[data-mode="1"] .service-art { --art-color: var(--lime); --art-bg: #202112; }
-.services[data-mode="2"] .service-art { --art-color: #ffb0e6; --art-bg: #44162d; }
-.services[data-mode="3"] .service-art { --art-color: var(--ink); --art-bg: var(--lime); }
+.services[data-mode="branding"] .service-art-brand,
+.services[data-mode="social-content"] .service-art-social,
+.services[data-mode="search"] .service-art-search,
+.services[data-mode="customer-journeys"] .service-art-convert,
+.services[data-mode="menu-catalog"] .service-art-convert { opacity: 1; transform: none; }
+.services[data-mode="social-content"] .service-art { --art-color: var(--lime); --art-bg: #202112; }
+.services[data-mode="search"] .service-art { --art-color: #ffb0e6; --art-bg: #44162d; }
+.services[data-mode="customer-journeys"] .service-art,
+.services[data-mode="menu-catalog"] .service-art { --art-color: var(--ink); --art-bg: var(--lime); }
 
 .service summary { position: relative; }
 .service summary::before {
@@ -189,14 +190,11 @@
 .check-card { position: relative; isolation: isolate; }
 .check-sweep {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 2px;
+  z-index: -1;
+  inset: 0;
   pointer-events: none;
-  opacity: 0;
-  background: var(--lime);
-  transform-origin: left;
+  overflow: clip;
+  visibility: hidden;
 }
 
 .steps { position: relative; }
@@ -223,13 +221,6 @@
 .site-footer > a:last-child:hover { color: var(--pink-ink); }
 
 @media (prefers-reduced-motion: no-preference) {
-  .hero h1 b, .hero-location, .hero-description, .hero-actions {
-    animation: type-arrival 700ms var(--ease) backwards;
-  }
-  .hero h1 > span:nth-child(2) b { animation-delay: 95ms; }
-  .hero h1 > span:nth-child(3) b { animation-delay: 170ms; }
-  .hero-description { animation-delay: 230ms; }
-  .hero-actions { animation-delay: 295ms; }
   .motion-toggle, .reel-controls button { transition: color 160ms ease, background-color 180ms ease, border-color 180ms ease; }
   .wordmark svg, .signal-arrow { transition: rotate 450ms var(--ease), scale 450ms var(--ease); }
   .wordmark:is(:hover, :focus-visible) svg { rotate: -24deg; scale: 1.12; }
@@ -246,12 +237,39 @@
   .service[open] li, .faq-list details[open] p { animation: copy-unfold 340ms var(--ease) both; }
   .service[open] li:nth-child(2) { animation-delay: 40ms; }
   .service[open] li:nth-child(3) { animation-delay: 75ms; }
-  .check-sweep { animation: check-sweep 740ms var(--ease); }
-  .closing .audit-link:focus-within .button-icon { animation: icon-nudge 560ms var(--ease); }
-  @keyframes type-arrival {
-    from { opacity: .15; translate: 0 .65em; rotate: 2deg; clip-path: inset(0 -4% 100%); }
-    to { opacity: 1; translate: 0 0; rotate: 0deg; clip-path: inset(-20% -4% -32%); }
+  .check-card { transition: border-color 320ms var(--ease); }
+  .check-card[data-direction] { --question-shift: clamp(12px, 2.5vw, 28px); }
+  .check-card[data-direction="back"] { --question-shift: clamp(-28px, -2.5vw, -12px); }
+  .check-card[data-direction] .check-question[data-current="true"] > * {
+    animation: question-arrive 330ms var(--ease) both;
   }
+  .check-card[data-direction] .check-question[data-current="true"] > p { animation-delay: 44ms; }
+  .progress span { transition: color 250ms var(--ease); }
+  .progress span::after { transition: background-size 390ms var(--ease); }
+  .check-card[data-direction] .progress span[data-current="true"] svg {
+    animation: check-marker 400ms var(--ease);
+  }
+  .answer-buttons .button:active { transform: scale(.965); }
+  .check-sweep { visibility: visible; }
+  .check-sweep::before {
+    position: absolute;
+    inset: 0 -40%;
+    content: '';
+    background: linear-gradient(112deg, transparent 38%, #ff3dcb17 47%, #c8ff3d22 50%, transparent 60%);
+    animation: check-sweep 660ms var(--ease) both;
+  }
+  .check-card[data-direction="back"] .check-sweep::before { animation-direction: reverse; animation-timing-function: ease-out; }
+  .check-card[data-direction] .results > h3,
+  .check-card[data-direction] .results > p,
+  .check-card[data-direction] .results li { animation: check-result-in 380ms var(--ease) both; }
+  .check-card[data-direction] .results > p { animation-delay: 45ms; }
+  .check-card[data-direction] .results li:nth-child(1) { animation-delay: 85ms; }
+  .check-card[data-direction] .results li:nth-child(2) { animation-delay: 125ms; }
+  .check-card[data-direction] .results li:nth-child(3) { animation-delay: 165ms; }
+  .check-card[data-direction] .results li:nth-child(4) { animation-delay: 205ms; }
+  .check-card[data-direction] .results li:nth-child(5) { animation-delay: 245ms; }
+  .check-card[data-direction] .check-result-mark { animation: check-result-mark 600ms var(--ease) both; }
+  .closing .audit-link:focus-within .button-icon { animation: icon-nudge 560ms var(--ease); }
   @keyframes copy-unfold {
     from { opacity: .2; translate: 0 7px; }
     to { opacity: 1; translate: 0 0; }
@@ -269,16 +287,22 @@
   @keyframes icon-nudge {
     45% { scale: 1.14; rotate: 13deg; }
   }
-  @keyframes check-sweep {
-    from { opacity: .75; scale: .04 1; }
-    62% { opacity: .6; scale: 1 1; }
-    to { opacity: 0; scale: 1 1; }
+  @keyframes question-arrive { from { opacity: 0; translate: var(--question-shift) 0; } }
+  @keyframes check-marker {
+    from { scale: .8; opacity: .55; }
+    52% { scale: 1.26; }
   }
+  @keyframes check-sweep {
+    from { opacity: 0; translate: -42% 0; }
+    35% { opacity: 1; }
+    to { opacity: 0; translate: 42% 0; }
+  }
+  @keyframes check-result-in { from { opacity: 0; translate: 0 11px; } }
+  @keyframes check-result-mark { from { opacity: 0; rotate: -30deg; scale: .58; } }
 }
 
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {
-    .specimen { animation: specimen-exit linear both; animation-timeline: view(); animation-range: exit 0% exit 100%; }
     .signal-band { view-timeline-name: --signal; }
     .signal-track { animation: signal-slide linear both; animation-timeline: --signal; animation-range: entry 0% exit 100%; }
     .work h2, .process h2, .faq h2, .growth h2, .closing h2 {
@@ -294,7 +318,6 @@
       animation-timeline: --scan;
       animation-range: entry 0% exit 100%;
     }
-    .check-card { animation: card-arrival linear both; animation-timeline: view(); animation-range: entry 0% cover 37%; }
     .steps { view-timeline-name: --steps; }
     .steps::before { animation: line-draw linear both; animation-timeline: --steps; animation-range: entry 0% cover 35%; }
     .step-mark { animation: step-spin linear both; animation-timeline: view(); animation-range: entry 0% cover 55%; }
@@ -303,7 +326,6 @@
     .closing-art svg { animation: closing-assembly linear both; animation-timeline: --closing; animation-range: entry 0% cover 68%; }
     .closing-contour-one { --from: 21% -23%; }
     .closing-contour-two { --from: -29% 22%; }
-    @keyframes specimen-exit { to { scale: .91; translate: 0 38px; opacity: .57; } }
     @keyframes signal-slide { from { translate: -14vw 0; } to { translate: max(-66vw, -960px) 0; } }
     @keyframes chapter-arrival {
       from { translate: 0 .38em; opacity: .4; clip-path: inset(0 -2% 38%); }
@@ -312,7 +334,6 @@
     @keyframes media-sweep { from { transform: scale(1.22) translateY(-4%); } to { transform: scale(1); } }
     @keyframes art-arrival { from { translate: -22px 0; opacity: .42; } }
     @keyframes scan-arrival { from { translate: -12% 10%; rotate: -14deg; } to { translate: 13% -10%; rotate: 12deg; } }
-    @keyframes card-arrival { from { translate: 0 28px; opacity: .59; } }
     @keyframes line-draw { from { scale: 0 1; } to { scale: 1 1; } }
     @keyframes step-spin { from { transform: rotate(-45deg) scale(.65); } }
     @keyframes disclosure-arrival { from { translate: 15px 0; opacity: .63; } }

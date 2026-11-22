@@ -125,27 +125,28 @@ export function AuditLink() {
 
 export default function GrowthCheck() {
   const {answers, update} = useContext(AnswersContext);
+  const [direction, setDirection] = useState<'forward' | 'back'>();
   const heading = useRef<HTMLHeadingElement>(null);
   const focusAfterChange = useRef(false);
   const step = answers.length;
   const complete = step === questions.length;
-  const question = questions[step];
   const gaps = priority.filter(index => answers[index] === false);
 
   useEffect(() => {
     if (focusAfterChange.current) {
-      heading.current?.focus();
+      heading.current?.focus({ preventScroll: true });
       focusAfterChange.current = false;
     }
   }, [step]);
 
   function moveTo(next: boolean[]) {
     focusAfterChange.current = true;
+    setDirection(next.length > step ? 'forward' : 'back');
     update(next);
   }
 
-  return <div className="check-card">
-    {step > 0 && <span className="check-sweep" key={step} aria-hidden="true" />}
+  return <div className="check-card" data-direction={direction} data-complete={complete}>
+    {direction && <span className="check-sweep" key={step} aria-hidden="true" />}
     <div className="check-meta">
       <p className="eyebrow" aria-live="polite">{complete ? 'Your results' : `Question ${step + 1} of ${questions.length}`}</p>
       {step > 0 && <button type="button" className="text-button" onClick={() => moveTo(answers.slice(0, -1))}>← Back</button>}
@@ -155,14 +156,22 @@ export default function GrowthCheck() {
         <span key={item.key} data-done={index < step} data-current={index === step}><Mark /></span>
       ))}
     </div>
-    {question ? <div className="check-content" key={question.key}>
-      <h3 ref={heading} tabIndex={-1}>{question.question}</h3>
-      <p>{question.hint}</p>
+    {!complete ? <div className="check-content">
+      <div className="check-questions">
+        {questions.map((question, index) => {
+          const current = index === step;
+          return <div className="check-question" key={question.key} data-current={current} aria-hidden={!current}>
+            <h3 ref={current ? heading : undefined} tabIndex={current ? -1 : undefined}>{question.question}</h3>
+            <p>{question.hint}</p>
+          </div>;
+        })}
+      </div>
       <div className="answer-buttons">
         <button className="button button-lime" type="button" onClick={() => moveTo([...answers, true])}>yes</button>
         <button className="button button-outline" type="button" onClick={() => moveTo([...answers, false])}>not yet</button>
       </div>
     </div> : <div className="check-content results">
+      <Mark className="check-result-mark" />
       <h3 ref={heading} tabIndex={-1}>{answers.filter(Boolean).length} out of {questions.length} in place.</h3>
       {gaps.length > 0 ? <>
         <p>Here’s what we’d work on first, in order.</p>

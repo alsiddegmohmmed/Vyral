@@ -5,24 +5,25 @@ import { services } from './brand-data';
 import { ServiceArt } from './service-art';
 
 export default function Services() {
-  const [mode, setMode] = useState(0);
+  const [mode, setMode] = useState(services[0].id);
 
   return (
     <section className="services wrap" id="services" aria-labelledby="services-title" data-mode={mode}>
       <div className="services-intro">
         <p className="eyebrow section-label">What we do</p>
-        <h2 id="services-title">where do you<br />want to grow?</h2>
-        <p>Start with the outcome you need. We’ll connect the channels your customers already use.</p>
+        <h2 id="services-title">what we<br />do.</h2>
+        <p>Start with a brand launch, reach more people, or make it easier for customers to inquire and book. We can help with one project or support you across channels.</p>
         <ServiceArt />
       </div>
       <div className="service-list">
         {services.map((group, index) => (
           <details
             className="service"
+            id={group.id}
             key={group.title}
             open={index === 0}
             onToggle={event => {
-              if (event.currentTarget.open) setMode(index);
+              if (event.currentTarget.open) setMode(group.id);
             }}
           >
             <summary>

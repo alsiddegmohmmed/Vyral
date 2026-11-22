@@ -1,23 +1,25 @@
 import GrowthCheck, { AuditLink, GrowthCheckProvider } from './growth-check';
 import { Mark } from './mark';
 import { email, instagram, whatsappDisplay, chatLink } from './brand-data';
-import StrainSpecimen from './strain-specimen';
-import StudioReel from './studio-reel';
+import HeroExhibit, { DemoGallery, WorkExamples } from './hero-exhibit';
 import MotionToggle from './motion-toggle';
+import BrandIntro from './brand-intro';
 import Services from './services';
 import FieldNotes from './field-notes';
+import './hero.css';
+import './scroll-scenes.css';
 
 const steps = [
-  ['tell us what you’re building.', 'Share your growth check on WhatsApp, or tell us about your business directly.'],
-  ['we look at where you show up.', 'We review your identity, search, social and the channels your customers use.'],
-  ['get a short list of first moves.', 'Within 24 hours, we’ll send the changes we’d make first and why.'],
+  ['Tell us what needs to change.', 'Share what you sell, who you want to reach, and whether the priority is a launch, visibility or more inquiries.'],
+  ['Review the direction.', 'We agree on the channels and deliverables, then show you the first creative or campaign plan for feedback.'],
+  ['Launch and learn.', 'You approve the work before it goes live. For ongoing campaigns, we review what people respond to and adjust the next round.'],
 ];
 
 const faqs = [
-  ['What’s in the free audit?', 'We look at your brand, social media, Google and Maps presence, AI visibility, and any ads you run. You get a short list of what we’d change first, sent through WhatsApp.'],
-  ['Who do you work with?', 'We work with businesses in Kigali, from restaurants and shops to hotels, real estate and service businesses. Tell us what you do and what you want to grow.'],
-  ['How much does ongoing work cost?', 'The audit is free. If you want help implementing it, we’ll quote based on your goal and the channels that matter.'],
-  ['Do I need to be on Instagram?', 'It depends on how your customers find you. Google, Maps, WhatsApp and your website can all play a role. The audit helps you choose where to focus.'],
+  ['Can you work with an existing brand?', 'Yes. We can build a campaign using your current identity or help refresh it before a launch.'],
+  ['Can I start with one project?', 'Yes. Start with a brand kit, launch campaign, landing page, menu or catalog. We can also help with ongoing content and advertising.'],
+  ['Do I need to book a photoshoot?', 'We can work with phone photos and clips you already have. For product, menu and catalog edits, the dish, product and quantity should match what customers receive.'],
+  ['What’s in the free audit?', 'We review how your business shows up online and send a short list of what we’d change first through WhatsApp.'],
 ];
 
 function Wordmark() {
@@ -32,34 +34,38 @@ function Wordmark() {
 export default function Home() {
   return (
     <GrowthCheckProvider>
+      <DemoGallery>
+      <BrandIntro />
       <a href="#main" className="skip">Skip to content</a>
-      <header className="site-header wrap" id="top">
-        <Wordmark />
-        <nav aria-label="Main navigation">
-          <a href="#work">studio</a>
-          <a href="#services">services</a>
-          <a href="#process">process</a>
-        </nav>
-        <div className="header-actions">
-          <MotionToggle />
-          <a className="header-cta" href="#contact">let’s talk <span aria-hidden="true">↗</span></a>
+      <header className="landing-header" id="top">
+        <div className="site-header wrap">
+          <Wordmark />
+          <nav aria-label="Main navigation">
+            <a href="#work">work</a>
+            <a href="#services">services</a>
+            <a href="#process">process</a>
+          </nav>
+          <div className="header-actions">
+            <MotionToggle />
+            <a className="header-cta" href="#contact">let’s talk <span aria-hidden="true">↗</span></a>
+          </div>
         </div>
       </header>
       <main id="main">
-        <section className="hero wrap" aria-labelledby="headline">
-          <div className="hero-copy">
-            <p className="eyebrow hero-location"><span className="status-dot" /> Kigali, Rwanda</p>
-            <h1 id="headline"><span><b>make your</b></span> <span><b>brand</b></span> <span><b className="hero-accent">spread<span className="hero-period">.</span></b></span></h1>
-            <p className="hero-description">We build brands, launch campaigns and help businesses get seen, found and chosen.</p>
+        <div className="scroll-track" aria-hidden="true" />
+        <section className="hero" aria-labelledby="headline">
+          <div className="hero-copy wrap">
+            <p className="hero-location"><span className="status-dot" /> Branding and digital growth in Kigali</p>
+            <h1 id="headline" tabIndex={-1}>build your brand.<br />get seen<span className="hero-period">.</span></h1>
+            <p className="hero-description">We build brands, launch campaigns and help businesses get found, get chosen and turn interest into inquiries.</p>
             <div className="hero-actions">
-              <a className="button button-primary" href="#growth-check">
-                take the growth check <span className="button-icon" aria-hidden="true">↘</span>
+              <a className="button hero-primary" href="#work">
+                see our work <span className="button-icon" aria-hidden="true">↘</span>
               </a>
-              <span className="eyebrow hero-duration">Free<br />30 seconds</span>
+              <a className="hero-secondary" href="#growth-check">take the free growth check <span aria-hidden="true">↓</span></a>
             </div>
           </div>
-
-          <StrainSpecimen />
+          <HeroExhibit />
         </section>
 
         <a className="signal-band" href="#services" aria-label="Explore branding and digital growth services">
@@ -76,21 +82,20 @@ export default function Home() {
         </a>
 
         <section className="work" id="work" aria-labelledby="work-title">
+          <div className="work-contours" aria-hidden="true"><Mark /><Mark /><Mark /></div>
           <div className="section-intro wrap">
             <div>
-              <p className="eyebrow section-label">Inside the studio</p>
-              <h2 id="work-title"><span>from mark</span><br /><span>to market.</span></h2>
+              <h2 id="work-title"><span>selected</span><br /><span>work.</span></h2>
             </div>
-            <p>Posters, campaigns and the odd experiment. A look at what we’ve been making in the studio.</p>
+            <p>Brand launches, websites and campaigns. Open a project to see the final design alongside the brief or starting image.</p>
           </div>
-          <StudioReel />
+          <WorkExamples />
         </section>
 
         <Services />
 
-        <FieldNotes />
-
         <section id="growth-check" className="growth" aria-labelledby="growth-title">
+          <div className="growth-sweep" aria-hidden="true" />
           <div className="growth-scan" aria-hidden="true">
             <Mark /><Mark /><Mark />
           </div>
@@ -108,10 +113,9 @@ export default function Home() {
         <section className="process wrap" id="process" aria-labelledby="process-title">
           <div className="section-intro">
             <div>
-              <p className="eyebrow section-label">The free audit</p>
-              <h2 id="process-title">from check<br />to action.</h2>
+              <h2 id="process-title">from brief<br />to launch.</h2>
             </div>
-            <p>The growth check gives you a starting point. The free WhatsApp audit gives you a closer look from our team.</p>
+            <p>Start with a business goal. We’ll help turn it into a clear plan, then build the work and get it out into the world.</p>
           </div>
           <ol className="steps">
             {steps.map(([title, description], index) => (
@@ -137,12 +141,15 @@ export default function Home() {
           </div>
         </section>
 
+        <FieldNotes />
+
         <section className="closing" id="contact" aria-labelledby="contact-title">
+          <div className="closing-rings" aria-hidden="true"><span /><span /><span /></div>
           <div className="wrap closing-layout">
             <div>
               <p className="eyebrow section-label">Let’s talk</p>
               <h2 id="contact-title">your brand,<br />next.</h2>
-              <p>Tell us what you’re building. We’ll find a place to start.</p>
+              <p>Tell us what you’re launching or where growth is stuck. We’ll help you choose a place to start.</p>
             </div>
             <div className="closing-contact">
               <AuditLink />
@@ -157,16 +164,19 @@ export default function Home() {
           </div>
         </section>
       </main>
-      <footer className="site-footer wrap">
-        <Wordmark />
-        <div className="footer-contact">
-          <span>Kigali, Rwanda</span>
-          <a href={chatLink('Hi Vyral, I’d like to talk about my business.')} target="_blank" rel="noopener noreferrer">WhatsApp {whatsappDisplay}</a>
-          <a href={`mailto:${email}`}>{email}</a>
-          <a href={instagram.url} target="_blank" rel="noopener noreferrer">Instagram {instagram.handle}</a>
+      <footer>
+        <div className="site-footer wrap">
+          <Wordmark />
+          <div className="footer-contact">
+            <span>Kigali, Rwanda</span>
+            <a href={chatLink('Hi Vyral, I’d like to talk about my business.')} target="_blank" rel="noopener noreferrer">WhatsApp {whatsappDisplay}</a>
+            <a href={`mailto:${email}`}>{email}</a>
+            <a href={instagram.url} target="_blank" rel="noopener noreferrer">Instagram {instagram.handle}</a>
+          </div>
+          <a href="#top">Back to top ↑</a>
         </div>
-        <a href="#top">Back to top ↑</a>
       </footer>
+      </DemoGallery>
     </GrowthCheckProvider>
   );
 }

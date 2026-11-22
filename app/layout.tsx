@@ -1,10 +1,14 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './site.css';
 import './motion.css';
 
 export const metadata: Metadata = {
   title: 'Vyral Labs — Branding & Digital Growth in Kigali',
-  description: 'Brand identity, campaigns and digital growth for ambitious businesses in Kigali. Take the free five-question growth check.',
+  description: 'Vyral Labs is a Kigali branding and digital growth agency for brand launches, social content, advertising, search, websites and customer journeys.',
+};
+
+export const viewport: Viewport = {
+  themeColor: '#15101a',
 };
 
 export default function RootLayout({ children }: Readonly<{children: React.ReactNode}>) {

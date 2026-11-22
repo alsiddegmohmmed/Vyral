@@ -84,7 +84,7 @@ export default function StrainSpecimen() {
   return (
     <figure className="specimen">
       <div className="specimen-art" onPointerMove={tilt} onPointerLeave={resetTilt}>
-        <div className="specimen-grid" aria-hidden="true" />
+        <div className="specimen-field" aria-hidden="true" />
         <div className="specimen-orbits" aria-hidden="true"><span /><span /><span /></div>
         <div className="specimen-waves" aria-hidden="true" ref={wave}><i /><i /><i /></div>
         <svg className="strain-model" viewBox="-24 -27 304 317" role="img" aria-label="The Vyral Strain, a sculpted magenta logo with a circular cutout" ref={model}>
@@ -114,12 +114,13 @@ export default function StrainSpecimen() {
             </g>
           </g>
         </svg>
-        <span className="specimen-registration" aria-hidden="true" />
+      </div>
+      <figcaption className="specimen-caption">
+        <span>The Strain</span>
         <button type="button" className="specimen-pulse" onClick={sendPulse}>
           <span aria-hidden="true">◉</span> Pulse
         </button>
-      </div>
-      <figcaption className="eyebrow"><span>Fig. 01</span> The Strain <a href="#work" aria-label="Explore the Strain identity">↘</a></figcaption>
+      </figcaption>
     </figure>
   );
 }

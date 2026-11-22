@@ -1,65 +1,48 @@
 export const services = [
   {
-    "title": "be remembered",
-    "items": [
-      {
-        "name": "brand identity",
-        "description": "Names, logos and visual systems people remember."
-      },
-      {
-        "name": "campaigns",
-        "description": "Launches and seasonal pushes, planned end to end."
-      }
-    ]
+    id: 'branding',
+    title: 'Brand & launch campaigns',
+    items: [
+      { name: 'Brand identity', description: 'Find a clear visual direction with a logo, colors, typography and a brand kit your team can use.' },
+      { name: 'Launch campaigns', description: 'Build a campaign around a new brand, product or offer, with creative for launch day and the follow-up.' },
+    ],
   },
   {
-    "title": "be seen",
-    "items": [
-      {
-        "name": "social media",
-        "description": "A feed that looks like a brand, posted on schedule."
-      },
-      {
-        "name": "content + reels",
-        "description": "Reels and edits people watch to the end."
-      },
-      {
-        "name": "instagram + facebook ads",
-        "description": "Instagram and Facebook campaigns built to sell."
-      }
-    ]
+    id: 'social-content',
+    title: 'Social content & ads',
+    items: [
+      { name: 'Social media content and reels', description: 'Get a content plan, captions, graphics and short videos for the channels your customers use.' },
+      { name: 'Instagram and Facebook ads', description: 'Develop Meta campaigns with creative variants, audience targeting and retargeting.' },
+    ],
   },
   {
-    "title": "be found",
-    "items": [
-      {
-        "name": "search + ai answers",
-        "description": "Found on Google and maps, and named in AI answers."
-      },
-      {
-        "name": "google ads",
-        "description": "Show up when people search for what you sell."
-      }
-    ]
+    id: 'search',
+    title: 'Search, Maps & AI answers',
+    items: [
+      { name: 'Google Search and Maps', description: 'Improve your website and Google Business Profile so customers can find accurate services, hours and directions.' },
+      { name: 'AI search visibility', description: 'Make business details clear and consistent across the pages AI tools use to answer local questions.' },
+      { name: 'Google Ads', description: 'Run paid search campaigns aimed at people already looking for what you offer.' },
+    ],
   },
   {
-    "title": "be chosen",
-    "items": [
-      {
-        "name": "websites",
-        "description": "Sites and landing pages that turn visits into enquiries."
-      },
-      {
-        "name": "whatsapp",
-        "description": "Catalogs, quick replies and booking flows."
-      },
-      {
-        "name": "email",
-        "description": "Newsletters and sequences that bring people back."
-      }
-    ]
-  }
+    id: 'customer-journeys',
+    title: 'Websites, WhatsApp & email',
+    items: [
+      { name: 'Websites and landing pages', description: 'Give campaign and search traffic a clear page with one next step, like asking for a quote or booking a visit.' },
+      { name: 'WhatsApp Business flows', description: 'Set up a catalog, quick replies and simple routes for ordering, booking and handling common questions.' },
+      { name: 'Email campaigns', description: 'Create launch, follow-up and retention emails with a clear reason for customers to act.' },
+    ],
+  },
+  {
+    id: 'menu-catalog',
+    title: 'Menus & catalogs',
+    items: [
+      { name: 'Digital menus and product catalogs', description: 'Send your phone photos and product details. We clean up the images and lay out a menu or catalog for your sales channels.' },
+      { name: 'QR menus', description: 'Give customers a QR code linked to a menu they can open on their phones.' },
+    ],
+  },
 ];
+
 export const questions = [
   {
     "key": "brand",

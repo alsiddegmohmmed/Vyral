@@ -1,0 +1,170 @@
+.brand-intro {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: clip;
+  isolation: isolate;
+  background: transparent;
+  color: var(--paper);
+}
+
+.brand-intro::backdrop { background: transparent; }
+html:has(.brand-intro[open]) { overflow: hidden; overflow-anchor: none; }
+
+.brand-intro-panels::before,
+.brand-intro-panels::after {
+  position: absolute;
+  z-index: -1;
+  inset-inline: 0;
+  height: 50%;
+  content: '';
+  background:
+    linear-gradient(90deg, #edb7de16 1px, transparent 1px) center / 52px 52px,
+    linear-gradient(#edb7de16 1px, transparent 1px) center / 52px 52px,
+    radial-gradient(ellipse at 50% var(--glow-y), #44203c, #18111d 71%);
+}
+.brand-intro-panels::before { top: 0; --glow-y: 100%; --panel-exit: -102%; }
+.brand-intro-panels::after { bottom: 0; --glow-y: 0%; --panel-exit: 102%; }
+
+.brand-intro-mark {
+  position: absolute;
+  left: 50%;
+  top: calc(50% - 31px);
+  width: clamp(152px, min(23vw, 48svh), 285px);
+  transform: translate(-50%, -50%);
+  overflow: visible;
+}
+.brand-intro-orbit {
+  fill: none;
+  stroke: #ffc0eb60;
+  stroke-width: .7;
+  stroke-dasharray: 2 6;
+}
+.brand-intro-echo {
+  fill: none;
+  stroke: #ff94de;
+  stroke-width: .9;
+  --echo-x: 4%;
+  --echo-y: -5%;
+}
+.brand-intro-echo-back { --echo-x: -7%; --echo-y: 6%; stroke: #aa629b; }
+.brand-intro-core { fill: var(--lime); }
+.brand-intro-orbit,
+.brand-intro-echo,
+.brand-intro-fill,
+.brand-intro-core { transform-box: fill-box; transform-origin: center; }
+
+.brand-intro-type {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + clamp(47px, 9.5vw, 112px));
+  translate: -50% 0;
+  width: max-content;
+  font: 700 clamp(32px, 5vw, 63px)/.95 var(--display);
+  letter-spacing: -.07em;
+}
+.brand-intro-type span span { margin-left: .09em; color: #dabbd3; }
+.brand-intro-type i {
+  display: block;
+  margin: 19px auto 0;
+  width: 64%;
+  height: 2px;
+  background: var(--lime);
+  transform-origin: left;
+}
+
+.brand-intro-skip {
+  position: absolute;
+  right: max(var(--gutter), env(safe-area-inset-right));
+  bottom: max(23px, env(safe-area-inset-bottom));
+}
+.brand-intro-skip button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding-inline: 14px;
+  border: 1px solid #edb7de70;
+  border-radius: 100px;
+  background: #18111d;
+  color: var(--paper);
+  font-size: 13px;
+}
+.brand-intro-skip button:is(:hover, :focus-visible) { border-color: var(--lime); color: var(--lime); }
+
+@media (prefers-reduced-motion: no-preference) {
+  html:has(.brand-intro[open]) { --intro-handoff: 2690ms; }
+
+  .brand-intro[open] .brand-intro-panels::before,
+  .brand-intro[open] .brand-intro-panels::after {
+    animation: intro-panels-open 1000ms var(--intro-handoff) cubic-bezier(.77, 0, .175, 1) both;
+  }
+  .brand-intro[open] .brand-intro-mark {
+    animation: intro-mark-flight 880ms calc(var(--intro-handoff) + 70ms) var(--ease) both;
+  }
+  .brand-intro[open] .brand-intro-orbit { animation: intro-orbit 1740ms ease-out both; }
+  .brand-intro[open] .brand-intro-echo { animation: intro-echo 1640ms 80ms var(--ease) both; }
+  .brand-intro[open] .brand-intro-fill { animation: intro-form 1020ms var(--ease) both; }
+  .brand-intro[open] .brand-intro-core { animation: intro-core 1940ms 480ms var(--ease) both; }
+  .brand-intro[open] .brand-intro-type { animation: intro-type 2600ms 420ms both; }
+  .brand-intro[open] .brand-intro-type i { animation: intro-advance 2400ms 130ms var(--ease) both; }
+
+  html:has(.brand-intro[open]) .hero {
+    --atlas-start: calc(var(--intro-handoff) + 70ms);
+    --atlas-duration: 840ms;
+  }
+  html:has(.brand-intro[open]) .landing-header .site-header {
+    animation: intro-land 620ms calc(var(--intro-handoff) + 470ms) var(--ease) both;
+  }
+  html:has(.brand-intro[open]) .hero-copy {
+    animation: intro-land 820ms calc(var(--intro-handoff) + 130ms) var(--ease) both;
+  }
+  html:has(.brand-intro[open]) .hero-actions {
+    animation: intro-land 690ms calc(var(--intro-handoff) + 410ms) var(--ease) both;
+  }
+
+  @keyframes intro-panels-open { to { translate: 0 var(--panel-exit); } }
+  @keyframes intro-orbit {
+    0% { opacity: 0; scale: .67; rotate: -26deg; }
+    42% { opacity: .8; }
+    100% { opacity: 0; scale: 1.12; rotate: 16deg; }
+  }
+  @keyframes intro-echo {
+    0% { opacity: 0; scale: .76; }
+    37% { opacity: .8; translate: var(--echo-x) var(--echo-y); }
+    100% { opacity: 0; translate: 0 0; }
+  }
+  @keyframes intro-form {
+    0% { opacity: 0; scale: .43 .66; rotate: -24deg; }
+    65% { opacity: 1; scale: 1.035 .99; rotate: 3deg; }
+    100% { opacity: 1; scale: 1; rotate: 0deg; }
+  }
+  @keyframes intro-core {
+    0% { opacity: 0; translate: 0 -14px; scale: .45; }
+    27% { opacity: 1; translate: 0 0; scale: 1.2; }
+    47%, 64%, 100% { opacity: 1; translate: 0 0; scale: 1; }
+    81% { opacity: 1; translate: 0 0; scale: 1.38; }
+  }
+  @keyframes intro-mark-flight {
+    0%, 66% { opacity: 1; }
+    100% {
+      opacity: 0;
+      translate: calc(max(var(--gutter), (100vw - 1430px) / 2) + 16px - 50vw) calc(73px - 50dvh);
+      scale: .14;
+      rotate: -23deg;
+    }
+  }
+  @keyframes intro-type {
+    0% { opacity: 0; transform: translateY(18px); animation-timing-function: var(--ease); }
+    22%, 85% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(14px); }
+  }
+  @keyframes intro-advance { from { scale: 0 1; } to { scale: 1 1; } }
+  @keyframes intro-land { from { opacity: 0; transform: translateY(31px) scale(.975); } }
+}
