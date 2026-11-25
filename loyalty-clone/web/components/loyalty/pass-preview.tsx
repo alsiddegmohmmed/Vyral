@@ -1,7 +1,10 @@
 'use client';
 import { useState } from 'react';
+import { Pause, Play } from 'lucide-react';
 import { SegmentedControl } from '@/components/ui/controls';
+import { Button } from '@/components/ui/button';
 import { StampStrip } from './stamp-strip';
+import { useStampLoop } from './use-stamp-loop';
 
 export type CardDesign = {
   business: string; programName: string; reward: string; total: number; filled: number; icon: string;
@@ -15,7 +18,14 @@ const QRStub = () => (
   </div>
 );
 
-function AppleFront({ d }: { d: CardDesign }) {
+/** While the preview fills itself, the stamp grid keeps one steady name instead of a new count every second. */
+const strip = (d: CardDesign, anim: boolean) => ({
+  total: d.total, filled: d.filled, icon: d.icon, image: d.stampUrl, stamp: d.stamp, empty: `${d.foreground}55`, background: d.background,
+  landing: anim, label: anim ? `Preview: the card filling up to ${d.total} stamps` : undefined,
+});
+const full = (d: CardDesign) => d.filled >= d.total;
+
+function AppleFront({ d, anim = false }: { d: CardDesign; anim?: boolean }) {
   return (
     <div className="flex aspect-[1/1.4] w-full flex-col overflow-hidden rounded-xl shadow-pass" style={{ background: d.background, color: d.foreground }}>
       <div className="flex items-center justify-between px-4 pt-4">
@@ -26,11 +36,11 @@ function AppleFront({ d }: { d: CardDesign }) {
         </span>
       </div>
       <div className="mt-3 px-4" style={{ background: 'rgba(0,0,0,.12)' }}>
-        <StampStrip total={d.total} filled={d.filled} icon={d.icon} image={d.stampUrl} stamp={d.stamp} empty={`${d.foreground}55`} background={d.background} className="w-full py-3" />
+        <StampStrip {...strip(d, anim)} className="w-full py-3" />
       </div>
       <div className="grid grid-cols-2 gap-2 px-4 pt-3 text-sm">
         <div><p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: d.label }}>Reward</p><p className="font-medium">{d.reward}</p></div>
-        <div className="text-right"><p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: d.label }}>To go</p><p className="tabular font-medium">{d.total - d.filled}</p></div>
+        <div className="text-right"><p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: d.label }}>To go</p><p className="tabular font-medium">{full(d) ? 'Ready' : d.total - d.filled}</p></div>
       </div>
       <div className="mt-auto pb-5"><QRStub /></div>
     </div>
@@ -60,7 +70,7 @@ function AppleBack({ d }: { d: CardDesign }) {
   );
 }
 
-function GoogleCard({ d }: { d: CardDesign }) {
+function GoogleCard({ d, anim = false }: { d: CardDesign; anim?: boolean }) {
   return (
     <div className="flex aspect-[1/1.4] w-full flex-col overflow-hidden rounded-2xl shadow-pass" style={{ background: d.background, color: d.foreground }}>
       <div className="flex items-center gap-2 px-4 pt-4">
@@ -70,16 +80,32 @@ function GoogleCard({ d }: { d: CardDesign }) {
       <p className="px-4 pt-3 text-xl font-semibold">{d.programName}</p>
       <div className="px-4 pt-2">
         <p className="text-xs opacity-80">Stamps</p>
-        <p className="tabular text-2xl font-semibold">{d.filled}/{d.total}</p>
+        <p className="tabular text-2xl font-semibold">{d.filled}/{d.total}{full(d) && <span className="ml-2 text-sm font-medium">· {d.reward} ready</span>}</p>
       </div>
-      <StampStrip total={d.total} filled={d.filled} icon={d.icon} image={d.stampUrl} stamp={d.stamp} empty={`${d.foreground}55`} background={d.background} className="mx-4 mt-3" />
+      <StampStrip {...strip(d, anim)} className="mx-4 mt-3" />
       <div className="mt-auto pb-5"><QRStub /></div>
     </div>
   );
 }
 
-export function PassPreview({ design }: { design: CardDesign }) {
+/** Pause / play for the self-filling preview (moving content must be pausable, WCAG 2.2.2). */
+function PlayToggle({ playing, onChange, className }: { playing: boolean; onChange: (p: boolean) => void; className?: string }) {
+  return (
+    <Button variant="secondary" size="sm" className={className} onClick={() => onChange(!playing)}>
+      {playing ? <Pause aria-hidden className="size-3.5" /> : <Play aria-hidden className="size-3.5" />}
+      {playing ? 'Pause filling' : 'Play filling'}
+    </Button>
+  );
+}
+
+/**
+ * Designer preview. With `play`, the card fills one stamp at a time, rests on the
+ * reward, and starts again; `design.filled` is what shows when paused.
+ */
+export function PassPreview({ design, play }: { design: CardDesign; play?: { playing: boolean; onChange: (p: boolean) => void } }) {
   const [view, setView] = useState<'front' | 'back' | 'google'>('front');
+  const loop = useStampLoop(design.total, !!play?.playing);
+  const d = loop.running ? { ...design, filled: loop.filled } : design;
   return (
     <div className="flex w-full max-w-[300px] flex-col items-center gap-4">
       <SegmentedControl
@@ -88,10 +114,24 @@ export function PassPreview({ design }: { design: CardDesign }) {
         onChange={setView}
         options={[{ value: 'front', label: 'Apple' }, { value: 'back', label: 'Back' }, { value: 'google', label: 'Google' }]}
       />
-      {view === 'front' && <AppleFront d={design} />}
-      {view === 'back' && <AppleBack d={design} />}
-      {view === 'google' && <GoogleCard d={design} />}
+      {view === 'front' && <AppleFront d={d} anim={loop.running} />}
+      {view === 'back' && <AppleBack d={d} />}
+      {view === 'google' && <GoogleCard d={d} anim={loop.running} />}
+      {play && !loop.reduced && view !== 'back' && <PlayToggle playing={play.playing} onChange={play.onChange} />}
       <p className="text-center text-xs text-text-muted">Close to what customers see. Apple and Google draw the final card.</p>
+    </div>
+  );
+}
+
+/** A self-filling card on its own (landing page), with its own pause control. */
+export function LivePassCard({ design, className }: { design: CardDesign; className?: string }) {
+  const [playing, setPlaying] = useState(true);
+  const loop = useStampLoop(design.total, playing);
+  const d = loop.running ? { ...design, filled: loop.filled } : design;
+  return (
+    <div className={className}>
+      <AppleFront d={d} anim={loop.running} />
+      {!loop.reduced && <PlayToggle playing={playing} onChange={setPlaying} className="mt-3 w-full bg-surface-raised" />}
     </div>
   );
 }

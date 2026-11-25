@@ -18,6 +18,13 @@ test.describe('L landing page', () => {
     await checkA11y('landing');
   });
 
+  test('L-H4 the hero card fills itself and can be paused', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByRole('img', { name: 'Preview: the card filling up to 8 stamps' })).toBeVisible();
+    await page.getByRole('button', { name: 'Pause filling' }).click();
+    await expect(page.getByRole('button', { name: 'Play filling' })).toBeVisible();
+  });
+
   test('L-H2 an FAQ answer opens with the keyboard', async ({ page }) => {
     await page.goto('/#faq');
     const q = page.getByText('What if the phone at the counter breaks or gets lost?');

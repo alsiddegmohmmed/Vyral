@@ -224,3 +224,38 @@ test.describe('F03 edit a live card', () => {
     expect(c!.program_name, 'tab A overwrote tab B’s newer name without warning').toBe('Name from tab B');
   });
 });
+
+test.describe('F02 self-filling preview', () => {
+  test.beforeEach(async ({ loginAsOwner }) => {
+    await loginAsOwner();
+    const org = await seedOrg();
+    await sql(`delete from campaigns where org_id = $1 and short_code not in ('neza1cup','neza2pas')`, [org!.id]);
+  });
+
+  test('F02-E7 the preview fills itself, pauses, and the stepper takes over', async ({ page }) => {
+    await createCard(page, 'Filling card');
+    const grid = page.getByRole('img', { name: /^Preview: the card filling up to \d+ stamps$/ });
+    await expect(grid).toBeVisible();
+    // it moves on its own: the stamp count changes without any input
+    const count = page.getByText(/^\d+\/\d+$/).first();
+    const first = await count.textContent();
+    await expect(count).not.toHaveText(first!, { timeout: 4000 });
+    // pause holds it still
+    await page.getByRole('button', { name: 'Pause filling' }).click();
+    await expect(page.getByRole('button', { name: 'Play filling' })).toBeVisible();
+    const held = await count.textContent();
+    await page.waitForTimeout(2600);
+    await expect(count).toHaveText(held!);
+    // the stepper pauses it too and shows its own value
+    await page.getByRole('button', { name: 'Play filling' }).click();
+    await page.getByRole('button', { name: 'More (Preview stamps)' }).click();
+    await expect(page.getByRole('button', { name: 'Play filling' })).toBeVisible();
+  });
+
+  test('F02-E8 reduced motion: the preview stays still and offers no play control', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await createCard(page, 'Still card');
+    await expect(page.getByRole('img', { name: /^\d+ of \d+ stamps$/ }).first()).toBeVisible();
+    await expect(page.getByRole('button', { name: /filling/ })).toHaveCount(0);
+  });
+});

@@ -12,8 +12,12 @@ export const stampColumns = (total: number) => (total <= 10 ? 5 : total <= 18 ? 
  * The one stamp-grid renderer. Pure SVG so the same markup renders on the server
  * to PNG (pass strip images via resvg) and in the browser (designer, web card, scanner).
  */
-export function StampStrip({ total, filled, icon = 'cup', stamp = '#ffffff', empty = 'rgba(255,255,255,.28)', background = 'transparent', className, image }: {
+export function StampStrip({ total, filled, icon = 'cup', stamp = '#ffffff', empty = 'rgba(255,255,255,.28)', background = 'transparent', className, image, label, landing }: {
   total: number; filled: number; icon?: string; stamp?: string; empty?: string; background?: string; className?: string; image?: string;
+  /** accessible name; defaults to "N of M stamps" */
+  label?: string;
+  /** browser only: the newest stamp drops in (self-filling preview) */
+  landing?: boolean;
 }) {
   const cols = stampColumns(total);
   const rows = Math.ceil(total / cols);
@@ -21,14 +25,14 @@ export function StampStrip({ total, filled, icon = 'cup', stamp = '#ffffff', emp
   const w = cols * cell, h = rows * cell;
   const Icon = stampIcons[icon] ?? Coffee;
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} role="img" aria-label={`${filled} of ${total} stamps`} className={className} style={{ background }}>
+    <svg viewBox={`0 0 ${w} ${h}`} role="img" aria-label={label ?? `${filled} of ${total} stamps`} className={className} style={{ background }}>
       {Array.from({ length: total }, (_, i) => {
         const cx = (i % cols) * cell + cell / 2;
         const cy = Math.floor(i / cols) * cell + cell / 2;
         const on = i < filled;
         const isReward = i === total - 1;
         return (
-          <g key={i}>
+          <g key={i} className={landing && on && i === filled - 1 ? 'stamp-land' : undefined}>
             <circle cx={cx} cy={cy} r={r} fill={on ? stamp : 'none'} stroke={on ? stamp : empty} strokeWidth={4} strokeDasharray={on ? undefined : '6 6'} />
             {isReward && <circle cx={cx} cy={cy} r={r + 8} fill="none" stroke={on ? stamp : empty} strokeWidth={3} />}
             {on && image

@@ -57,6 +57,7 @@ export function Designer({ campaign, locations }: { campaign: Campaign; location
   const [pending, start] = useTransition();
   const [previewStamps, setPreviewStamps] = useState(Math.ceil(campaign.totalStamps * 0.6));
   const [restored, setRestored] = useState(false);
+  const [playing, setPlaying] = useState(true); // self-filling preview; touching the stepper pauses it
   const loaded = useRef(campaign);
 
   const set = <K extends keyof Campaign>(k: K, v: Campaign[K]) => setC((x) => ({ ...x, [k]: v }));
@@ -180,7 +181,7 @@ export function Designer({ campaign, locations }: { campaign: Campaign; location
         </div>
         <div className="flex flex-col gap-1.5">
           <span className="text-sm font-semibold">Preview with</span>
-          <Stepper label="Preview stamps" value={design.filled} onChange={setPreviewStamps} min={0} max={c.totalStamps} />
+          <Stepper label="Preview stamps" value={design.filled} onChange={(v) => { setPlaying(false); setPreviewStamps(v); }} min={0} max={c.totalStamps} />
         </div>
       </div>
     </div>
@@ -314,7 +315,7 @@ export function Designer({ campaign, locations }: { campaign: Campaign; location
           {dirty && !live && <span className="text-xs text-text-muted">Save before going live.</span>}
         </div>
       </div>
-      <div className="flex justify-center lg:sticky lg:top-6 lg:self-start"><PassPreview design={design} /></div>
+      <div className="flex justify-center lg:sticky lg:top-6 lg:self-start"><PassPreview design={design} play={{ playing, onChange: setPlaying }} /></div>
     </div>
   );
 }

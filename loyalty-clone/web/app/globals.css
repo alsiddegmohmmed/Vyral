@@ -34,6 +34,9 @@
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 /* the dot orbits once, anticlockwise, the way the ring is drawn (kit: Motion, Loading) */
 @keyframes garuka-orbit { to { transform: rotate(-360deg); } }
+/* a stamp drops into place with a small overshoot (kit: Motion, Stamp added) */
+@keyframes stamp-land { from { opacity: 0; transform: scale(.35); } to { opacity: 1; transform: none; } }
+.stamp-land { transform-box: fill-box; transform-origin: center; animation: stamp-land 450ms var(--tk-motion-land) both; }
 @utility garuka-orbit { transform-origin: 128px 128px; transform-box: view-box; animation: garuka-orbit var(--tk-motion-orbit) var(--tk-motion-ease) infinite; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0ms !important; transition-duration: 0ms !important; }
