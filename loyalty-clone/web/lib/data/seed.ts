@@ -111,7 +111,8 @@ export function buildSeed(): DB {
   });
   // the demo customer used in screenshots: 9 of 10, ready to complete
   const aline = cards[0];
-  Object.assign(aline, { currentStamps: 9, rewardsAvailable: 1, lastStampAt: iso(now - 2 * day), lastVisitAt: iso(now - 2 * day), appleInstalled: true, googleSaved: false });
+  Object.assign(aline, { currentStamps: 9, rewardsAvailable: 1, totalStampsEarned: Math.max(aline.totalStampsEarned, 19), lastStampAt: iso(now - 2 * day), lastVisitAt: iso(now - 2 * day), appleInstalled: true, googleSaved: false });
+  aline.totalRewardsEarned = aline.totalRewardsRedeemed + 1;
 
   const messages: Message[] = [
     { id: uuid(), orgId, campaignId, kind: 'broadcast', body: 'Double stamps every Friday this month.', status: 'sent', recipients: 23, delivered: 21, skipped: 2, webCards: 9, createdAt: iso(now - 3 * day) },

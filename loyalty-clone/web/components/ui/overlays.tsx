@@ -24,7 +24,14 @@ export function Dialog({ trigger, title, description, children, footer, wide }: 
       <RDialog.Trigger asChild>{trigger}</RDialog.Trigger>
       <RDialog.Portal>
         <RDialog.Overlay className={overlay} />
-        <RDialog.Content className={cn(panel, wide ? 'sm:w-[560px]' : 'sm:w-[480px]')}>
+        <RDialog.Content
+          className={cn(panel, wide ? 'sm:w-[560px]' : 'sm:w-[480px]')}
+          onOpenAutoFocus={(e) => {
+            // start on the first field, not the close button
+            const first = (e.currentTarget as HTMLElement).querySelector<HTMLElement>('input:not([type=hidden]),select,textarea');
+            if (first) { e.preventDefault(); first.focus(); }
+          }}
+        >
           <div className="flex items-start justify-between gap-4">
             <div>
               <RDialog.Title className="text-xl">{title}</RDialog.Title>

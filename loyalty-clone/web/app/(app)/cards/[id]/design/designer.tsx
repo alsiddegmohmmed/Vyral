@@ -200,7 +200,7 @@ export function Designer({ campaign, locations }: { campaign: Campaign; location
           { value: 'terms', label: 'Terms & limits', content: termsTab },
         ]} />
         {msg && <Banner tone={msg.tone} title={msg.text} />}
-        <div className="sticky bottom-0 -mx-4 flex flex-wrap items-center gap-3 border-t border-border bg-bg/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-lg sm:border sm:px-4">
+        <div className="sticky bottom-0 z-[10] -mx-4 flex flex-wrap items-center gap-3 border-t border-border bg-bg px-4 py-3 shadow-pop sm:mx-0 sm:rounded-lg sm:border sm:px-4">
           <Button onClick={save} loading={pending} disabled={!dirty}><Save aria-hidden className="size-4" /> {dirty ? 'Save changes' : 'Saved'}</Button>
           {!live && (
             <ConfirmDialog
