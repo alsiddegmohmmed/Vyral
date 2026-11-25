@@ -66,7 +66,7 @@ export default async function Landing() {
             <p className="mt-4 text-sm text-text-muted">No card or MoMo needed to start. Customers need no app.</p>
           </div>
           <figure className="overflow-hidden rounded-lg border border-border bg-surface shadow-pass">
-            <Image src="/landing/card-overview.jpg" alt="The Garuka dashboard for a café’s coffee card: new customers, stamps given and rewards for the last 30 days, a bar chart of stamps per day, and the QR code customers scan to join." width={1440} height={900} priority className="h-auto w-full" />
+            <Image src="/landing/dashboard-overview-v4.jpg" alt="The Garuka dashboard for a café’s coffee card: new customers, stamps given and rewards for the last 30 days, a bar chart of stamps per day, and the QR code customers scan to join." width={1440} height={900} priority className="h-auto w-full" />
           </figure>
         </section>
 
@@ -130,7 +130,7 @@ export default async function Landing() {
               </ul>
             </div>
             <figure className="overflow-hidden rounded-lg border border-border bg-bg shadow-pass">
-              <Image src="/landing/setup.jpg" alt="The Garuka cards page for a new café, with a six-step setup checklist: create your account, create a card, design it, go live, print your QR code, pair a counter phone." width={1440} height={900} className="h-auto w-full" />
+              <Image src="/landing/setup-checklist-v4.jpg" alt="The Garuka cards page for a new café, with a six-step setup checklist: create your account, create a card, design it, go live, print your QR code, pair a counter phone." width={1440} height={900} className="h-auto w-full" />
             </figure>
           </div>
         </section>
