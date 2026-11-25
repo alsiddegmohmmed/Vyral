@@ -263,6 +263,12 @@ export async function updateCampaign(ctx: OrgContext, id: string, patch: Campaig
   const n = { ...c, ...patch, design: { ...c.design, ...patch.design }, reward: { ...c.reward, ...patch.reward } };
   if (n.totalStamps < 1 || n.totalStamps > 30) throw new DataError('invalid', 'Choose between 1 and 30 stamps.');
   if (!n.name.trim()) throw new DataError('invalid', 'Give the card a name.');
+  for (const l of patch.links ?? []) {
+    if (l.label.length > 40) throw new DataError('invalid', `Link label “${l.label.slice(0, 20)}…” is too long: keep link labels to 40 characters.`);
+    if (l.value.length > 500) throw new DataError('invalid', 'A link or number is too long (500 characters max).');
+  }
+  if (n.name.length > 60) throw new DataError('invalid', 'Card name: 60 characters max.');
+  if (n.reward.name.length > 60) throw new DataError('invalid', 'Reward: 60 characters max.');
   for (const col of [n.design.background, n.design.foreground, n.design.label, n.design.stamp]) {
     if (!/^#[0-9A-Fa-f]{6}$/.test(col)) throw new DataError('invalid', 'Use colours like #1F3B2C.');
   }
@@ -587,11 +593,16 @@ export async function getInsights(ctx: OrgContext, campaignId: string, days = 30
        coalesce(sum(case type when 'stamped' then quantity when 'unstamped' then -quantity end) filter (where created_at <= now() - make_interval(days => $3)), 0)::int as p_stamps,
        coalesce(sum(quantity) filter (where type = 'reward_redeemed' and created_at <= now() - make_interval(days => $3)), 0)::int as p_redeemed
      from e`, [campaignId, ctx.orgId, days]);
+  // days are the business's local days (B-013), not UTC days
   const daily = await q<{ date: string; stamps: number; enrolled: number }>(
-    `select to_char(d, 'YYYY-MM-DD') as date,
-            coalesce((select sum(quantity) from card_events e where e.campaign_id = $1 and e.type = 'stamped' and e.created_at >= d and e.created_at < d + interval '1 day'), 0)::int as stamps,
-            coalesce((select count(*) from card_events e where e.campaign_id = $1 and e.type = 'enrolled' and e.created_at >= d and e.created_at < d + interval '1 day'), 0)::int as enrolled
-       from generate_series(date_trunc('day', now() - make_interval(days => $2 - 1)), date_trunc('day', now()), interval '1 day') d order by d`, [campaignId, days]);
+    `with tz as (select timezone as z from orgs where id = $3),
+          days as (select d::date as d from tz, generate_series((now() at time zone tz.z)::date - ($2 - 1), (now() at time zone tz.z)::date, interval '1 day') d),
+          ev as (select (e.created_at at time zone tz.z)::date as d, e.type, e.quantity from card_events e, tz
+                  where e.campaign_id = $1 and e.type in ('stamped','enrolled') and e.created_at > now() - make_interval(days => $2 + 1))
+     select to_char(days.d, 'YYYY-MM-DD') as date,
+            coalesce(sum(ev.quantity) filter (where ev.type = 'stamped'), 0)::int as stamps,
+            count(ev.*) filter (where ev.type = 'enrolled')::int as enrolled
+       from days left join ev on ev.d = days.d group by days.d order by days.d`, [campaignId, days, ctx.orgId]);
   const st = await one<{ apple: number; google: number; web: number }>(
     `select count(*) filter (where apple_installed)::int as apple, count(*) filter (where google_saved and not apple_installed)::int as google,
             count(*) filter (where not apple_installed and not google_saved)::int as web from cards where campaign_id = $1 and status = 'active'`, [campaignId]);

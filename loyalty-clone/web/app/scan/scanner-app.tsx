@@ -26,8 +26,10 @@ export function ScannerApp() {
   const [who, setWho] = useState('');
   const [prefs, setPrefs] = useState<Prefs>({ vibrate: true, beep: false, confirm: false });
 
-  useEffect(() => { setPrefs(loadPrefs()); }, []);
-  useEffect(() => { try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch { /* private mode */ } }, [prefs]);
+  const [prefsLoaded, setPrefsLoaded] = useState(false);
+  useEffect(() => { setPrefs(loadPrefs()); setPrefsLoaded(true); }, []);
+  // only save after loading, or the first render's defaults overwrite what was stored (B-015)
+  useEffect(() => { if (!prefsLoaded) return; try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch { /* private mode */ } }, [prefs, prefsLoaded]);
 
   const check = useCallback(async () => {
     const r = await fetch('/api/scan/history', { cache: 'no-store' }).catch(() => null);

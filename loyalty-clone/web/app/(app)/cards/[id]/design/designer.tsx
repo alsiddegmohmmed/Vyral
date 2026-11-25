@@ -36,7 +36,7 @@ export function Designer({ campaign, locations }: { campaign: Campaign; location
 
   const save = () => start(async () => {
     setMsg(null);
-    const patch = {
+    const full = {
       name: c.name, programName: c.programName, description: c.description, howToEarn: c.howToEarn, terms: c.terms, hideTerms: c.hideTerms,
       stampMessage: c.stampMessage, rewardMessage: c.rewardMessage, reward: c.reward, design: c.design, links: c.links,
       consentEnabled: c.consentEnabled, consentText: c.consentText, defaultCountry: c.defaultCountry,
@@ -44,7 +44,21 @@ export function Designer({ campaign, locations }: { campaign: Campaign; location
       stampValueCents: c.stampValueCents,
       ...(live ? {} : { totalStamps: c.totalStamps, expiryMode: c.expiryMode, expiryDate: c.expiryDate, expiryDays: c.expiryDays }),
     };
-    for (const r of [await saveDesignAction(c.id, patch), await saveFieldsAction(c.id, fields), await saveCardLocationsAction(c.id, locIds)]) {
+    // only the fields THIS tab changed since it loaded, merged onto the latest saved card on
+    // the server, so a stale tab can't silently undo another tab's newer edits (F03-E2)
+    const base = campaign as unknown as Record<string, unknown>;
+    const patch: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(full)) {
+      if (k === 'design' || k === 'reward') {
+        const sub = Object.fromEntries(Object.entries(v as Record<string, unknown>).filter(([kk, vv]) => JSON.stringify(vv) !== JSON.stringify((base[k] as Record<string, unknown>)?.[kk])));
+        if (Object.keys(sub).length) patch[k] = sub;
+      } else if (JSON.stringify(v) !== JSON.stringify(base[k])) patch[k] = v;
+    }
+    const steps = [() => saveDesignAction(c.id, patch)];
+    if (JSON.stringify(fields) !== JSON.stringify(campaign.fields)) steps.push(() => saveFieldsAction(c.id, fields));
+    if (JSON.stringify([...locIds].sort()) !== JSON.stringify([...campaign.locationIds].sort())) steps.push(() => saveCardLocationsAction(c.id, locIds));
+    for (const step of steps) {
+      const r = await step();
       if (r.error) { setMsg({ tone: 'danger', text: r.error }); return; }
     }
     setMsg({ tone: 'success', text: live ? 'Saved. Use “Update all cards” on the overview to push changes to customers’ phones.' : 'Saved.' });

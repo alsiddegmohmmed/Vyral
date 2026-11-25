@@ -326,14 +326,14 @@ Each fix was checked by the tester's failing Playwright case turning green, plus
 | B-008 | S3 | **fixed** | The success line says "Sending to N wallet passes", using the promised reach. Delivery counts show in the history after fan-out. The F09-H1 wording was updated. |
 | B-009 | S3 | **fixed** | The message text clears only after a successful send. |
 | B-010 | S2 | **fixed** | A locked account can't send messages. F14-E1 passes. |
-| B-011 | S3 | open | Downgrading below current usage still isn't explained. F14-E2 fails. |
+| B-011 | S3 | **fixed** | Choosing a plan below current usage is refused, and the message says what to archive, delete or remove first. F14-E2 passes. |
 | B-012 | S2 | **fixed** | Join closes as soon as deletion is scheduled (the public page and `join_campaign`). Existing cards work until the 7-day purge, and the dialog text now says exactly that. F01-E12 passes; the test allows the expected 404. |
-| B-013 | S3 | open | Insights still group days in UTC instead of the business's time zone. F11-E1 fails. |
+| B-013 | S3 | **fixed** | Daily insights are grouped by the business's local day (`at time zone orgs.timezone`). F11-E1 passes. |
 | B-014 | S3 | **fixed** | The stepper resets to 1 after each successful action. |
-| B-015 | S4 | open | Scanner settings are lost on reload, seen on the dev server only. F06-E12 fails. |
-| F02-E5 | S3 | open | A link label over 40 characters gives a generic error instead of a specific one. |
-| F03-E2 | S3 | open | Two designer tabs: the last save wins silently. Needs optimistic locking on `updated_at`. |
+| B-015 | S4 | **fixed** | The scanner saved its defaults over the stored settings before loading them (visible under React's dev double-mount). It now saves only after loading. F06-E12 passes. |
+| F02-E5 | S3 | **fixed** | Link, name and reward lengths are checked before the database, with messages that name the field. |
+| F03-E2 | S3 | **fixed** | The designer sends only the fields that tab changed. They're merged onto the latest saved card, so a stale tab can't undo another tab's newer edits, and its own change still saves. Two tabs editing the *same* field: last save wins. |
 
-**Flaky:** F04-E10 (keyboard-only join) passes alone 2/2 but fails in the full run on desktop and mobile. Suspected cause, not verified: the dev server's overlay badge takes the first Tab after earlier tests. The manual keyboard pass completed join and scan without a mouse. To check against a production build.
+**Flaky:** F04-E10 (keyboard-only join) passes alone 2/2 but fails in the full run, on desktop and mobile. Name, country code and phone take focus in order; the run breaks after the two birthday selects, where focus doesn't reach the consent checkbox. Suspected cause, not verified: state left by earlier tests (dev server or browser). The manual keyboard pass completed join and scan without a mouse. To check against a production build.
 
-**Open S1: none. Open S2: none.**
+**Update (S3 pass): the suite now runs 132 tests, 130 pass, and only F04-E10 (flaky, two projects) fails. Open S1: none. Open S2: none. Open S3/S4: none.**

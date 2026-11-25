@@ -55,6 +55,17 @@ export async function deleteLocationAction(id: string) {
 export async function checkoutAction(plan: 'starter' | 'growth' | 'pro', interval: 'month' | 'year' = 'month'): Promise<SettingsState & { url?: string }> {
   const ctx = await requireOwner();
   const [org, billing] = await Promise.all([api.getOrg(ctx), api.getBilling(ctx)]);
+  const usage = await (await import('@/lib/db/client')).one<{ designs: number; locations: number; devices: number }>(
+    `select (select count(*) from campaigns where org_id = $1 and status <> 'archived')::int as designs,
+            (select count(*) from locations where org_id = $1)::int as locations,
+            (select count(*) from scanner_devices where org_id = $1 and revoked_at is null)::int as devices`, [ctx.orgId]);
+  const lim = api.PLAN_LIMITS[plan];
+  const over = [
+    usage!.designs > lim.designs && `${usage!.designs} card designs (${plan} allows ${lim.designs}): archive some`,
+    usage!.locations > lim.locations && `${usage!.locations} locations (allows ${lim.locations}): delete some`,
+    usage!.devices > lim.devices && `${usage!.devices} counter phones (allows ${lim.devices}): remove some`,
+  ].filter(Boolean);
+  if (over.length) return { error: `You’re using more than ${plan[0].toUpperCase() + plan.slice(1)} includes: ${over.join('; ')}. Then choose the plan again.` };
   const configured = billing.currency === 'USD' ? !!process.env.PADDLE_API_KEY : !!process.env.FLW_SECRET_KEY;
   if (!configured) {
     try { await api.fakeCheckout(ctx, plan); } catch (e) { return fail(e); }
