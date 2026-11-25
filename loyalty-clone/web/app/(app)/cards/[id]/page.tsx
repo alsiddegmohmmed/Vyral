@@ -107,7 +107,7 @@ export default async function OverviewPage({ params, searchParams }: { params: P
         <div className="flex flex-col gap-4">
           <SectionHeading id="share">Share your card</SectionHeading>
           <section aria-labelledby="share" className="flex flex-col items-center gap-3 rounded-lg border border-border bg-surface-raised p-5 shadow-card">
-            <p className="self-start text-sm text-text-muted">Customers scan this to join. Print it and put it where people pay.</p>
+            <p className="self-start text-sm text-text-muted">Customers scan this to join. Print it and stand it by the till.</p>
             <QRBlock value={joinUrl} label={`QR code to join ${c.name}`} />
           </section>
         </div>

@@ -23,7 +23,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     billing.planStatus === 'trialing' ? (
       <Banner tone={billing.daysLeft <= 3 ? 'warning' : 'info'} title={billing.daysLeft === 0 ? 'Your trial ends today' : `${billing.daysLeft} ${billing.daysLeft === 1 ? 'day' : 'days'} left in your trial`}
         action={<Link href="/settings/billing" className={buttonClass('secondary', 'sm')}>Choose a plan</Link>}>
-        Your cards keep working while you decide.
+        Everything keeps working while you choose.
       </Banner>
     ) : billing.planStatus === 'past_due' ? (
       <Banner tone="warning" title="Payment overdue" action={<Link href="/settings/billing" className={buttonClass('secondary', 'sm')}>Pay now</Link>}>Everything still works for now.</Banner>

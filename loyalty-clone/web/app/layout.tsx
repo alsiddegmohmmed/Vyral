@@ -6,8 +6,8 @@ const inter = Inter({ subsets: ['latin'], variable: '--nf-inter', display: 'swap
 const mono = JetBrains_Mono({ subsets: ['latin'], variable: '--nf-mono', display: 'swap' });
 
 export const metadata: Metadata = {
-  title: 'Loyalty clone',
-  description: 'Digital stamp cards for Apple Wallet, Google Wallet and the web.',
+  title: { default: 'Garuka', template: '%s · Garuka' },
+  description: 'Garuka: stamp cards that bring customers back. Apple Wallet, Google Wallet or any phone’s browser.',
   robots: { index: false, follow: false },
 };
 

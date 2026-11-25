@@ -1,20 +1,20 @@
 /* GENERATED from tokens.json by build-tokens.mjs. Do not edit. */
 :root {
   --tk-color-bg: #ffffff;
-  --tk-color-surface: #f5f6f8;
+  --tk-color-surface: #f4f6f9;
   --tk-color-surface-raised: #ffffff;
-  --tk-color-sidebar: #f3f4f6;
-  --tk-color-nav-active: #e4e7eb;
-  --tk-color-border: #e2e5ea;
-  --tk-color-border-input: #7f8894;
-  --tk-color-text: #15181d;
-  --tk-color-text-muted: #59616d;
-  --tk-color-text-subtle: #6b7380;
-  --tk-color-accent: #24292f;
-  --tk-color-accent-hover: #3a4149;
-  --tk-color-accent-subtle: #eceef1;
+  --tk-color-sidebar: #eef2f8;
+  --tk-color-nav-active: #e0e8f5;
+  --tk-color-border: #dfe4ec;
+  --tk-color-border-input: #7c8798;
+  --tk-color-text: #121822;
+  --tk-color-text-muted: #545f70;
+  --tk-color-text-subtle: #677284;
+  --tk-color-accent: #1f56b8;
+  --tk-color-accent-hover: #18459a;
+  --tk-color-accent-subtle: #eaf0fb;
   --tk-color-on-accent: #ffffff;
-  --tk-color-focus: #2563eb;
+  --tk-color-focus: #d2501c;
   --tk-color-danger: #b42323;
   --tk-color-danger-bg: #fdecec;
   --tk-color-on-danger: #ffffff;
@@ -22,8 +22,8 @@
   --tk-color-success-bg: #e8f5ee;
   --tk-color-warning: #8a5300;
   --tk-color-warning-bg: #fff4e0;
-  --tk-color-info: #1d4ed8;
-  --tk-color-info-bg: #eaf0fe;
+  --tk-color-info: #0e6a8a;
+  --tk-color-info-bg: #e6f4f8;
   --tk-color-overlay: #0f1216;
   --tk-color-scanner-bg: #0f1216;
   --tk-color-scanner-surface: #1c2128;

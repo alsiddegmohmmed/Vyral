@@ -14,7 +14,7 @@ export default function SignupPage() {
     <>
       <p className="hidden text-xs font-semibold uppercase tracking-wider text-text-muted lg:block">Step 1 of 6</p>
       <h1 className="lg:mt-2 text-3xl tracking-tight">Start your free trial</h1>
-      <p className="mt-2 text-base text-text-muted">15 days, no payment needed. Your first card takes about five minutes.</p>
+      <p className="mt-2 text-base text-text-muted">15 days free. No card or MoMo needed to start. Your first stamp card takes about five minutes.</p>
       <hr className="mt-6 border-border" />
       <form action={action} className="mt-6 flex flex-col gap-5" noValidate>
         {state.error && <Banner tone="danger" title={state.error} />}

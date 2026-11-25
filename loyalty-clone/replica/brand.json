@@ -1,0 +1,7 @@
+{
+  "name": "Garuka",
+  "palette": "Kivu",
+  "avoid": ["Loopy Loyalty", "LoopyLoyalty", "Loopy", "Koroot"],
+  "domains": ["loopyloyalty.com", "koroot.io"],
+  "colors": ["#ed3e75", "#f74780", "#e73971", "#ffb30c", "#353f4f", "#10b77f", "#1fb255", "#0f1729", "#1d283a"]
+}

@@ -21,7 +21,7 @@ export async function runBilling() {
   for (const s of dueSoon) {
     const amount = PRICES[s.plan].RWF * (s.billingInterval === 'year' ? 10 : 1);
     await openInvoice(s.orgId, s.plan, s.billingInterval, 'RWF', amount);
-    await sendEmail({ to: s.email, orgId: s.orgId, kind: 'invoice', subject: 'Your loyalty plan renews soon',
+    await sendEmail({ to: s.email, orgId: s.orgId, kind: 'invoice', subject: 'Your Garuka plan renews soon',
       text: `Hi ${s.name},\n\nYour plan renews in a few days. Pay with MTN MoMo, Airtel Money or card from Plan & billing:\n${process.env.PUBLIC_BASE_URL ?? 'http://localhost:3100'}/settings/billing\n\nYour cards keep working while you pay.` });
   }
   const lapsed = await q<{ orgId: string }>(

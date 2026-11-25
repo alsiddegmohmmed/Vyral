@@ -9,16 +9,16 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <aside aria-label="About this service" className="hidden border-r border-border bg-sidebar lg:flex lg:flex-col lg:gap-10 lg:p-6">
         <div className="flex items-center gap-2.5 px-3 pt-1">
           <span aria-hidden className="grid size-8 place-items-center rounded-sm bg-accent text-on-accent"><Stamp className="size-[18px]" /></span>
-          <span className="text-sm font-semibold">Loyalty cards</span>
+          <span className="text-sm font-semibold">Garuka</span>
         </div>
         <AuthRail />
-        <p className="mt-auto px-3 text-xs text-text-muted">Digital stamp cards for small businesses.</p>
+        <p className="mt-auto px-3 text-xs text-text-muted">Garuka means “come back”. That’s the whole job.</p>
       </aside>
       <main className="flex min-h-dvh flex-col px-4 py-8 sm:px-8 lg:justify-center lg:py-14">
         <div className="mx-auto w-full max-w-[440px]">
           <div className="mb-8 flex items-center gap-2.5 lg:hidden">
             <span aria-hidden className="grid size-8 place-items-center rounded-sm bg-accent text-on-accent"><Stamp className="size-[18px]" /></span>
-            <span className="text-sm font-semibold">Loyalty cards</span>
+            <span className="text-sm font-semibold">Garuka</span>
           </div>
           <AuthProgress />
           {children}

@@ -40,7 +40,7 @@ const base = () => process.env.PUBLIC_BASE_URL ?? 'http://localhost:3100';
 export const emails = {
   verify: (to: string, token: string) => sendEmail({
     to, kind: 'verify_email', subject: 'Confirm your email',
-    text: `Welcome! Confirm your email to keep your account:\n\n${base()}/verify?token=${token}\n\nThe link works for 48 hours. If you didn’t sign up, ignore this email.`,
+    text: `Welcome to Garuka. Confirm your email to keep your account:\n\n${base()}/verify?token=${token}\n\nThe link works for 48 hours. If you didn’t sign up, ignore this email.`,
   }),
   reset: (to: string, token: string) => sendEmail({
     to, kind: 'reset_password', subject: 'Reset your password',

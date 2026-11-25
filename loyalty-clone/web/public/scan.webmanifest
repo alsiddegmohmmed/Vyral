@@ -1,6 +1,6 @@
 {
-  "name": "Card scanner",
-  "short_name": "Scanner",
+  "name": "Garuka counter",
+  "short_name": "Garuka",
   "start_url": "/scan",
   "scope": "/scan",
   "display": "standalone",

@@ -69,7 +69,7 @@ export function SetupChecklist({ items }: { items: ChecklistItem[] }) {
       <div className="flex flex-wrap items-end justify-between gap-3 border-b border-border px-5 py-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-text-muted">Setup checklist</p>
-          <h2 id="setup-title" className="mt-1 text-lg">Get ready for your first customer</h2>
+          <h2 id="setup-title" className="mt-1 text-lg">Get ready for your first regular</h2>
         </div>
         <div className="flex min-w-[180px] items-center gap-3">
           <div className="h-1.5 flex-1 overflow-hidden rounded-pill bg-surface" role="progressbar" aria-label="Setup progress" aria-valuemin={0} aria-valuemax={rows.length} aria-valuenow={doneCount}>

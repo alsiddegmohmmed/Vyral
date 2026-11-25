@@ -11,7 +11,7 @@ export function LoginForm({ notice }: { notice?: string }) {
   return (
     <>
       <h1 className="text-3xl tracking-tight">Welcome back</h1>
-      <p className="mt-2 text-base text-text-muted">Sign in to manage your cards.</p>
+      <p className="mt-2 text-base text-text-muted">Sign in to your cards and counter phones.</p>
       <hr className="mt-6 border-border" />
       <form action={action} className="mt-6 flex flex-col gap-5" noValidate>
         {notice && !state.error && <Banner tone="success" title={notice} />}

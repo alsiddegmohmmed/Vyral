@@ -250,7 +250,7 @@ export async function createCampaign(ctx: OrgContext, name: string): Promise<Cam
       `with o as (select name, country, default_currency from orgs where id = $1),
             n as (select count(*) as n from campaigns where org_id = $1 and status <> 'archived'),
             c as (insert into campaigns (org_id, name, program_name, logo_text, default_country, currency, consent_text, background_color, foreground_color, label_color, stamp_color)
-                  select $1, $2, o.name, o.name, o.country, o.default_currency, 'Send me news and offers from ' || o.name || '. I can stop anytime.', '#24292F', '#FFFFFF', '#C9D1D9', '#FFFFFF'
+                  select $1, $2, o.name, o.name, o.country, o.default_currency, 'Send me news and offers from ' || o.name || '. I can stop anytime.', '#1F56B8', '#FFFFFF', '#D6E2F7', '#FFFFFF'
                     from o, n where n.n < $3 returning id),
             r as (insert into rewards (campaign_id, position, name, stamps_required) select id, 1, 'Free coffee', 10 from c),
             f as (insert into campaign_fields (campaign_id, key, label, type, required, position)

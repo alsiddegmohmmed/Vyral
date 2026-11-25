@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import tokens from '../../../replica/design/tokens.json';
 import { DesignShowcase } from './showcase';
 
-export const metadata: Metadata = { title: 'Design system · Loyalty clone' };
+export const metadata: Metadata = { title: 'Design system' };
 
 const colorEntries = Object.entries(tokens.color).filter(([k]) => !k.startsWith('_')) as [string, string][];
 

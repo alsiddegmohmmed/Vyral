@@ -36,7 +36,7 @@ export default async function CardsPage() {
         <SetupChecklist items={checklist} />
         {cards.length === 0 ? (
           <EmptyState icon={<LayoutGrid aria-hidden />} title="Make your first card" action={<NewCardButton atLimit={false} />}>
-            Pick a reward, choose your colours, and share a QR code. Customers join in seconds.
+            Choose a reward and your colours, then print one QR code. Customers join from their own phone in seconds.
           </EmptyState>
         ) : (
           <ul className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
