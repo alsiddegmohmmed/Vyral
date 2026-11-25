@@ -188,6 +188,8 @@ test.describe('F14 plan and billing (payments simulated in dev)', () => {
   test.afterEach(async () => {
     const org = await seedOrg();
     if (org) await sql(`update orgs set plan = 'growth', plan_status = 'trialing' where id = $1`, [org.id]);
+    // dev plan switches create a 'manual' subscription; drop it so other tests see a trial
+    if (org) await sql(`delete from subscriptions where org_id = $1 and provider = 'manual'`, [org.id]);
   });
 
   test('F14-H1 choose a plan in dev mode switches it directly @mobile', async ({ page, checkA11y }) => {
@@ -201,6 +203,23 @@ test.describe('F14 plan and billing (payments simulated in dev)', () => {
     await expect(page.getByRole('heading', { name: 'Plan & billing' })).toBeVisible();
     await expect(page.getByText('You’re on Pro.')).toBeVisible();
     await expect(page.getByText(/left in your trial/)).toHaveCount(0);
+  });
+
+  test('F14-H2 cancel the plan in one click, then keep it', async ({ page, checkA11y }) => {
+    await page.goto('/settings/billing');
+    await page.getByRole('button', { name: 'Choose Pro' }).click();
+    await expect(page.getByText('You’re on Pro.')).toBeVisible();
+    const renewal = page.getByRole('region', { name: 'Renewal' });
+    await expect(renewal).toContainText('Pro renews on');
+    await renewal.getByRole('button', { name: 'Cancel plan' }).click();
+    await page.getByRole('alertdialog', { name: 'Cancel your plan?' }).getByRole('button', { name: 'Cancel plan' }).click();
+    await expect(renewal).toContainText('You won’t be charged again');
+    await expect(renewal).toContainText('Pro ends on');
+    await checkA11y('S21 billing: plan cancelled');
+    const s = await one<{ c: boolean }>(`select s.cancel_at_period_end as c from subscriptions s join orgs o on o.id = s.org_id where o.name = 'Café Neza' and s.status <> 'cancelled'`);
+    expect(s!.c, 'cancel was shown but not saved').toBe(true);
+    await renewal.getByRole('button', { name: 'Keep my plan' }).click();
+    await expect(renewal).toContainText('Pro renews on');
   });
 
   test('F14-E1 locked account: banner says editing is paused, and editing is refused', async ({ page }) => {
@@ -226,8 +245,9 @@ test.describe('F14 plan and billing (payments simulated in dev)', () => {
     const designs = await one<{ n: number }>(`select count(*)::int as n from campaigns c join orgs o on o.id = c.org_id where o.name = 'Café Neza' and c.status <> 'archived'`);
     if (o!.plan === 'starter') {
       await page.goto('/cards');
-      await expect(page.getByText(`${designs!.n} of 1 card design on your plan`)).toBeVisible();
-      expect(designs!.n, 'downgraded to Starter (1 design) while using more designs, without any warning').toBeLessThanOrEqual(1);
+      // Starter allows 2 designs since pricing.md (2026-11-25)
+      await expect(page.getByText(`${designs!.n} of 2 card designs on your plan`)).toBeVisible();
+      expect(designs!.n, 'downgraded to Starter (2 designs) while using more designs, without any warning').toBeLessThanOrEqual(2);
     }
   });
 

@@ -100,3 +100,10 @@ export async function deleteAccountAction(): Promise<SettingsState> {
   await api.scheduleAccountDeletion(ctx);
   redirect('/login?deleted=1');
 }
+
+export async function cancelPlanAction(cancel: boolean): Promise<SettingsState> {
+  const ctx = await requireOwner();
+  try { await api.setCancelAtPeriodEnd(ctx, cancel); } catch (e) { return fail(e); }
+  revalidatePath('/settings/billing');
+  return { ok: cancel ? 'Cancelled. Your plan stays on until the end of this period, and you won’t be charged again.' : 'Your plan will renew as normal.' };
+}

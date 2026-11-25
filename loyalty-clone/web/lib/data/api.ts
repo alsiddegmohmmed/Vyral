@@ -173,10 +173,12 @@ export async function scheduleAccountDeletion(ctx: OrgContext) {
 }
 
 export const PLAN_LIMITS = {
-  starter: { designs: 1, locations: 1, devices: 2 },
-  growth: { designs: 3, locations: 3, devices: 5 },
-  pro: { designs: 10, locations: 10, devices: 20 },
-} as const;
+  // Set in replica/launch/pricing.md (2026-11-25). Counter phones are generous on
+  // purpose: a shop should never be told to "buy a new device" (fixes.md #2).
+  starter: { designs: 2, locations: 1, devices: 10 },
+  growth: { designs: 3, locations: 3, devices: 30 },
+  pro: { designs: 10, locations: 10, devices: 100 },
+} satisfies Record<'starter' | 'growth' | 'pro', { designs: number; locations: number; devices: number }>;
 
 // ---------------------------------------------------------------- campaigns
 
@@ -848,4 +850,30 @@ export async function getBilling(ctx: OrgContext) {
 export async function fakeCheckout(ctx: OrgContext, plan: 'starter' | 'growth' | 'pro') {
   if (process.env.NODE_ENV === 'production') throw new DataError('not_configured', 'Payments aren’t set up yet.');
   await q(`update orgs set plan = $2, plan_status = 'active' where id = $1`, [ctx.orgId, plan]);
+  // a 'manual' monthly subscription, so renewal and cancel can be tried in development
+  await q(`with u as (update subscriptions set plan = $2, cancel_at_period_end = false, updated_at = now()
+                       where org_id = $1 and status <> 'cancelled' returning id)
+           insert into subscriptions (org_id, provider, plan, billing_interval, status, current_period_start, current_period_end)
+           select $1, 'manual', $2, 'month', 'active', now(), now() + interval '1 month' where not exists (select 1 from u)`, [ctx.orgId, plan]);
+}
+
+export type Subscription = { id: string; provider: 'paddle' | 'flutterwave' | 'manual' | 'stripe'; providerSubscriptionId: string | null; plan: keyof typeof PLAN_LIMITS; billingInterval: 'month' | 'year'; currentPeriodEnd: string; cancelAtPeriodEnd: boolean };
+
+export async function getSubscription(ctx: OrgContext): Promise<Subscription | null> {
+  return (await one<Subscription>(
+    `select id, provider, provider_subscription_id, plan, billing_interval, current_period_end, cancel_at_period_end
+       from subscriptions where org_id = $1 and status <> 'cancelled' order by created_at desc limit 1`, [ctx.orgId])) ?? null;
+}
+
+/** One-click cancel (at the end of the paid period) and undo. Billing complaint fix, see pricing.md. */
+export async function setCancelAtPeriodEnd(ctx: OrgContext, cancel: boolean) {
+  const s = await getSubscription(ctx);
+  if (!s) throw new DataError('no_subscription', 'You don’t have a paid plan to cancel.');
+  if (s.provider === 'paddle' && s.providerSubscriptionId) {
+    if (!cancel) throw new DataError('provider', 'To keep a card plan, choose it again after the current period ends.');
+    const { cancelPaddleSubscription } = await import('@/lib/billing');
+    const r = await cancelPaddleSubscription(s.providerSubscriptionId);
+    if ('error' in r) throw new DataError('provider_error', 'We couldn’t reach the payment provider. Nothing changed. Try again in a minute.');
+  }
+  await q('update subscriptions set cancel_at_period_end = $2, updated_at = now() where id = $1', [s.id, cancel]);
 }

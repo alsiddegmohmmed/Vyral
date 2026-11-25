@@ -1,0 +1,21 @@
+{
+  "avoid": [
+    "Loopy Loyalty",
+    "LoopyLoyalty",
+    "Loopy",
+    "Koroot"
+  ],
+  "app_store": {
+    "name": "Garuka Counter: Stamp Cards",
+    "subtitle": "Stamp loyalty cards, any phone",
+    "promotional_text": "Pair a new counter phone in 30 seconds with a 6-digit code. No special device to buy. A self-check says what to fix.",
+    "description": "Garuka is the counter app for Garuka stamp cards. Staff scan a customer's card and add a stamp in one tap, on any phone.\n\nBuilt so the counter keeps going:\n- Pair a phone with a 6-digit code from your dashboard. If it breaks or gets lost, pair another in about 30 seconds. No special device to buy.\n- A self-check tests the camera, connection, pairing and clock, and says what to fix.\n- If the camera can't read a card, type the card's code instead.\n- If the connection drops, the app says plainly that nothing was saved, so no stamp is lost or given twice.\n- Report a problem from settings: it sends the phone's details to our support team on WhatsApp, so you don't have to explain twice.\n\nSafe for a shared counter:\n- A paired phone can only scan and stamp. It can't see your customer list, billing or settings.\n- Every stamp is logged with the name of the phone that gave it.\n- Card codes change after each reward, so an old screenshot won't work.\n\nHow it fits together:\n1. Design your stamp card in the Garuka dashboard.\n2. Print your QR code. Customers join from their own phone, with no app to install.\n3. Open this app at the till and stamp.\n\nYou need a Garuka account to use this app. Start 15 days free at the Garuka website. Plans are priced per shop, not per staff member. Pay in Rwandan francs by MTN MoMo, Airtel Money or card, or in US dollars by card.",
+    "keywords": "punch,rewards,cafe,salon,barber,coffee,scanner,till,regulars,momo,kigali,rwanda,card,points,qr",
+    "whats_new": "A self-check for camera, connection and clock, and Report a problem from settings."
+  },
+  "google_play": {
+    "title": "Garuka Counter: Stamp Cards",
+    "short_description": "Stamp your customers' loyalty cards from any phone at the till.",
+    "full_description": "Garuka is the counter app for Garuka stamp cards. Staff scan a customer's card and add a stamp in one tap, on any phone.\n\nBuilt so the counter keeps going:\n- Pair a phone with a 6-digit code from your dashboard. If it breaks or gets lost, pair another in about 30 seconds. No special device to buy.\n- A self-check tests the camera, connection, pairing and clock, and says what to fix.\n- If the camera can't read a card, type the card's code instead.\n- If the connection drops, the app says plainly that nothing was saved, so no stamp is lost or given twice.\n- Report a problem from settings: it sends the phone's details to our support team on WhatsApp, so you don't have to explain twice.\n\nSafe for a shared counter:\n- A paired phone can only scan and stamp. It can't see your customer list, billing or settings.\n- Every stamp is logged with the name of the phone that gave it.\n- Card codes change after each reward, so an old screenshot won't work.\n\nHow it fits together:\n1. Design your stamp card in the Garuka dashboard.\n2. Print your QR code. Customers join from their own phone, with no app to install.\n3. Open this app at the till and stamp.\n\nYou need a Garuka account to use this app. Start 15 days free at the Garuka website. Plans are priced per shop, not per staff member. Pay in Rwandan francs by MTN MoMo, Airtel Money or card, or in US dollars by card."
+  }
+}
