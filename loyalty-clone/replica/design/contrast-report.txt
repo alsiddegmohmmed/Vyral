@@ -3,6 +3,14 @@
   AA     6.26:1  text-muted               on bg                   
   AA     5.79:1  text-muted               on surface              
   AA     4.78:1  text-subtle              on bg                   
+  AAA   16.17:1  text                     on sidebar              
+  AA     5.69:1  text-muted               on sidebar              
+  AAA   14.34:1  text                     on nav-active           
+  AA     5.05:1  text-muted               on nav-active           
+  AAA   15.31:1  text                     on accent-subtle        
+  AA     5.38:1  text-muted               on accent-subtle        
+  AAA   12.61:1  accent                   on accent-subtle        
+  AA     6.43:1  success                  on sidebar              
   AAA   14.65:1  on-accent                on accent               
   AAA   10.33:1  on-accent                on accent-hover         
   AAA   14.65:1  accent                   on bg                   
@@ -29,4 +37,4 @@
   PASS   4.78:1  focus                    on surface              ui
   PASS   3.63:1  focus                    on scanner-bg           ui
 
-  30 pairs, 0 failing AA
+  38 pairs, 0 failing AA

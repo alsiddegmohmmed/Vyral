@@ -10,7 +10,7 @@ export default function ForgotPage() {
   const [state, action, pending] = useActionState<AuthState, FormData>(forgotAction, {});
   return (
     <>
-      <h1 className="text-2xl">Reset your password</h1>
+      <h1 className="text-3xl tracking-tight">Reset your password</h1>
       {state.fields?.sent ? (
         <div className="mt-6"><Banner tone="success" title="Check your email">If an account uses that address, we’ve sent a link. It works for one hour.</Banner></div>
       ) : (

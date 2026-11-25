@@ -4,6 +4,8 @@
   --color-bg: var(--tk-color-bg);
   --color-surface: var(--tk-color-surface);
   --color-surface-raised: var(--tk-color-surface-raised);
+  --color-sidebar: var(--tk-color-sidebar);
+  --color-nav-active: var(--tk-color-nav-active);
   --color-border: var(--tk-color-border);
   --color-border-input: var(--tk-color-border-input);
   --color-text: var(--tk-color-text);
@@ -11,6 +13,7 @@
   --color-text-subtle: var(--tk-color-text-subtle);
   --color-accent: var(--tk-color-accent);
   --color-accent-hover: var(--tk-color-accent-hover);
+  --color-accent-subtle: var(--tk-color-accent-subtle);
   --color-on-accent: var(--tk-color-on-accent);
   --color-focus: var(--tk-color-focus);
   --color-danger: var(--tk-color-danger);
@@ -53,6 +56,9 @@
   --text-2xl: var(--tk-text-2xl);
   --text-2xl--line-height: var(--tk-text-2xl--line-height);
   --text-2xl--font-weight: var(--tk-text-2xl--font-weight);
+  --text-3xl: var(--tk-text-3xl);
+  --text-3xl--line-height: var(--tk-text-3xl--line-height);
+  --text-3xl--font-weight: var(--tk-text-3xl--font-weight);
   --text-display: var(--tk-text-display);
   --text-display--line-height: var(--tk-text-display--line-height);
   --text-display--font-weight: var(--tk-text-display--font-weight);

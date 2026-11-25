@@ -30,5 +30,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     ) : billing.planStatus === 'locked' ? (
       <Banner tone="danger" title="Your account is locked" action={<Link href="/settings/billing" className={buttonClass('primary', 'sm')}>Pay to unlock</Link>}>Customers can still use their cards. Editing is paused.</Banner>
     ) : undefined;
-  return <AppShell orgName={org.name} banner={banner} signOut={signOut}>{children}</AppShell>;
+  const planLabel = `${billing.plan[0].toUpperCase()}${billing.plan.slice(1)} plan`;
+  return <AppShell orgName={org.name} planLabel={planLabel} banner={banner} signOut={signOut}>{children}</AppShell>;
 }

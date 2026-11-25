@@ -101,6 +101,34 @@ Breadcrumbs    Cards › Coffee card › Customers
 PageHeader     h1 + description + actions (right; wraps below on mobile)
 ```
 
+### v2 layout (2026-11-25, structure from `reference-koroot.md`; our tokens, copy and icons)
+
+```
+AppShell v2    sidebar 256 on bg `sidebar`; top: org initial tile (accent) + org name + plan line;
+               flat nav, 40px rows, gap 12, active = bg `nav-active` + 600 + aria-current="page";
+               bottom: "Open scanner" as a filled accent row, then Sign out. Content max 1200,
+               padding 16/24/32; trial Banner sits above the page header inside the content column.
+PageHeader v2  optional back link + eyebrow; h1 (2xl) with a status Badge inline; one-line
+               description in base/muted; actions top-aligned on the right.
+SectionHeading chip (h2, sm/600, bordered pill) + hairline to the edge; optional action on the right.
+CardTabs v2    segmented track (bg surface, 4px pad), raised segment for the open section;
+               still <nav aria-label="Card sections"> with links + aria-current.
+SetupChecklist first-run card on /cards: eyebrow, title, progress bar ("n of 6 done", role
+               progressbar), 3-column grid of steps (1 column on phones). Steps come from
+               SETUP_STEPS (components/loyalty/setup-steps.tsx): done = check + struck title +
+               "(done)" for screen readers; the first open step is current (accent-subtle fill)
+               and the only one with a call to action. Hidden once every step is done.
+Card tile v2   pass face (merchant colours) inset in a raised tile, name + status badge, counts,
+               footer row "Open card →" / "Continue designing →". Last slot: dashed "New card"
+               tile (hidden at the plan limit, where the header shows the upgrade link).
+Period card    card overview: header "Last 30 days"; four Metrics (label, 2xl value, delta) +
+               stamps-per-day bars (svg role=img with a text summary); right column lists where
+               customers keep the card, divided rows.
+Auth layout v2 lg: rail 360 on bg `sidebar` (mark, StepRail on /signup or 3 benefit rows
+               elsewhere) + centred 440 form column. Signup: eyebrow "Step 1 of 6", h1 3xl,
+               lead, hairline, form. Phones: no rail; a 6-segment progress bar on /signup.
+```
+
 ## Feedback
 
 ```
@@ -209,8 +237,8 @@ PlanCard       S21: name, price (USD or RWF by currency toggle), limits list, cu
 
 | screen | main components |
 | --- | --- |
-| S01–S02 | AppShell-less centered Card, Field, TextInput, Button, LinkButton |
-| S03 | PageHeader, card grid (PassPreview mini + Badge), EmptyState, Banner (limit) |
+| S01–S02 | Auth layout v2 (rail + StepRail), Field, TextInput, Button, LinkButton |
+| S03 | PageHeader, SetupChecklist, card grid (Card tile v2 + Badge), EmptyState, Banner (limit) |
 | S04–S09 | Tabs, Field, ColorField, ImageUpload, IconPicker, Stepper, Textarea, FieldListBuilder, PassPreview |
 | S10–S12 | QRBlock, Dialog, ConfirmDialog, StatTile, Button |
 | S13 | StatTile, Chart, Field (ROI inputs) |

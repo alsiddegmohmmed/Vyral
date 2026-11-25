@@ -11,8 +11,7 @@ export function OverviewActions({ id, status }: { id: string; status: string }) 
   const [msg, setMsg] = useState<{ tone: 'success' | 'danger'; text: string } | null>(null);
   const run = (fn: () => Promise<{ ok?: string; error?: string }>) => start(async () => { const r = await fn(); setMsg(r.error ? { tone: 'danger', text: r.error } : { tone: 'success', text: r.ok ?? 'Done' }); });
   return (
-    <section aria-labelledby="manage" className="flex flex-col gap-3 rounded-lg border border-border p-5">
-      <h2 id="manage" className="text-lg">Manage</h2>
+    <section aria-labelledby="manage" className="flex flex-col gap-3 rounded-lg border border-border bg-surface-raised p-5 shadow-card">
       <div className="flex flex-wrap gap-2">
         <Button variant="secondary" loading={pending} onClick={() => run(() => pushUpdateAction(id))}><RefreshCw aria-hidden className="size-4" /> Update all cards</Button>
         {status === 'live' ? (

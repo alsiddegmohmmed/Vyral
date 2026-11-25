@@ -9,7 +9,7 @@ export function ResetForm({ token }: { token: string }) {
   const [state, action, pending] = useActionState<AuthState, FormData>(resetAction.bind(null, token), {});
   return (
     <>
-      <h1 className="text-2xl">Choose a new password</h1>
+      <h1 className="text-3xl tracking-tight">Choose a new password</h1>
       <p className="mt-1 text-sm text-text-muted">You’ll be signed out everywhere else.</p>
       <form action={action} className="mt-6 flex flex-col gap-4" noValidate>
         {!token && <Banner tone="danger" title="This link is incomplete. Ask for a new one." />}

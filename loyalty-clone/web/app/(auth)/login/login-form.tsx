@@ -10,9 +10,10 @@ export function LoginForm({ notice }: { notice?: string }) {
   const [state, action, pending] = useActionState<AuthState, FormData>(loginAction, {});
   return (
     <>
-      <h1 className="text-2xl">Welcome back</h1>
-      <p className="mt-1 text-sm text-text-muted">Sign in to manage your cards.</p>
-      <form action={action} className="mt-6 flex flex-col gap-4" noValidate>
+      <h1 className="text-3xl tracking-tight">Welcome back</h1>
+      <p className="mt-2 text-base text-text-muted">Sign in to manage your cards.</p>
+      <hr className="mt-6 border-border" />
+      <form action={action} className="mt-6 flex flex-col gap-5" noValidate>
         {notice && !state.error && <Banner tone="success" title={notice} />}
         {state.error && <Banner tone="danger" title={state.error} />}
         <Field label="Email"><TextInput name="email" type="email" autoComplete="email" inputMode="email" defaultValue={state.fields?.email} required /></Field>

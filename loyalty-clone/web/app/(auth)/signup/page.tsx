@@ -12,9 +12,11 @@ export default function SignupPage() {
   useEffect(() => { setTz(Intl.DateTimeFormat().resolvedOptions().timeZone || 'Africa/Kigali'); }, []);
   return (
     <>
-      <h1 className="text-2xl">Start your free trial</h1>
-      <p className="mt-1 text-sm text-text-muted">15 days, no payment needed. Your first card takes about five minutes.</p>
-      <form action={action} className="mt-6 flex flex-col gap-4" noValidate>
+      <p className="hidden text-xs font-semibold uppercase tracking-wider text-text-muted lg:block">Step 1 of 6</p>
+      <h1 className="lg:mt-2 text-3xl tracking-tight">Start your free trial</h1>
+      <p className="mt-2 text-base text-text-muted">15 days, no payment needed. Your first card takes about five minutes.</p>
+      <hr className="mt-6 border-border" />
+      <form action={action} className="mt-6 flex flex-col gap-5" noValidate>
         {state.error && <Banner tone="danger" title={state.error} />}
         <Field label="Business name"><TextInput name="businessName" autoComplete="organization" defaultValue={state.fields?.businessName} required /></Field>
         <Field label="Email"><TextInput name="email" type="email" autoComplete="email" inputMode="email" defaultValue={state.fields?.email} required /></Field>

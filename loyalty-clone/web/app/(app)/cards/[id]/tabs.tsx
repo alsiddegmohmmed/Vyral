@@ -15,14 +15,16 @@ export function CardTabs({ id, draft }: { id: string; draft: boolean }) {
     { href: `${base}/insights`, label: 'Insights', hide: draft },
   ].filter((t) => !t.hide);
   return (
-    <nav aria-label="Card sections" className="-mx-4 overflow-x-auto border-b border-border px-4 sm:mx-0 sm:px-0">
-      <ul className="flex gap-1">
+    <nav aria-label="Card sections" className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+      {/* segmented track: one raised segment marks the open section */}
+      <ul className="inline-flex gap-1 rounded-md bg-surface p-1">
         {tabs.map((t) => {
           const on = t.exact ? path === t.href : path.startsWith(t.href);
           return (
             <li key={t.href}>
               <Link href={t.href} aria-current={on ? 'page' : undefined}
-                className={cn('-mb-px flex h-10 items-center whitespace-nowrap border-b-2 border-transparent px-3 text-sm font-medium text-text-muted hover:text-text', on && 'border-accent text-text')}>
+                className={cn('flex h-9 items-center whitespace-nowrap rounded-sm px-3.5 text-sm font-medium text-text-muted transition-colors duration-[var(--tk-motion-fast)] hover:text-text',
+                  on && 'bg-surface-raised font-semibold text-text shadow-card')}>
                 {t.label}
               </Link>
             </li>

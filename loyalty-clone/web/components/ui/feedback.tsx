@@ -44,6 +44,17 @@ export function EmptyState({ icon, title, children, action }: {
   );
 }
 
+/** Section heading: a small labelled chip with a hairline running to the edge. */
+export function SectionHeading({ id, children, action }: { id?: string; children: React.ReactNode; action?: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-3">
+      <h2 id={id} className="inline-flex h-7 shrink-0 items-center rounded-sm border border-border bg-surface-raised px-2.5 text-sm font-semibold">{children}</h2>
+      <span aria-hidden className="h-px flex-1 bg-border" />
+      {action}
+    </div>
+  );
+}
+
 export function Skeleton({ className }: { className?: string }) {
   return (
     <div

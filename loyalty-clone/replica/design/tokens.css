@@ -3,6 +3,8 @@
   --tk-color-bg: #ffffff;
   --tk-color-surface: #f5f6f8;
   --tk-color-surface-raised: #ffffff;
+  --tk-color-sidebar: #f3f4f6;
+  --tk-color-nav-active: #e4e7eb;
   --tk-color-border: #e2e5ea;
   --tk-color-border-input: #7f8894;
   --tk-color-text: #15181d;
@@ -10,6 +12,7 @@
   --tk-color-text-subtle: #6b7380;
   --tk-color-accent: #24292f;
   --tk-color-accent-hover: #3a4149;
+  --tk-color-accent-subtle: #eceef1;
   --tk-color-on-accent: #ffffff;
   --tk-color-focus: #2563eb;
   --tk-color-danger: #b42323;
@@ -48,6 +51,9 @@
   --tk-text-2xl: 1.75rem;
   --tk-text-2xl--line-height: 1.2142857142857142;
   --tk-text-2xl--font-weight: 700;
+  --tk-text-3xl: 2.125rem;
+  --tk-text-3xl--line-height: 1.1764705882352942;
+  --tk-text-3xl--font-weight: 700;
   --tk-text-display: 2.5rem;
   --tk-text-display--line-height: 1.1;
   --tk-text-display--font-weight: 750;
@@ -66,7 +72,8 @@
   --tk-motion-base: 200ms;
   --tk-motion-slow: 320ms;
   --tk-motion-ease: cubic-bezier(.2,.8,.2,1);
-  --tk-layout-sidebar: 248px;
+  --tk-layout-sidebar: 256px;
+  --tk-layout-rail: 360px;
   --tk-layout-header: 56px;
   --tk-layout-content-max: 1200px;
   --tk-layout-form-max: 560px;
