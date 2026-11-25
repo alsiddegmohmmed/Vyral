@@ -109,6 +109,27 @@ test.describe('F02 design and publish a card', () => {
     await expect(err, 'the error does not say which value is wrong').toHaveText(/label|link|40/i);
   });
 
+  test('F02-E6 unsaved design edits survive opening another card section, and can be discarded', async ({ page, checkA11y }) => {
+    await createCard(page, 'Draft keeper');
+    const sections = page.getByRole('navigation', { name: 'Card sections' });
+    await page.getByLabel('Name on the card').fill('Kept while away');
+    await sections.getByRole('link', { name: 'Automations' }).click();
+    await expect(page).toHaveURL(/\/automations$/);
+    await sections.getByRole('link', { name: 'Design' }).click();
+    await expect(page.getByLabel('Name on the card')).toHaveValue('Kept while away');
+    await expect(page.getByText('Your unsaved changes are back')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Save changes' })).toBeEnabled();
+    await checkA11y('S04 designer: restored draft');
+    await page.getByRole('button', { name: 'Discard changes' }).click();
+    await expect(page.getByLabel('Name on the card')).not.toHaveValue('Kept while away');
+    await expect(page.getByRole('button', { name: 'Saved' })).toBeDisabled();
+    // a discarded draft stays gone after leaving and coming back
+    await sections.getByRole('link', { name: 'Automations' }).click();
+    await sections.getByRole('link', { name: 'Design' }).click();
+    await expect(page.getByLabel('Name on the card')).not.toHaveValue('Kept while away');
+    await expect(page.getByText('Your unsaved changes are back')).toHaveCount(0);
+  });
+
   test('F02-N1 draft card has no customers, messages or insights tabs', async ({ page }) => {
     await createCard(page, 'Draft tabs');
     const nav = page.getByRole('navigation', { name: 'Card sections' });

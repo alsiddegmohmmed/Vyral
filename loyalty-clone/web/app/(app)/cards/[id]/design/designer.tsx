@@ -1,5 +1,5 @@
 'use client';
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { GripVertical, Plus, Rocket, Save, Trash2 } from 'lucide-react';
 import { Button, IconButton } from '@/components/ui/button';
@@ -13,6 +13,34 @@ import { PassPreview } from '@/components/loyalty/pass-preview';
 import { stampIcons } from '@/components/loyalty/stamp-strip';
 import type { Campaign, CardLink, FieldType, FormField, Location } from '@/lib/data/types';
 import { activateAction, saveCardLocationsAction, saveDesignAction, saveFieldsAction } from '../../actions';
+
+// Unsaved edits live in sessionStorage while the owner moves between the card's
+// sections (Overview, Customers, ...), so leaving the designer never silently
+// throws them away. Only what the owner changed is kept: on return it is laid
+// over the latest saved card, so a draft can't undo a newer save from elsewhere.
+type Draft = { base: Campaign; c: Campaign; baseFields: FormField[]; fields: FormField[]; baseLocIds: string[]; locIds: string[] };
+const draftKey = (id: string) => `garuka:designer-draft:${id}`;
+const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+function readDraft(id: string): Draft | null {
+  try { const raw = sessionStorage.getItem(draftKey(id)); return raw ? (JSON.parse(raw) as Draft) : null; } catch { return null; }
+}
+function writeDraft(id: string, d: Draft | null) {
+  try { if (d) sessionStorage.setItem(draftKey(id), JSON.stringify(d)); else sessionStorage.removeItem(draftKey(id)); } catch { /* storage blocked: nothing to keep */ }
+}
+/** The draft's own edits, laid over the latest saved card. */
+function applyDraft(latest: Campaign, d: Draft): Campaign {
+  const out = { ...latest } as Record<string, unknown>;
+  const base = d.base as unknown as Record<string, unknown>;
+  for (const [k, v] of Object.entries(d.c)) {
+    if (same(v, base[k])) continue;
+    if (k === 'design' || k === 'reward') {
+      const sub = { ...(out[k] as Record<string, unknown>) };
+      for (const [kk, vv] of Object.entries(v as Record<string, unknown>)) if (!same(vv, (base[k] as Record<string, unknown>)?.[kk])) sub[kk] = vv;
+      out[k] = sub;
+    } else out[k] = v;
+  }
+  return out as unknown as Campaign;
+}
 
 const FIELD_TYPES: { value: FieldType; label: string }[] = [
   { value: 'text', label: 'Short text' }, { value: 'email', label: 'Email' }, { value: 'phone', label: 'Phone' },
@@ -28,12 +56,52 @@ export function Designer({ campaign, locations }: { campaign: Campaign; location
   const [msg, setMsg] = useState<{ tone: 'success' | 'danger'; text: string } | null>(null);
   const [pending, start] = useTransition();
   const [previewStamps, setPreviewStamps] = useState(Math.ceil(campaign.totalStamps * 0.6));
+  const [restored, setRestored] = useState(false);
+  const loaded = useRef(campaign);
 
   const set = <K extends keyof Campaign>(k: K, v: Campaign[K]) => setC((x) => ({ ...x, [k]: v }));
   const setDesign = (k: keyof Campaign['design'], v: string | undefined) => setC((x) => ({ ...x, design: { ...x.design, [k]: v } }));
   // compare only what the owner edits: server-managed fields (updatedAt, lastPushedAt...) change on every save
   const editable = (x: Campaign) => { const { updatedAt: _u, lastPushedAt: _l, createdAt: _c, activatedAt: _a, status: _s, ...rest } = x; return rest; };
   const dirty = useMemo(() => JSON.stringify([editable(c), fields, [...locIds].sort()]) !== JSON.stringify([editable(campaign), campaign.fields, [...campaign.locationIds].sort()]), [c, fields, locIds, campaign]);
+
+  // Bring back unsaved edits left behind when the owner opened another section.
+  const hydrated = useRef(false);
+  useEffect(() => {
+    if (hydrated.current) return;
+    hydrated.current = true;
+    const d = readDraft(campaign.id);
+    if (!d) return;
+    const next = applyDraft(campaign, d);
+    const nextFields = same(d.fields, d.baseFields) ? campaign.fields : d.fields;
+    const nextLocs = same([...d.locIds].sort(), [...d.baseLocIds].sort()) ? campaign.locationIds : d.locIds;
+    if (same(editable(next), editable(campaign)) && same(nextFields, campaign.fields) && same(nextLocs, campaign.locationIds)) { writeDraft(campaign.id, null); return; }
+    loaded.current = campaign;
+    setC(next); setFields(nextFields); setLocIds(nextLocs); setRestored(true);
+  }, [campaign]);
+
+  // Keep the draft in step with the editor; drop it once everything is saved.
+  useEffect(() => {
+    if (!hydrated.current) return;
+    if (!dirty) { writeDraft(campaign.id, null); return; }
+    writeDraft(campaign.id, { base: loaded.current, c, baseFields: loaded.current.fields, fields, baseLocIds: loaded.current.locationIds, locIds });
+  }, [c, fields, locIds, dirty, campaign.id]);
+
+  // A save refreshes `campaign`; later drafts are measured from the new saved state.
+  useEffect(() => { if (!dirty) loaded.current = campaign; }, [campaign, dirty]);
+
+  // Closing or reloading the browser tab with unsaved edits asks first.
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [dirty]);
+
+  const discard = () => {
+    writeDraft(campaign.id, null);
+    setC(campaign); setFields(campaign.fields); setLocIds(campaign.locationIds); setRestored(false); setMsg(null);
+  };
 
   const save = () => start(async () => {
     setMsg(null);
@@ -62,6 +130,7 @@ export function Designer({ campaign, locations }: { campaign: Campaign; location
       const r = await step();
       if (r.error) { setMsg({ tone: 'danger', text: r.error }); return; }
     }
+    writeDraft(campaign.id, null); setRestored(false);
     setMsg({ tone: 'success', text: live ? 'Saved. Use “Update all cards” on the overview to push changes to customers’ phones.' : 'Saved.' });
     router.refresh();
   });
@@ -216,6 +285,12 @@ export function Designer({ campaign, locations }: { campaign: Campaign; location
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
       <div className="flex min-w-0 flex-col gap-5">
+        {restored && dirty && (
+          <Banner tone="info" title="Your unsaved changes are back"
+            action={<Button variant="secondary" size="sm" onClick={discard}>Discard changes</Button>}>
+            You left this page before saving. Save to keep them, or discard to go back to the saved card.
+          </Banner>
+        )}
         {live && <Banner tone="info" title="This card is live">The number of stamps and expiry are locked. Colours and text can still change.</Banner>}
         <Tabs tabs={[
           { value: 'design', label: 'Design', content: designTab },
