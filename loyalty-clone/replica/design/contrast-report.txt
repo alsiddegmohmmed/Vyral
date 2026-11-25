@@ -1,0 +1,32 @@
+  AAA   17.79:1  text                     on bg                   
+  AAA   16.45:1  text                     on surface              
+  AA     6.26:1  text-muted               on bg                   
+  AA     5.79:1  text-muted               on surface              
+  AA     4.78:1  text-subtle              on bg                   
+  AAA   14.65:1  on-accent                on accent               
+  AAA   10.33:1  on-accent                on accent-hover         
+  AAA   14.65:1  accent                   on bg                   
+  AAA   13.55:1  accent                   on surface              
+  AA     6.55:1  on-danger                on danger               
+  AA     6.55:1  danger                   on bg                   
+  AA     5.74:1  danger                   on danger-bg            
+  AAA    7.07:1  success                  on bg                   
+  AA     6.31:1  success                  on success-bg           
+  AA     5.81:1  warning                  on warning-bg           
+  AA     6.33:1  warning                  on bg                   
+  AA     5.87:1  info                     on info-bg              
+  AA     6.70:1  info                     on bg                   
+  AAA   16.33:1  text                     on warning-bg           
+  AAA   17.21:1  scanner-text             on scanner-bg           
+  AAA   14.84:1  scanner-text             on scanner-surface      
+  AAA    8.67:1  scanner-muted            on scanner-bg           
+  AAA    7.48:1  scanner-muted            on scanner-surface      
+  AAA    9.29:1  scanner-success          on scanner-surface      
+  AAA    7.09:1  scanner-danger           on scanner-surface      
+  PASS   3.59:1  border-input             on bg                   ui
+  PASS   3.32:1  border-input             on surface              ui
+  PASS   5.17:1  focus                    on bg                   ui
+  PASS   4.78:1  focus                    on surface              ui
+  PASS   3.63:1  focus                    on scanner-bg           ui
+
+  30 pairs, 0 failing AA

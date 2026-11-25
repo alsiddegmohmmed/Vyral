@@ -1,0 +1,85 @@
+/* GENERATED from tokens.json by build-tokens.mjs. Do not edit. */
+:root {
+  --tk-color-bg: #ffffff;
+  --tk-color-surface: #f5f6f8;
+  --tk-color-surface-raised: #ffffff;
+  --tk-color-border: #e2e5ea;
+  --tk-color-border-input: #7f8894;
+  --tk-color-text: #15181d;
+  --tk-color-text-muted: #59616d;
+  --tk-color-text-subtle: #6b7380;
+  --tk-color-accent: #24292f;
+  --tk-color-accent-hover: #3a4149;
+  --tk-color-on-accent: #ffffff;
+  --tk-color-focus: #2563eb;
+  --tk-color-danger: #b42323;
+  --tk-color-danger-bg: #fdecec;
+  --tk-color-on-danger: #ffffff;
+  --tk-color-success: #17653f;
+  --tk-color-success-bg: #e8f5ee;
+  --tk-color-warning: #8a5300;
+  --tk-color-warning-bg: #fff4e0;
+  --tk-color-info: #1d4ed8;
+  --tk-color-info-bg: #eaf0fe;
+  --tk-color-overlay: #0f1216;
+  --tk-color-scanner-bg: #0f1216;
+  --tk-color-scanner-surface: #1c2128;
+  --tk-color-scanner-text: #f4f5f7;
+  --tk-color-scanner-muted: #a9b1bc;
+  --tk-color-scanner-success: #4ade80;
+  --tk-color-scanner-danger: #ff8a80;
+  --tk-font-sans: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  --tk-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --tk-text-xs: 0.75rem;
+  --tk-text-xs--line-height: 1.3333333333333333;
+  --tk-text-xs--font-weight: 500;
+  --tk-text-sm: 0.875rem;
+  --tk-text-sm--line-height: 1.4285714285714286;
+  --tk-text-sm--font-weight: 400;
+  --tk-text-base: 1rem;
+  --tk-text-base--line-height: 1.5;
+  --tk-text-base--font-weight: 400;
+  --tk-text-lg: 1.125rem;
+  --tk-text-lg--line-height: 1.4444444444444444;
+  --tk-text-lg--font-weight: 600;
+  --tk-text-xl: 1.375rem;
+  --tk-text-xl--line-height: 1.2727272727272727;
+  --tk-text-xl--font-weight: 650;
+  --tk-text-2xl: 1.75rem;
+  --tk-text-2xl--line-height: 1.2142857142857142;
+  --tk-text-2xl--font-weight: 700;
+  --tk-text-display: 2.5rem;
+  --tk-text-display--line-height: 1.1;
+  --tk-text-display--font-weight: 750;
+  --tk-text-scanner: 3.5rem;
+  --tk-text-scanner--line-height: 1;
+  --tk-text-scanner--font-weight: 750;
+  --tk-radius-sm: 6px;
+  --tk-radius-md: 10px;
+  --tk-radius-lg: 16px;
+  --tk-radius-xl: 24px;
+  --tk-radius-pill: 999px;
+  --tk-shadow-card: 0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.08);
+  --tk-shadow-pop: 0 12px 32px rgba(16,24,40,.18);
+  --tk-shadow-pass: 0 18px 40px rgba(16,24,40,.22);
+  --tk-motion-fast: 120ms;
+  --tk-motion-base: 200ms;
+  --tk-motion-slow: 320ms;
+  --tk-motion-ease: cubic-bezier(.2,.8,.2,1);
+  --tk-layout-sidebar: 248px;
+  --tk-layout-header: 56px;
+  --tk-layout-content-max: 1200px;
+  --tk-layout-form-max: 560px;
+  --tk-layout-phone-max: 440px;
+  --tk-layout-touch-min: 44px;
+  --tk-layout-scanner-touch: 64px;
+  --tk-z-header: 20;
+  --tk-z-sidebar: 30;
+  --tk-z-popover: 40;
+  --tk-z-modal: 50;
+  --tk-z-toast: 60;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --tk-motion-fast: 0ms; --tk-motion-base: 0ms; --tk-motion-slow: 0ms; }
+}
