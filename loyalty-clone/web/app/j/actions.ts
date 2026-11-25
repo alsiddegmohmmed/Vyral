@@ -1,6 +1,7 @@
 'use server';
 import { redirect } from 'next/navigation';
 import { DataError, getPublicCampaign, joinCampaign } from '@/lib/data/api';
+import { clientIp } from '@/lib/request';
 
 export type JoinState = { error?: string; fieldErrors?: Record<string, string>; sent?: boolean; values?: Record<string, string> };
 
@@ -32,7 +33,7 @@ export async function joinAction(shortCode: string, _: JoinState, form: FormData
   if (Object.keys(errs).length) return { fieldErrors: errs, values: echo };
   let serial: string;
   try {
-    const r = await joinCampaign(shortCode, { values, consent: form.get('consent') === 'on' });
+    const r = await joinCampaign(shortCode, { values, consent: form.get('consent') === 'on', ip: await clientIp() });
     if (r.status === 'sent') return { sent: true };
     serial = r.serial;
   } catch (e) {

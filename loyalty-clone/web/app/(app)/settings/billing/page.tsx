@@ -14,7 +14,7 @@ export default async function BillingPage() {
   return (
     <>
       <PageHeader title="Plan & billing" description={b.planStatus === 'trialing' ? `Free trial: ${b.daysLeft} ${b.daysLeft === 1 ? 'day' : 'days'} left.` : `You’re on ${b.plan[0].toUpperCase() + b.plan.slice(1)}.`} />
-      <Banner tone="info" title="Payments are simulated in this build">Choosing a plan marks it active. Real payments (card via Paddle; MTN MoMo and Airtel Money via Flutterwave) come with the backend step.</Banner>
+      {!(b.currency === 'USD' ? process.env.PADDLE_API_KEY : process.env.FLW_SECRET_KEY) && <Banner tone="info" title="No payment provider configured">In development, choosing a plan switches it directly. Add Paddle (cards) or Flutterwave (MTN MoMo, Airtel Money) keys to take real payments.</Banner>}
       <div className="mt-6"><PlanChoice plans={plans} current={b.planStatus === 'active' ? b.plan : undefined} currency={b.currency} recommended="growth" /></div>
       <p className="mt-4 text-xs text-text-muted">Prices and limits are placeholders until /replica-launch.</p>
     </>

@@ -1,16 +1,17 @@
-// The data API every screen and action calls. Today it runs on the fake store;
-// /replica-backend swaps the bodies for Postgres (schema.sql) with the SAME
-// signatures and return types. Every org-owned call takes an OrgContext and is
-// scoped by orgId (architecture.md "Access rules").
+// The data API every screen and action calls, on Postgres (db/migrations).
+// Same exports and return types as the build-step fake, so screens didn't change.
+// Rules: every query is scoped by the caller's orgId; every atomic write is one
+// statement or one SQL function (no client-held transactions).
+import 'server-only';
 import { createHash } from 'node:crypto';
-import { randomToken, uuid } from '@/lib/ids';
+import { after } from 'next/server';
+import { one, pgCode, pgMessage, q } from '@/lib/db/client';
+import { randomToken } from '@/lib/ids';
 import { decodeBarcode, encodeBarcode } from '@/lib/barcode';
-import { db, save } from './store';
-import { applyTransaction, isBirthdayToday, type TxErrorKey } from './rules';
+import { emails } from '@/lib/email';
+import type { TxErrorKey } from './rules';
 import { hashPassword, verifyPassword } from './password';
-import type {
-  Automation, Campaign, Card, CardEvent, Customer, FormField, Location, Message, Org, PublicCard, ScannerDevice, TxResult,
-} from './types';
+import type { Automation, Campaign, CardEvent, FormField, Location, Message, Org, PublicCard, ScannerDevice, TxResult } from './types';
 
 export type OrgContext = { orgId: string; userId: string | null; deviceId?: string; role: 'owner' | 'staff' | 'device'; actorLabel: string };
 
@@ -18,93 +19,138 @@ export class DataError extends Error {
   constructor(public key: string, message?: string) { super(message ?? key); }
 }
 
-const now = () => new Date();
-const iso = () => now().toISOString();
 const sha = (s: string) => createHash('sha256').update(s).digest('hex');
+const firstName = (name: string | null | undefined) => (name ?? '').trim().split(/\s+/)[0] ?? '';
 
-function org(ctx: OrgContext): Org {
-  const o = db().orgs.find((x) => x.id === ctx.orgId);
-  if (!o) throw new DataError('org_not_found');
-  return o;
+/** Fixed-window rate limit. Throws a friendly DataError when exceeded. */
+export async function rateLimit(key: string, max: number, windowSeconds: number) {
+  const r = await one<{ rateHit: number }>('select rate_hit($1, $2) as rate_hit', [key, windowSeconds]);
+  if ((r?.rateHit ?? 0) > max) throw new DataError('rate_limited', 'Too many tries. Wait a few minutes and try again.');
 }
-function campaignOf(ctx: OrgContext, id: string): Campaign {
-  const c = db().campaigns.find((x) => x.id === id && x.orgId === ctx.orgId);
-  if (!c) throw new DataError('campaign_not_found');
-  return c;
-}
-function cardOf(ctx: OrgContext, id: string): Card {
-  const c = db().cards.find((x) => x.id === id && x.orgId === ctx.orgId);
-  if (!c) throw new DataError('card_not_found');
-  return c;
-}
-const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? '';
-const touchPass = (card: Card) => { card.version += 1; card.passModifiedAt = iso(); };
 
 // ---------------------------------------------------------------- auth / session
 
-export async function signUp(input: { email: string; password: string; businessName: string; timezone: string; country: string }) {
-  const d = db();
-  const email = input.email.trim().toLowerCase();
-  if (d.users.some((u) => u.email === email)) throw new DataError('email_taken', 'An account with this email already exists.');
-  const userId = uuid(), orgId = uuid();
-  d.users.push({ id: userId, email, passwordHash: hashPassword(input.password), name: '' });
-  d.orgs.push({
-    id: orgId, name: input.businessName.trim(), timezone: input.timezone || 'UTC', country: input.country || 'RW',
-    defaultCurrency: input.country === 'RW' ? 'RWF' : 'USD', plan: 'starter', planStatus: 'trialing',
-    trialEndsAt: new Date(Date.now() + 15 * 86_400_000).toISOString(), createdAt: iso(),
-  });
-  d.members.push({ orgId, userId, role: 'owner' });
-  return createSession(userId, orgId);
-}
-
-export async function signIn(emailRaw: string, password: string) {
-  const d = db();
-  const user = d.users.find((u) => u.email === emailRaw.trim().toLowerCase());
-  if (!user || !verifyPassword(password, user.passwordHash)) throw new DataError('bad_login', 'That email and password don’t match.');
-  const m = d.members.find((x) => x.userId === user.id);
-  if (!m) throw new DataError('no_org');
-  return createSession(user.id, m.orgId);
-}
-
-function createSession(userId: string, orgId: string) {
+async function createSession(userId: string, orgId: string, userAgent?: string) {
   const token = randomToken(24);
-  db().sessions.push({ token, userId, orgId, createdAt: iso() });
-  save();
+  await q('insert into sessions (token_hash, user_id, org_id, user_agent) values ($1,$2,$3,$4)', [sha(token), userId, orgId, userAgent?.slice(0, 200) ?? null]);
   return token;
+}
+
+async function issueToken(userId: string, kind: 'verify_email' | 'reset_password', ttlMinutes: number) {
+  const token = randomToken(24);
+  await q(`insert into auth_tokens (token_hash, user_id, kind, expires_at) values ($1,$2,$3, now() + make_interval(mins => $4))`, [sha(token), userId, kind, ttlMinutes]);
+  return token;
+}
+
+export async function signUp(input: { email: string; password: string; businessName: string; timezone: string; country: string }) {
+  const email = input.email.trim().toLowerCase();
+  const tz = Intl.supportedValuesOf('timeZone').includes(input.timezone) ? input.timezone : 'Africa/Kigali';
+  const country = /^[A-Z]{2}$/.test(input.country) ? input.country : 'RW';
+  let row: { userId: string; orgId: string } | undefined;
+  try {
+    row = await one<{ userId: string; orgId: string }>(
+      `with u as (insert into users (email, password_hash) values ($1,$2) returning id),
+            o as (insert into orgs (name, timezone, country, default_currency) values ($3,$4,$5,$6) returning id),
+            m as (insert into org_members (org_id, user_id, role) select o.id, u.id, 'owner' from o, u returning org_id, user_id)
+       select user_id, org_id from m`,
+      [email, hashPassword(input.password), input.businessName.trim(), tz, country, country === 'RW' ? 'RWF' : 'USD'],
+    );
+  } catch (e) {
+    if (pgCode(e) === '23505') throw new DataError('email_taken', 'An account with this email already exists. Sign in instead.');
+    throw e;
+  }
+  const token = await issueToken(row!.userId, 'verify_email', 48 * 60);
+  await emails.verify(email, token);
+  return createSession(row!.userId, row!.orgId);
+}
+
+export async function signIn(emailRaw: string, password: string, userAgent?: string) {
+  const email = emailRaw.trim().toLowerCase();
+  await rateLimit(`login:${email}`, 8, 15 * 60);
+  const u = await one<{ id: string; passwordHash: string; orgId: string }>(
+    `select u.id, u.password_hash, m.org_id from users u join org_members m on m.user_id = u.id where u.email = $1 order by m.created_at limit 1`, [email]);
+  // verify even when the user doesn't exist, so timing doesn't reveal accounts
+  const ok = verifyPassword(password, u?.passwordHash ?? 'scrypt$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA');
+  if (!u || !ok) throw new DataError('bad_login', 'That email and password don’t match.');
+  // signing in within 7 days cancels a scheduled account deletion
+  await q('update orgs set deletion_scheduled_at = null where id = $1 and deletion_scheduled_at > now()', [u.orgId]);
+  return createSession(u.id, u.orgId, userAgent);
 }
 
 export async function getContextFromSession(token: string | undefined): Promise<OrgContext | null> {
   if (!token) return null;
-  const s = db().sessions.find((x) => x.token === token);
+  const s = await one<{ userId: string; orgId: string; role: 'owner' | 'staff'; label: string }>(
+    `update sessions s set last_seen_at = now()
+       from org_members m, users u
+      where s.token_hash = $1 and s.expires_at > now() and m.user_id = s.user_id and m.org_id = s.org_id and u.id = s.user_id
+      returning s.user_id, s.org_id, m.role, coalesce(nullif(u.name, ''), u.email::text) as label`, [sha(token)]);
   if (!s) return null;
-  const m = db().members.find((x) => x.userId === s.userId && x.orgId === s.orgId);
-  if (!m) return null;
-  const u = db().users.find((x) => x.id === s.userId);
-  return { orgId: s.orgId, userId: s.userId, role: m.role, actorLabel: u?.name || u?.email || 'Owner' };
+  return { orgId: s.orgId, userId: s.userId, role: s.role, actorLabel: s.label };
 }
 
-export async function endSession(token: string) {
-  const d = db();
-  d.sessions = d.sessions.filter((s) => s.token !== token);
-  save();
+export async function endSession(token: string) { await q('delete from sessions where token_hash = $1', [sha(token)]); }
+
+/** Sign out everywhere: every session of this user. */
+export async function endAllSessions(ctx: OrgContext) { if (ctx.userId) await q('delete from sessions where user_id = $1', [ctx.userId]); }
+
+export async function verifyEmail(token: string) {
+  const r = await one<{ userId: string }>(
+    `with t as (update auth_tokens set used_at = now() where token_hash = $1 and kind = 'verify_email' and used_at is null and expires_at > now() returning user_id)
+     update users set email_verified_at = now() from t where users.id = t.user_id returning users.id as user_id`, [sha(token)]);
+  if (!r) throw new DataError('bad_token', 'This link has expired or was already used.');
+}
+
+export async function resendVerification(ctx: OrgContext) {
+  const u = await one<{ email: string; verified: string | null }>('select email, email_verified_at as verified from users where id = $1', [ctx.userId]);
+  if (!u || u.verified) return;
+  await rateLimit(`verify:${ctx.userId}`, 3, 3600);
+  await emails.verify(u.email, await issueToken(ctx.userId!, 'verify_email', 48 * 60));
+}
+
+/** Always "ok" to the caller, so the form can't reveal who has an account. */
+export async function requestPasswordReset(emailRaw: string) {
+  const email = emailRaw.trim().toLowerCase();
+  await rateLimit(`reset:${email}`, 3, 3600);
+  const u = await one<{ id: string }>('select id from users where email = $1', [email]);
+  if (u) await emails.reset(email, await issueToken(u.id, 'reset_password', 60));
+}
+
+export async function resetPassword(token: string, newPassword: string) {
+  if (newPassword.length < 10) throw new DataError('weak', 'Use at least 10 characters.');
+  const r = await one<{ userId: string }>(
+    `with t as (update auth_tokens set used_at = now() where token_hash = $1 and kind = 'reset_password' and used_at is null and expires_at > now() returning user_id),
+          u as (update users set password_hash = $2 from t where users.id = t.user_id returning users.id),
+          s as (delete from sessions using u where sessions.user_id = u.id)
+     select id as user_id from u`, [sha(token), hashPassword(newPassword)]);
+  if (!r) throw new DataError('bad_token', 'This link has expired or was already used. Ask for a new one.');
 }
 
 export async function getContextFromDevice(token: string | undefined): Promise<OrgContext | null> {
   if (!token) return null;
-  const dev = db().devices.find((x) => x.tokenHash === sha(token) && !x.revokedAt);
-  if (!dev) return null;
-  dev.lastSeenAt = iso();
-  return { orgId: dev.orgId, userId: null, deviceId: dev.id, role: 'device', actorLabel: dev.label };
+  const d = await one<{ id: string; orgId: string; label: string }>(
+    `update scanner_devices set last_seen_at = now() where token_hash = $1 and revoked_at is null returning id, org_id, label`, [sha(token)]);
+  return d ? { orgId: d.orgId, userId: null, deviceId: d.id, role: 'device', actorLabel: d.label } : null;
 }
 
 // ---------------------------------------------------------------- org
 
-export async function getOrg(ctx: OrgContext) { return { ...org(ctx) }; }
+export async function getOrg(ctx: OrgContext): Promise<Org & { emailVerified: boolean }> {
+  const o = await one<Org & { emailVerified: boolean }>(
+    `select o.*, (select u.email_verified_at is not null from users u where u.id = $2) as email_verified from orgs o where o.id = $1`, [ctx.orgId, ctx.userId]);
+  if (!o) throw new DataError('org_not_found');
+  return { ...o, emailVerified: !!o.emailVerified || ctx.userId === null };
+}
 
 export async function updateOrg(ctx: OrgContext, patch: Partial<Pick<Org, 'name' | 'timezone' | 'website' | 'email' | 'phone' | 'addressLine1' | 'city'>>) {
   if (patch.timezone && !Intl.supportedValuesOf('timeZone').includes(patch.timezone)) throw new DataError('invalid_timezone', 'Pick a time zone from the list.');
-  Object.assign(org(ctx), patch);
-  save();
+  await q(`update orgs set name = coalesce($2, name), timezone = coalesce($3, timezone), website = $4, email = $5, phone = $6, address_line1 = $7, city = $8 where id = $1`,
+    [ctx.orgId, patch.name ?? null, patch.timezone ?? null, patch.website ?? null, patch.email ?? null, patch.phone ?? null, patch.addressLine1 ?? null, patch.city ?? null]);
+}
+
+/** Account deletion: sessions end now; the org and everything in it is purged after 7 days by the cleanup job. */
+export async function scheduleAccountDeletion(ctx: OrgContext) {
+  await q(`update orgs set deletion_scheduled_at = now() + interval '7 days' where id = $1`, [ctx.orgId]);
+  await q('delete from sessions where org_id = $1', [ctx.orgId]);
 }
 
 export const PLAN_LIMITS = {
@@ -115,50 +161,89 @@ export const PLAN_LIMITS = {
 
 // ---------------------------------------------------------------- campaigns
 
+const CAMPAIGN_SELECT = `
+  select c.*,
+    (select json_build_object('name', r.name, 'details', coalesce(r.details, ''), 'costCents', r.cost_cents) from rewards r where r.campaign_id = c.id and r.position = 1) as reward_json,
+    coalesce((select json_agg(json_build_object('key', f.key, 'label', f.label, 'type', f.type, 'required', f.required) order by f.position) from campaign_fields f where f.campaign_id = c.id), '[]') as fields_json,
+    coalesce((select json_agg(json_build_object('kind', l.kind, 'label', l.label, 'value', l.value) order by l.position) from campaign_links l where l.campaign_id = c.id), '[]') as links_json,
+    coalesce((select json_agg(cl.location_id) from campaign_locations cl where cl.campaign_id = c.id), '[]') as location_ids_json
+  from campaigns c`;
+
+type CampaignRow = Record<string, unknown> & {
+  rewardJson: Campaign['reward'] | null; fieldsJson: FormField[]; linksJson: Campaign['links']; locationIdsJson: string[];
+};
+
+function toCampaign(r: CampaignRow): Campaign {
+  return {
+    id: r.id as string, orgId: r.orgId as string, name: r.name as string, shortCode: r.shortCode as string, status: r.status as Campaign['status'],
+    totalStamps: r.totalStamps as number, programName: r.programName as string, description: (r.description as string) ?? '',
+    howToEarn: (r.howToEarn as string) ?? '', terms: (r.terms as string) ?? '', hideTerms: r.hideTerms as boolean,
+    stampMessage: r.stampMessage as string, rewardMessage: r.rewardMessage as string,
+    newsText: (r.newsText as string) ?? undefined, newsUpdatedAt: (r.newsUpdatedAt as string) ?? undefined,
+    reward: { name: r.rewardJson?.name ?? '', details: r.rewardJson?.details ?? '', costCents: r.rewardJson?.costCents ?? undefined },
+    design: {
+      background: r.backgroundColor as string, foreground: r.foregroundColor as string, label: r.labelColor as string,
+      stamp: r.stampColor as string, icon: r.stampIcon as string, logoText: (r.logoText as string) ?? '',
+    },
+    fields: r.fieldsJson, links: r.linksJson, locationIds: r.locationIdsJson,
+    defaultCountry: (r.defaultCountry as string) ?? 'RW', consentEnabled: r.consentEnabled as boolean, consentText: (r.consentText as string) ?? '',
+    expiryMode: r.expiryMode as Campaign['expiryMode'], expiryDate: (r.expiryDate as string) ?? undefined, expiryDays: (r.expiryDays as number) ?? undefined,
+    stampCooldownMinutes: r.stampCooldownMinutes as number, maxStampsPerTransaction: r.maxStampsPerTransaction as number, maxStampsPerDay: r.maxStampsPerDay as number,
+    stampValueCents: (r.stampValueCents as number) ?? undefined, currency: r.currency as string,
+    activatedAt: (r.activatedAt as string) ?? undefined, lastPushedAt: (r.lastPushedAt as string) ?? undefined,
+    createdAt: r.createdAt as string, updatedAt: r.updatedAt as string,
+  };
+}
+
 export type CampaignSummary = Campaign & { customers: number; inWallet: number };
 
 export async function listCampaigns(ctx: OrgContext): Promise<CampaignSummary[]> {
-  const d = db();
-  return d.campaigns
-    .filter((c) => c.orgId === ctx.orgId && c.status !== 'archived')
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-    .map((c) => {
-      const cards = d.cards.filter((k) => k.campaignId === c.id && k.status === 'active');
-      return { ...c, customers: cards.length, inWallet: cards.filter((k) => k.appleInstalled || k.googleSaved).length };
-    });
+  const rows = await q<CampaignRow & { customers: number; inWallet: number }>(
+    `select x.*, (select count(*) from cards k where k.campaign_id = x.id and k.status = 'active')::int as customers,
+            (select count(*) from cards k where k.campaign_id = x.id and k.status = 'active' and (k.apple_installed or k.google_saved))::int as in_wallet
+       from (${CAMPAIGN_SELECT} where c.org_id = $1 and c.status <> 'archived') x order by x.created_at desc`, [ctx.orgId]);
+  return rows.map((r) => ({ ...toCampaign(r), customers: r.customers, inWallet: r.inWallet }));
 }
 
-export async function getCampaign(ctx: OrgContext, id: string) { return { ...campaignOf(ctx, id) }; }
+export async function getCampaign(ctx: OrgContext, id: string): Promise<Campaign> {
+  if (!/^[0-9a-f-]{36}$/.test(id)) throw new DataError('campaign_not_found');
+  const r = await one<CampaignRow>(`${CAMPAIGN_SELECT} where c.id = $1 and c.org_id = $2`, [id, ctx.orgId]);
+  if (!r) throw new DataError('campaign_not_found');
+  return toCampaign(r);
+}
+
+async function planOf(ctx: OrgContext) {
+  const o = await one<{ plan: keyof typeof PLAN_LIMITS; planStatus: string }>('select plan, plan_status from orgs where id = $1', [ctx.orgId]);
+  if (!o) throw new DataError('org_not_found');
+  return o;
+}
 
 export async function createCampaign(ctx: OrgContext, name: string): Promise<Campaign> {
-  const o = org(ctx);
-  const existing = db().campaigns.filter((c) => c.orgId === ctx.orgId && c.status !== 'archived');
-  if (existing.length >= PLAN_LIMITS[o.plan].designs) throw new DataError('plan_limit', `Your plan includes ${PLAN_LIMITS[o.plan].designs} card ${PLAN_LIMITS[o.plan].designs === 1 ? 'design' : 'designs'}.`);
-  const clean = name.trim() || 'New card';
-  if (existing.some((c) => c.name.toLowerCase() === clean.toLowerCase())) throw new DataError('name_taken', 'You already have a card with this name.');
-  const c: Campaign = {
-    id: uuid(), orgId: ctx.orgId, name: clean, shortCode: randomToken(5).toLowerCase(), status: 'draft', totalStamps: 10,
-    programName: o.name, description: '', howToEarn: 'One stamp for every visit.', terms: '', hideTerms: false,
-    stampMessage: 'You have {n} stamps', rewardMessage: 'Your reward is ready!',
-    reward: { name: 'Free coffee', details: '' },
-    design: { background: '#24292F', foreground: '#FFFFFF', label: '#C9D1D9', stamp: '#FFFFFF', icon: 'cup', logoText: o.name },
-    fields: [
-      { key: 'name', label: 'Your name', type: 'name', required: true },
-      { key: 'phone', label: 'Phone', type: 'phone', required: true },
-      { key: 'birthday', label: 'Birthday', type: 'birthday', required: false },
-    ],
-    links: [], locationIds: [], defaultCountry: o.country, consentEnabled: true,
-    consentText: `Send me news and offers from ${o.name}. I can stop anytime.`,
-    expiryMode: 'never', stampCooldownMinutes: 0, maxStampsPerTransaction: 5, maxStampsPerDay: 0,
-    currency: o.defaultCurrency, createdAt: iso(), updatedAt: iso(),
-  };
-  db().campaigns.push(c);
-  save();
-  return c;
+  const o = await planOf(ctx);
+  const limit = PLAN_LIMITS[o.plan].designs;
+  const clean = name.trim().slice(0, 60) || 'New card';
+  let id: string | undefined;
+  try {
+    // limit check and insert in one statement
+    const r = await one<{ id: string }>(
+      `with o as (select name, country, default_currency from orgs where id = $1),
+            n as (select count(*) as n from campaigns where org_id = $1 and status <> 'archived'),
+            c as (insert into campaigns (org_id, name, program_name, logo_text, default_country, currency, consent_text, background_color, foreground_color, label_color, stamp_color)
+                  select $1, $2, o.name, o.name, o.country, o.default_currency, 'Send me news and offers from ' || o.name || '. I can stop anytime.', '#24292F', '#FFFFFF', '#C9D1D9', '#FFFFFF'
+                    from o, n where n.n < $3 returning id),
+            r as (insert into rewards (campaign_id, position, name, stamps_required) select id, 1, 'Free coffee', 10 from c),
+            f as (insert into campaign_fields (campaign_id, key, label, type, required, position)
+                  select c.id, v.key, v.label, v.type, v.required, v.pos from c,
+                    (values ('name','Your name','name',true,0), ('phone','Phone','phone',true,1), ('birthday','Birthday','birthday',false,2)) as v(key,label,type,required,pos))
+       select id from c`, [ctx.orgId, clean, limit]);
+    id = r?.id;
+  } catch (e) {
+    if (pgCode(e) === '23505') throw new DataError('name_taken', 'You already have a card with this name.');
+    throw e;
+  }
+  if (!id) throw new DataError('plan_limit', `Your plan includes ${limit} card ${limit === 1 ? 'design' : 'designs'}.`);
+  return getCampaign(ctx, id);
 }
-
-/** Fields that can't change once a card is live (architecture.md designer). */
-const LOCKED_WHEN_LIVE = ['totalStamps', 'expiryMode', 'expiryDate', 'expiryDays'] as const;
 
 export type CampaignPatch = Partial<Pick<Campaign,
   'name' | 'totalStamps' | 'programName' | 'description' | 'howToEarn' | 'terms' | 'hideTerms' | 'stampMessage' | 'rewardMessage' |
@@ -166,68 +251,84 @@ export type CampaignPatch = Partial<Pick<Campaign,
   'stampCooldownMinutes' | 'maxStampsPerTransaction' | 'maxStampsPerDay' | 'stampValueCents'>>;
 
 export async function updateCampaign(ctx: OrgContext, id: string, patch: CampaignPatch) {
-  const c = campaignOf(ctx, id);
+  const c = await getCampaign(ctx, id);
   if (c.status !== 'draft') {
-    for (const k of LOCKED_WHEN_LIVE) if (k in patch && patch[k] !== c[k]) throw new DataError('locked_field', 'This can’t change after the card went live.');
-  }
-  if (patch.totalStamps !== undefined && (patch.totalStamps < 1 || patch.totalStamps > 30)) throw new DataError('invalid', 'Choose between 1 and 30 stamps.');
-  if (patch.name !== undefined) {
-    const name = patch.name.trim();
-    if (!name) throw new DataError('invalid', 'Give the card a name.');
-    if (db().campaigns.some((x) => x.orgId === ctx.orgId && x.id !== id && x.status !== 'archived' && x.name.toLowerCase() === name.toLowerCase())) {
-      throw new DataError('name_taken', 'You already have a card with this name.');
+    for (const k of ['totalStamps', 'expiryMode', 'expiryDate', 'expiryDays'] as const) {
+      if (k in patch && patch[k] !== c[k]) throw new DataError('locked_field', 'This can’t change after the card went live.');
     }
   }
-  Object.assign(c, patch, { updatedAt: iso() });
-  save();
-  return { ...c };
+  const n = { ...c, ...patch, design: { ...c.design, ...patch.design }, reward: { ...c.reward, ...patch.reward } };
+  if (n.totalStamps < 1 || n.totalStamps > 30) throw new DataError('invalid', 'Choose between 1 and 30 stamps.');
+  if (!n.name.trim()) throw new DataError('invalid', 'Give the card a name.');
+  for (const col of [n.design.background, n.design.foreground, n.design.label, n.design.stamp]) {
+    if (!/^#[0-9A-Fa-f]{6}$/.test(col)) throw new DataError('invalid', 'Use colours like #1F3B2C.');
+  }
+  try {
+    await q(
+      `with c as (
+         update campaigns set name = $3, program_name = $4, description = $5, how_to_earn = $6, terms = $7, hide_terms = $8,
+           stamp_message = $9, reward_message = $10, background_color = $11, foreground_color = $12, label_color = $13, stamp_color = $14,
+           stamp_icon = $15, logo_text = $16, default_country = $17, consent_enabled = $18, consent_text = $19,
+           expiry_mode = $20, expiry_date = $21, expiry_days = $22, total_stamps = $23,
+           stamp_cooldown_minutes = $24, max_stamps_per_transaction = $25, max_stamps_per_day = $26, stamp_value_cents = $27
+         where id = $1 and org_id = $2 returning id, total_stamps)
+       update rewards set name = $28, details = $29, cost_cents = $30, stamps_required = c.total_stamps from c
+        where rewards.campaign_id = c.id and rewards.position = 1`,
+      [id, ctx.orgId, n.name.trim(), n.programName, n.description, n.howToEarn, n.terms, n.hideTerms, n.stampMessage, n.rewardMessage,
+        n.design.background, n.design.foreground, n.design.label, n.design.stamp, n.design.icon, n.design.logoText, n.defaultCountry,
+        n.consentEnabled, n.consentText, n.expiryMode, n.expiryDate ?? null, n.expiryDays ?? null, n.totalStamps,
+        n.stampCooldownMinutes, n.maxStampsPerTransaction, n.maxStampsPerDay, n.stampValueCents ?? null,
+        n.reward.name, n.reward.details, n.reward.costCents ?? null]);
+    if (patch.links) await q('select replace_campaign_links($1, $2)', [id, JSON.stringify(patch.links)]);
+  } catch (e) {
+    if (pgCode(e) === '23505') throw new DataError('name_taken', 'You already have a card with this name.');
+    if (pgCode(e) === '23514') throw new DataError('invalid', 'One of the values isn’t allowed. Check lengths and dates.');
+    throw e;
+  }
+  return getCampaign(ctx, id);
 }
 
 export async function setFormFields(ctx: OrgContext, id: string, fields: FormField[]) {
-  const c = campaignOf(ctx, id);
+  await getCampaign(ctx, id);
   if (!fields.some((f) => (f.type === 'email' || f.type === 'phone') && f.required)) {
     throw new DataError('contact_required', 'Keep email or phone as a required field so customers can get their card back.');
   }
-  c.fields = fields; c.updatedAt = iso();
-  save();
+  try { await q('select replace_campaign_fields($1, $2)', [id, JSON.stringify(fields)]); } catch (e) {
+    if (pgCode(e) === '23505' || pgCode(e) === '23514') throw new DataError('invalid', 'Each field needs a label, and email, phone and birthday can appear once.');
+    throw e;
+  }
 }
 
 export async function activateCampaign(ctx: OrgContext, id: string) {
-  const c = campaignOf(ctx, id);
-  const o = org(ctx);
-  if (o.planStatus === 'locked') throw new DataError('locked', 'Your account is locked. Pay to activate cards.');
+  const o = await planOf(ctx);
+  if (o.planStatus === 'locked') throw new DataError('locked', 'Your account is locked. Choose a plan to activate cards.');
+  const c = await getCampaign(ctx, id);
   if (!c.reward.name.trim()) throw new DataError('invalid', 'Name the reward before going live.');
-  c.status = 'live'; c.activatedAt = c.activatedAt ?? iso(); c.updatedAt = iso();
-  save();
+  await q(`update campaigns set status = 'live', activated_at = coalesce(activated_at, now()) where id = $1 and org_id = $2 and status = 'draft'`, [id, ctx.orgId]);
 }
 
 export async function setCampaignStatus(ctx: OrgContext, id: string, status: 'live' | 'paused' | 'archived') {
-  const c = campaignOf(ctx, id);
-  if (status === 'live' && !c.activatedAt) throw new DataError('not_activated');
-  c.status = status; c.updatedAt = iso();
-  save();
+  const r = await one(`update campaigns set status = $3 where id = $1 and org_id = $2 and (activated_at is not null or $3 = 'archived') returning id`, [id, ctx.orgId, status]);
+  if (!r) throw new DataError('not_activated', 'Activate the card first.');
 }
 
-/** "Update all cards": 10-minute cooldown, bumps every active pass. */
 export async function pushCampaignUpdate(ctx: OrgContext, id: string) {
-  const c = campaignOf(ctx, id);
-  if (c.lastPushedAt && Date.now() - new Date(c.lastPushedAt).getTime() < 10 * 60_000) {
-    throw new DataError('cooldown', 'You can update all cards once every 10 minutes.');
-  }
-  const cards = db().cards.filter((k) => k.campaignId === id && k.status === 'active');
-  cards.forEach(touchPass);
-  c.lastPushedAt = iso();
-  save();
-  return cards.length;
+  const r = await one<{ n: number }>(
+    `with c as (update campaigns set last_pushed_at = now() where id = $1 and org_id = $2 and (last_pushed_at is null or last_pushed_at < now() - interval '10 minutes') returning id),
+          k as (update cards set pass_modified_at = clock_timestamp() from c where cards.campaign_id = c.id and cards.status = 'active' returning cards.id)
+     select (select count(*) from c)::int as c, (select count(*) from k)::int as n`, [id, ctx.orgId]);
+  if (!r || (r as unknown as { c: number }).c === 0) throw new DataError('cooldown', 'You can update all cards once every 10 minutes.');
+  queueWalletPushForCampaign(id);
+  return r.n;
 }
 
 export async function setCampaignLocations(ctx: OrgContext, id: string, locationIds: string[]) {
-  const c = campaignOf(ctx, id);
+  await getCampaign(ctx, id);
   if (locationIds.length > 10) throw new DataError('too_many', 'A card can show at most 10 locations.');
-  const own = new Set(db().locations.filter((l) => l.orgId === ctx.orgId).map((l) => l.id));
-  c.locationIds = locationIds.filter((x) => own.has(x));
-  db().cards.filter((k) => k.campaignId === id && k.status === 'active').forEach(touchPass);
-  save();
+  try { await q('select replace_campaign_locations($1, $2, $3::uuid[])', [ctx.orgId, id, locationIds]); } catch (e) {
+    if (pgMessage(e).includes('at most 10')) throw new DataError('too_many', 'A card can show at most 10 locations.');
+    throw e;
+  }
 }
 
 // ---------------------------------------------------------------- public: join + card
@@ -235,77 +336,67 @@ export async function setCampaignLocations(ctx: OrgContext, id: string, location
 export type PublicCampaign = Pick<Campaign, 'name' | 'programName' | 'description' | 'howToEarn' | 'terms' | 'hideTerms' | 'reward' | 'design' | 'fields' | 'defaultCountry' | 'consentEnabled' | 'consentText' | 'totalStamps' | 'status'> & { business: string; shortCode: string };
 
 export async function getPublicCampaign(shortCode: string): Promise<PublicCampaign | null> {
-  const c = db().campaigns.find((x) => x.shortCode === shortCode);
-  if (!c || c.status === 'draft' || c.status === 'archived') return null;
-  const o = db().orgs.find((x) => x.id === c.orgId)!;
+  if (!/^[0-9a-z]{4,16}$/.test(shortCode)) return null;
+  const r = await one<CampaignRow & { business: string }>(`select x.*, o.name as business from (${CAMPAIGN_SELECT} where c.short_code = $1 and c.status in ('live','paused')) x join orgs o on o.id = x.org_id`, [shortCode]);
+  if (!r) return null;
+  const c = toCampaign(r);
   const { name, programName, description, howToEarn, terms, hideTerms, reward, design, fields, defaultCountry, consentEnabled, consentText, totalStamps, status } = c;
-  return { name, programName, description, howToEarn, terms, hideTerms, reward, design, fields, defaultCountry, consentEnabled, consentText, totalStamps, status, business: o.name, shortCode };
+  return { name, programName, description, howToEarn, terms, hideTerms, reward: { name: reward.name, details: reward.details }, design, fields, defaultCountry, consentEnabled, consentText, totalStamps, status, business: r.business, shortCode };
 }
 
-export type JoinInput = { values: Record<string, string>; consent: boolean };
+export type JoinInput = { values: Record<string, string>; consent: boolean; ip?: string };
 export type JoinResult = { status: 'created'; serial: string } | { status: 'sent' };
 
-/**
- * Join (review C1): a matching existing customer is NEVER returned or updated.
- * The response is "sent" (the link goes to the contact on file), identical
- * whether or not the person exists.
- */
 export async function joinCampaign(shortCode: string, input: JoinInput): Promise<JoinResult> {
-  const d = db();
-  const c = d.campaigns.find((x) => x.shortCode === shortCode);
-  if (!c || c.status !== 'live') throw new DataError('closed', 'This card isn’t taking new members right now.');
+  if (input.ip) await rateLimit(`join:${input.ip}`, 30, 60);
   const v = input.values;
-  const email = v.email?.trim().toLowerCase() || undefined;
-  const phone = v.phone?.replace(/[^\d+]/g, '') || undefined;
-  if (c.consentEnabled && !input.consent && c.fields.length === 0) throw new DataError('consent');
-  const existing = d.customers.find((x) => x.orgId === c.orgId && !x.deletedAt && ((email && x.email === email) || (phone && x.phoneE164 === phone)));
-  if (existing) {
-    // would send the restore link to the contact on file (email now, SMS later)
-    return { status: 'sent' };
-  }
-  const t = iso();
+  const email = v.email?.trim().toLowerCase() || null;
+  const phone = v.phone?.replace(/[^\d+]/g, '') || null;
   const [bm, bd] = (v.birthday ?? '').split('-').map(Number);
-  const cust: Customer = {
-    id: uuid(), orgId: c.orgId, name: (v.name ?? '').trim(), email, phoneE164: phone,
-    birthdayMonth: bm || undefined, birthdayDay: bd || undefined,
-    extra: Object.fromEntries(Object.entries(v).filter(([k]) => !['name', 'email', 'phone', 'birthday'].includes(k))),
-    marketingConsent: input.consent, consentAt: input.consent ? t : undefined, createdAt: t,
-  };
-  const expiresAt = c.expiryMode === 'fixed_date' ? c.expiryDate ?? null
-    : c.expiryMode === 'days_after_join' && c.expiryDays ? new Date(Date.now() + c.expiryDays * 86_400_000).toISOString() : null;
-  let manualCode = randomToken(5);
-  while (d.cards.some((k) => k.orgId === c.orgId && k.manualCode === manualCode)) manualCode = randomToken(5);
-  const card: Card = {
-    id: uuid(), orgId: c.orgId, campaignId: c.id, customerId: cust.id, serial: randomToken(16), barcodeToken: randomToken(16),
-    manualCode, status: 'active', currentStamps: 0, rewardsAvailable: 0, totalStampsEarned: 0, totalRewardsEarned: 0,
-    totalRewardsRedeemed: 0, lastStampAt: null, lastVisitAt: t, expiresAt, appleInstalled: false, googleSaved: false,
-    version: 1, passModifiedAt: t, createdAt: t,
-  };
-  d.customers.push(cust);
-  d.cards.push(card);
-  d.events.push({ id: uuid(), orgId: c.orgId, campaignId: c.id, cardId: card.id, type: 'enrolled', quantity: 1, source: 'customer', createdAt: t });
-  save();
-  return { status: 'created', serial: card.serial };
+  const extra = Object.fromEntries(Object.entries(v).filter(([k]) => !['name', 'email', 'phone', 'birthday'].includes(k)));
+  const camp = await one<{ consentText: string; orgId: string; business: string }>(
+    'select c.consent_text, c.org_id, o.name as business from campaigns c join orgs o on o.id = c.org_id where c.short_code = $1', [shortCode]);
+  let r: { status: 'created' | 'sent'; serial: string | null } | undefined;
+  try {
+    r = await one('select status, serial from join_campaign($1,$2,$3,$4,$5,$6,$7,$8,$9)',
+      [shortCode, (v.name ?? '').trim(), email, phone, bm || null, bd || null, JSON.stringify(extra), input.consent, camp?.consentText ?? null]);
+  } catch (e) {
+    if (pgMessage(e) === 'closed') throw new DataError('closed', 'This card isn’t taking new members right now.');
+    if (pgCode(e) === '23514') throw new DataError('invalid', 'Check your phone number and email.');
+    throw e;
+  }
+  if (r?.status === 'created') return { status: 'created', serial: r.serial! };
+  // existing member: send their own link to the contact on file (email today; SMS later)
+  if (email && camp) {
+    const k = await one<{ serial: string }>(
+      `select k.serial from cards k join customers cu on cu.id = k.customer_id join campaigns c on c.id = k.campaign_id
+        where c.short_code = $1 and cu.email = $2 and k.status = 'active' limit 1`, [shortCode, email]);
+    if (k) await emails.cardLink(email, camp.business, k.serial, camp.orgId);
+  }
+  return { status: 'sent' };
 }
 
 export async function getPublicCard(serial: string): Promise<PublicCard | null> {
-  const d = db();
-  const card = d.cards.find((k) => k.serial === serial);
-  if (!card) return null;
-  const c = d.campaigns.find((x) => x.id === card.campaignId)!;
-  const cust = d.customers.find((x) => x.id === card.customerId)!;
-  const o = d.orgs.find((x) => x.id === card.orgId)!;
-  // web-card reach: written at most once an hour (keeps the hot row quiet)
-  if (!card.webCardSeenAt || Date.now() - new Date(card.webCardSeenAt).getTime() > 3_600_000) { card.webCardSeenAt = iso(); save(); }
+  if (!/^[0-9A-Z]{26}$/.test(serial)) return null;
+  const k = await one<Record<string, unknown> & { campaignId: string; customerName: string; business: string; expired: boolean; barcodeToken: string }>(
+    `update cards k set web_card_seen_at = case when k.web_card_seen_at is null or k.web_card_seen_at < now() - interval '1 hour' then now() else k.web_card_seen_at end
+       from customers cu, orgs o
+      where k.serial = $1 and cu.id = k.customer_id and o.id = k.org_id
+      returning k.*, cu.name as customer_name, o.name as business, (k.expires_at is not null and k.expires_at <= now()) as expired`, [serial]);
+  if (!k) return null;
+  const cr = await one<CampaignRow>(`${CAMPAIGN_SELECT} where c.id = $1`, [k.campaignId]);
+  const c = toCampaign(cr!);
+  const locs = await q<{ name: string; addressOnCard: string }>(
+    `select l.name, coalesce(l.address_on_card, l.address, '') as address_on_card from campaign_locations cl join locations l on l.id = cl.location_id where cl.campaign_id = $1 and l.show_on_card`, [c.id]);
   return {
-    serial: card.serial, firstName: firstName(cust.name), currentStamps: card.currentStamps, rewardsAvailable: card.rewardsAvailable,
-    manualCode: card.manualCode, qrPayload: encodeBarcode(card.barcodeToken), noteText: card.noteText, status: card.status,
-    expired: !!card.expiresAt && new Date(card.expiresAt) <= now(),
+    serial, firstName: firstName(k.customerName), currentStamps: k.currentStamps as number, rewardsAvailable: k.rewardsAvailable as number,
+    manualCode: k.manualCode as string, qrPayload: encodeBarcode(k.barcodeToken), noteText: (k.noteText as string) ?? undefined,
+    status: k.status as 'active' | 'deleted', expired: k.expired,
     campaign: {
       name: c.name, programName: c.programName, totalStamps: c.totalStamps, reward: c.reward, design: c.design, description: c.description,
-      howToEarn: c.howToEarn, terms: c.terms, hideTerms: c.hideTerms, links: c.links, newsText: c.newsText, status: c.status, business: o.name,
+      howToEarn: c.howToEarn, terms: c.terms, hideTerms: c.hideTerms, links: c.links, newsText: c.newsText, status: c.status, business: k.business,
     },
-    locations: d.locations.filter((l) => c.locationIds.includes(l.id) && l.showOnCard).map((l) => ({ name: l.name, addressOnCard: l.addressOnCard })),
+    locations: locs,
   };
 }
 
@@ -316,152 +407,162 @@ export type ScanLookup =
   | { ok: false; error: 'invalid_code' | 'card_not_found' | 'card_replaced' | TxErrorKey };
 
 export async function scanLookup(ctx: OrgContext, code: { qr?: string; manual?: string }): Promise<ScanLookup> {
-  const d = db();
-  let card: Card | undefined;
+  let where = '', param = '';
   if (code.qr) {
     const token = decodeBarcode(code.qr);
     if (!token) return { ok: false, error: 'invalid_code' };
-    card = d.cards.find((k) => k.orgId === ctx.orgId && k.barcodeToken === token);
-    if (!card && d.cards.some((k) => k.orgId === ctx.orgId && k.previousBarcodeToken === token)) return { ok: false, error: 'card_replaced' };
+    where = 'k.barcode_token = $2'; param = token;
+    const replaced = await one(`select 1 from cards where org_id = $1 and previous_barcode_token = $2`, [ctx.orgId, token]);
+    if (replaced) return { ok: false, error: 'card_replaced' };
   } else if (code.manual) {
-    const m = code.manual.trim().toUpperCase().replace(/[^0-9A-Z]/g, '');
-    card = d.cards.find((k) => k.orgId === ctx.orgId && k.manualCode === m);
-  }
-  if (!card) return { ok: false, error: 'card_not_found' };
-  if (card.status !== 'active') return { ok: false, error: 'card_deleted' };
-  const c = d.campaigns.find((x) => x.id === card!.campaignId)!;
-  const cust = d.customers.find((x) => x.id === card!.customerId)!;
+    param = code.manual.trim().toUpperCase().replace(/[^0-9A-Z]/g, '');
+    if (param.length !== 8) return { ok: false, error: 'card_not_found' };
+    where = 'k.manual_code = $2';
+  } else return { ok: false, error: 'card_not_found' };
+  const r = await one<Record<string, unknown> & { customerName: string; status: string }>(
+    `select k.id, k.status, k.current_stamps, k.rewards_available, k.total_stamps_earned, k.last_visit_at, cu.name as customer_name,
+            c.name as campaign_name, c.total_stamps, c.max_stamps_per_transaction, c.background_color, c.foreground_color, c.label_color, c.stamp_color, c.stamp_icon, c.logo_text,
+            (select r.name from rewards r where r.campaign_id = c.id and r.position = 1) as reward_name
+       from cards k join customers cu on cu.id = k.customer_id join campaigns c on c.id = k.campaign_id
+      where k.org_id = $1 and ${where}`, [ctx.orgId, param]);
+  if (!r) return { ok: false, error: 'card_not_found' };
+  if (r.status !== 'active') return { ok: false, error: 'card_deleted' };
   return {
     ok: true,
     card: {
-      id: card.id, firstName: firstName(cust.name), currentStamps: card.currentStamps, rewardsAvailable: card.rewardsAvailable,
-      totalStampsEarned: card.totalStampsEarned, lastVisitAt: card.lastVisitAt, campaignName: c.name, totalStamps: c.totalStamps,
-      rewardName: c.reward.name, maxStampsPerTransaction: c.maxStampsPerTransaction, design: c.design,
+      id: r.id as string, firstName: firstName(r.customerName), currentStamps: r.currentStamps as number, rewardsAvailable: r.rewardsAvailable as number,
+      totalStampsEarned: r.totalStampsEarned as number, lastVisitAt: r.lastVisitAt as string, campaignName: r.campaignName as string,
+      totalStamps: r.totalStamps as number, rewardName: (r.rewardName as string) ?? 'reward', maxStampsPerTransaction: r.maxStampsPerTransaction as number,
+      design: { background: r.backgroundColor as string, foreground: r.foregroundColor as string, label: r.labelColor as string, stamp: r.stampColor as string, icon: r.stampIcon as string, logoText: (r.logoText as string) ?? '' },
     },
   };
 }
 
-/** Mirrors apply_card_transaction: idempotent, rule-checked, ledgered. */
+const TX_KEYS: TxErrorKey[] = ['empty_transaction', 'invalid_redeem', 'card_deleted', 'card_expired', 'campaign_not_live', 'too_many_stamps', 'cooldown_active', 'daily_limit_reached', 'not_enough_stamps', 'no_reward_available'];
+
+/** Calls apply_card_transaction (schema.sql): locked, idempotent, rule-checked, ledgered. */
 export async function applyCardTransaction(
   ctx: OrgContext,
   input: { cardId: string; stamps: number; redeem: number; source: 'scanner' | 'dashboard'; idempotencyKey: string },
 ): Promise<{ ok: true; result: TxResult } | { ok: false; error: TxErrorKey | 'card_not_found' | 'idempotency_key_reused' }> {
-  const d = db();
-  const card = d.cards.find((k) => k.id === input.cardId && k.orgId === ctx.orgId);
-  if (!card) return { ok: false, error: 'card_not_found' };
-  const reqHash = sha([input.cardId, input.stamps, input.redeem, input.source].join('|'));
-  const prev = d.idempotency.find((x) => x.orgId === ctx.orgId && x.key === input.idempotencyKey);
-  if (prev) {
-    if (prev.requestHash !== reqHash) return { ok: false, error: 'idempotency_key_reused' };
-    return { ok: true, result: { ...prev.result, replayed: true } };
+  if (!/^[0-9a-f-]{36}$/.test(input.cardId)) return { ok: false, error: 'card_not_found' };
+  try {
+    const r = await one<{ r: { card: Record<string, number | string>; earned: number; redeemed: number; replayed: boolean } }>(
+      'select apply_card_transaction($1,$2,$3,$4,$5,$6,$7,$8,$9) as r',
+      [ctx.orgId, input.cardId, input.stamps, input.redeem, input.source, ctx.userId, ctx.actorLabel, input.idempotencyKey, ctx.deviceId ?? null]);
+    const res = r!.r;
+    if (!res.replayed) queueWalletPush(input.cardId, res.earned > 0 ? 'reward_earned' : undefined);
+    return { ok: true, result: { cardId: input.cardId, earned: res.earned, redeemed: res.redeemed, currentStamps: res.card.current_stamps as number, rewardsAvailable: res.card.rewards_available as number, replayed: res.replayed } };
+  } catch (e) {
+    const m = pgMessage(e);
+    if (m === 'card_not_found' || m === 'idempotency_key_reused') return { ok: false, error: m };
+    if ((TX_KEYS as string[]).includes(m)) return { ok: false, error: m as TxErrorKey };
+    throw e;
   }
-  const campaign = d.campaigns.find((x) => x.id === card.campaignId)!;
-  const since = Date.now() - 86_400_000;
-  const net = d.events
-    .filter((e) => e.cardId === card.id && new Date(e.createdAt).getTime() > since && (e.type === 'stamped' || e.type === 'unstamped'))
-    .reduce((s, e) => s + (e.type === 'stamped' ? e.quantity : -e.quantity), 0);
-  const out = applyTransaction(card, campaign, input, now(), net);
-  if (!out.ok) return out;
+}
 
-  Object.assign(card, out.card);
-  if (input.stamps > 0 || input.redeem > 0) card.lastVisitAt = iso();
-  if (out.rotateBarcode) { card.previousBarcodeToken = card.barcodeToken; card.barcodeToken = randomToken(16); }
-  touchPass(card);
-  const base = { orgId: ctx.orgId, campaignId: card.campaignId, cardId: card.id, source: input.source, actorLabel: ctx.actorLabel, scannerDeviceId: ctx.deviceId, idempotencyKey: input.idempotencyKey, createdAt: iso() } as const;
-  if (input.stamps !== 0) d.events.push({ ...base, id: uuid(), type: input.stamps > 0 ? 'stamped' : 'unstamped', quantity: Math.abs(input.stamps) });
-  if (out.earned > 0) d.events.push({ ...base, id: uuid(), type: 'reward_earned', quantity: out.earned });
-  if (out.redeemed > 0) d.events.push({ ...base, id: uuid(), type: 'reward_redeemed', quantity: out.redeemed });
-  const result: TxResult = { cardId: card.id, earned: out.earned, redeemed: out.redeemed, currentStamps: card.currentStamps, rewardsAvailable: card.rewardsAvailable, replayed: false };
-  d.idempotency.push({ orgId: ctx.orgId, key: input.idempotencyKey, requestHash: reqHash, result });
-  save();
-  return { ok: true, result };
+/** After the response: push the changed pass to Apple/Google (never blocks the scanner). */
+function queueWalletPush(cardId: string, reason?: 'reward_earned') {
+  try {
+    after(async () => {
+      try { const { pushCardUpdate } = await import('@/lib/wallet/notify'); await pushCardUpdate(cardId, { reason }); } catch (e) { console.error('wallet push failed', (e as Error).message); }
+    });
+  } catch { /* outside a request (scripts/tests): skip */ }
+}
+function queueWalletPushForCampaign(campaignId: string) {
+  try {
+    after(async () => {
+      const ids = await q<{ id: string }>(`select id from cards where campaign_id = $1 and status = 'active' and (apple_installed or google_saved)`, [campaignId]);
+      const { pushCardUpdate } = await import('@/lib/wallet/notify');
+      for (const { id } of ids) { try { await pushCardUpdate(id, {}); } catch { /* logged by notify */ } }
+    });
+  } catch { /* outside a request */ }
 }
 
 export async function recentScans(ctx: OrgContext, limit = 30) {
-  const d = db();
-  return d.events
-    .filter((e) => e.orgId === ctx.orgId && ['stamped', 'unstamped', 'reward_redeemed'].includes(e.type) && (ctx.role !== 'device' || e.scannerDeviceId === ctx.deviceId))
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-    .slice(0, limit)
-    .map((e) => ({ ...e, firstName: firstName(d.customers.find((x) => x.id === d.cards.find((k) => k.id === e.cardId)?.customerId)?.name ?? '') }));
+  return q<CardEvent & { firstName: string }>(
+    `select e.id, e.type, e.quantity, e.created_at, e.actor_label, split_part(coalesce(cu.name, ''), ' ', 1) as first_name
+       from card_events e join cards k on k.id = e.card_id join customers cu on cu.id = k.customer_id
+      where e.org_id = $1 and e.type in ('stamped','unstamped','reward_redeemed') and ($2::uuid is null or e.scanner_device_id = $2)
+      order by e.created_at desc limit $3`, [ctx.orgId, ctx.role === 'device' ? ctx.deviceId : null, limit]);
 }
 
 // ---------------------------------------------------------------- customers
 
 export type CardRow = {
   cardId: string; name: string; email?: string; phone?: string; currentStamps: number; rewardsAvailable: number;
-  totalStampsEarned: number; wallet: 'apple' | 'google' | 'web'; lastVisitAt: string; createdAt: string; status: Card['status'];
+  totalStampsEarned: number; wallet: 'apple' | 'google' | 'web'; lastVisitAt: string; createdAt: string; status: 'active' | 'deleted';
+};
+export type CardSort = 'last_visit' | 'stamps' | 'name' | 'joined';
+const SORT_SQL: Record<CardSort, string> = {
+  last_visit: 'k.last_visit_at desc', stamps: 'k.current_stamps desc, k.rewards_available desc', name: 'cu.name asc nulls last', joined: 'k.created_at desc',
 };
 
-export type CardSort = 'last_visit' | 'stamps' | 'name' | 'joined';
-
 export async function listCards(ctx: OrgContext, campaignId: string, opts: { q?: string; sort?: CardSort; limit?: number; offset?: number } = {}) {
-  campaignOf(ctx, campaignId);
-  const d = db();
-  const q = opts.q?.trim().toLowerCase();
-  let rows: CardRow[] = d.cards
-    .filter((k) => k.campaignId === campaignId && k.status === 'active')
-    .map((k) => {
-      const cust = d.customers.find((x) => x.id === k.customerId)!;
-      return {
-        cardId: k.id, name: cust.name, email: cust.email, phone: cust.phoneE164, currentStamps: k.currentStamps, rewardsAvailable: k.rewardsAvailable,
-        totalStampsEarned: k.totalStampsEarned, wallet: k.appleInstalled ? 'apple' : k.googleSaved ? 'google' : 'web', lastVisitAt: k.lastVisitAt,
-        createdAt: k.createdAt, status: k.status,
-      } satisfies CardRow;
-    });
-  if (q) rows = rows.filter((r) => [r.name, r.email, r.phone].some((v) => v?.toLowerCase().includes(q)));
-  const sort = opts.sort ?? 'last_visit';
-  rows.sort((a, b) =>
-    sort === 'stamps' ? b.currentStamps - a.currentStamps || b.rewardsAvailable - a.rewardsAvailable
-      : sort === 'name' ? a.name.localeCompare(b.name)
-        : sort === 'joined' ? b.createdAt.localeCompare(a.createdAt)
-          : b.lastVisitAt.localeCompare(a.lastVisitAt));
-  const total = rows.length;
-  const offset = opts.offset ?? 0, limit = opts.limit ?? 25;
-  return { rows: rows.slice(offset, offset + limit), total };
+  await getCampaign(ctx, campaignId);
+  const term = opts.q?.trim() ? `%${opts.q.trim().replace(/[%_\\]/g, (m) => `\\${m}`)}%` : null;
+  const rows = await q<CardRow & { total: number; wallet: string }>(
+    `select k.id as card_id, coalesce(cu.name, '') as name, cu.email::text as email, cu.phone_e164 as phone, k.current_stamps, k.rewards_available,
+            k.total_stamps_earned, case when k.apple_installed then 'apple' when k.google_saved then 'google' else 'web' end as wallet,
+            k.last_visit_at, k.created_at, k.status, count(*) over () ::int as total
+       from cards k join customers cu on cu.id = k.customer_id
+      where k.org_id = $1 and k.campaign_id = $2 and k.status = 'active'
+        and ($3::text is null or (coalesce(cu.name,'') || ' ' || coalesce(cu.email::text,'') || ' ' || coalesce(cu.phone_e164,'')) ilike $3)
+      order by ${SORT_SQL[opts.sort ?? 'last_visit'] ?? SORT_SQL.last_visit}
+      limit $4 offset $5`, [ctx.orgId, campaignId, term, opts.limit ?? 25, opts.offset ?? 0]);
+  return { rows: rows.map(({ total: _t, ...r }) => ({ ...r, email: r.email ?? undefined, phone: r.phone ?? undefined })), total: rows[0]?.total ?? 0 };
 }
 
 export async function getCardDetail(ctx: OrgContext, cardId: string) {
-  const card = cardOf(ctx, cardId);
-  const d = db();
-  const cust = d.customers.find((x) => x.id === card.customerId)!;
-  const campaign = d.campaigns.find((x) => x.id === card.campaignId)!;
-  const events: CardEvent[] = d.events.filter((e) => e.cardId === card.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 50);
-  return { card: { ...card }, customer: { ...cust }, campaign: { ...campaign }, events };
+  if (!/^[0-9a-f-]{36}$/.test(cardId)) throw new DataError('card_not_found');
+  const card = await one<Record<string, unknown> & { campaignId: string; customerId: string }>('select * from cards where id = $1 and org_id = $2', [cardId, ctx.orgId]);
+  if (!card) throw new DataError('card_not_found');
+  const [customer, campaign, events] = await Promise.all([
+    one<Record<string, unknown>>('select *, email::text as email from customers where id = $1', [card.customerId]),
+    getCampaign(ctx, card.campaignId),
+    q<CardEvent>('select * from card_events where card_id = $1 and org_id = $2 order by created_at desc limit 50', [cardId, ctx.orgId]),
+  ]);
+  return {
+    card: card as unknown as import('./types').Card,
+    customer: { ...customer, name: (customer?.name as string) ?? '', email: (customer?.email as string) ?? undefined, phoneE164: (customer?.phoneE164 as string) ?? undefined } as unknown as import('./types').Customer,
+    campaign, events,
+  };
 }
 
 export async function updateCustomer(ctx: OrgContext, cardId: string, patch: { name?: string; email?: string; phone?: string }) {
-  const card = cardOf(ctx, cardId);
-  const d = db();
-  const cust = d.customers.find((x) => x.id === card.customerId)!;
-  const email = patch.email?.trim().toLowerCase() || undefined;
-  const phone = patch.phone?.replace(/[^\d+]/g, '') || undefined;
+  const email = patch.email?.trim().toLowerCase() || null;
+  const phone = patch.phone?.replace(/[^\d+]/g, '') || null;
   if (!email && !phone) throw new DataError('contact_required', 'Keep an email or a phone number.');
   if (phone && !/^\+[1-9]\d{6,14}$/.test(phone)) throw new DataError('invalid_phone', 'Use the full number with country code, like +250788123456.');
-  const clash = d.customers.find((x) => x.orgId === ctx.orgId && x.id !== cust.id && !x.deletedAt && ((email && x.email === email) || (phone && x.phoneE164 === phone)));
-  if (clash) throw new DataError('duplicate', 'Another customer already uses this email or phone.');
-  Object.assign(cust, { name: patch.name?.trim() ?? cust.name, email, phoneE164: phone });
-  d.events.push({ id: uuid(), orgId: ctx.orgId, campaignId: card.campaignId, cardId: card.id, type: 'customer_updated', quantity: 1, source: 'dashboard', actorLabel: ctx.actorLabel, createdAt: iso() });
-  save();
+  try {
+    const r = await one(
+      `with k as (select id, customer_id, campaign_id from cards where id = $1 and org_id = $2),
+            u as (update customers cu set name = coalesce($3, cu.name), email = $4, phone_e164 = $5 from k where cu.id = k.customer_id returning cu.id)
+       insert into card_events (org_id, campaign_id, card_id, type, source, actor_user_id, actor_label)
+       select $2, k.campaign_id, k.id, 'customer_updated', 'dashboard', $6, $7 from k, u returning id`,
+      [cardId, ctx.orgId, patch.name?.trim() ?? null, email, phone, ctx.userId, ctx.actorLabel]);
+    if (!r) throw new DataError('card_not_found');
+  } catch (e) {
+    if (pgCode(e) === '23505') throw new DataError('duplicate', 'Another customer already uses this email or phone.');
+    throw e;
+  }
 }
 
 export async function deleteCard(ctx: OrgContext, cardId: string, farewell?: string) {
-  const card = cardOf(ctx, cardId);
-  card.status = 'deleted'; card.deletedAt = iso(); card.noteText = farewell?.trim() || undefined;
-  touchPass(card);
-  const d = db();
-  // frees the unique email/phone when the customer has no other active card
-  if (!d.cards.some((k) => k.customerId === card.customerId && k.status === 'active')) {
-    const cust = d.customers.find((x) => x.id === card.customerId)!;
-    cust.deletedAt = iso();
-  }
-  d.events.push({ id: uuid(), orgId: ctx.orgId, campaignId: card.campaignId, cardId: card.id, type: 'card_deleted', quantity: 1, source: 'dashboard', actorLabel: ctx.actorLabel, createdAt: iso() });
-  save();
+  const r = await one(
+    `with k as (update cards set status = 'deleted', deleted_at = now(), note_text = $3 where id = $1 and org_id = $2 and status = 'active' returning id, campaign_id, customer_id),
+          e as (insert into card_events (org_id, campaign_id, card_id, type, source, actor_user_id, actor_label)
+                select $2, k.campaign_id, k.id, 'card_deleted', 'dashboard', $4, $5 from k)
+     update customers cu set deleted_at = now() from k
+      where cu.id = k.customer_id and not exists (select 1 from cards x where x.customer_id = k.customer_id and x.status = 'active' and x.id <> k.id)
+     returning cu.id`,
+    [cardId, ctx.orgId, farewell?.trim().slice(0, 300) || null, ctx.userId, ctx.actorLabel]);
+  void r;
+  queueWalletPush(cardId);
 }
 
-/** Staff-side enrolment: create the customer + card and return the link to share. */
 export async function createCardForCustomer(ctx: OrgContext, campaignId: string, input: { name: string; phone?: string; email?: string }) {
-  const c = campaignOf(ctx, campaignId);
+  const c = await getCampaign(ctx, campaignId);
   if (c.status !== 'live') throw new DataError('closed', 'Activate the card first.');
   const res = await joinCampaign(c.shortCode, { values: { name: input.name, phone: input.phone ?? '', email: input.email ?? '' }, consent: false });
   if (res.status === 'sent') throw new DataError('duplicate', 'This customer already has this card. Search for them in the list.');
@@ -471,208 +572,227 @@ export async function createCardForCustomer(ctx: OrgContext, campaignId: string,
 // ---------------------------------------------------------------- insights
 
 export async function getInsights(ctx: OrgContext, campaignId: string, days = 30) {
-  const c = campaignOf(ctx, campaignId);
-  const d = db();
-  const since = Date.now() - days * 86_400_000;
-  const prevSince = since - days * 86_400_000;
-  const ev = d.events.filter((e) => e.campaignId === campaignId);
-  const count = (type: string, from: number, to: number) =>
-    ev.filter((e) => e.type === type && +new Date(e.createdAt) > from && +new Date(e.createdAt) <= to).reduce((s, e) => s + e.quantity, 0);
-  const t = Date.now();
-  const cur = { enrolled: count('enrolled', since, t), stamps: count('stamped', since, t) - count('unstamped', since, t), earned: count('reward_earned', since, t), redeemed: count('reward_redeemed', since, t) };
-  const prev = { enrolled: count('enrolled', prevSince, since), stamps: count('stamped', prevSince, since) - count('unstamped', prevSince, since), redeemed: count('reward_redeemed', prevSince, since) };
-  const pct = (a: number, b: number) => (b === 0 ? undefined : Math.round(((a - b) / b) * 100));
-  const daily = Array.from({ length: days }, (_, i) => {
-    const start = since + i * 86_400_000, end = start + 86_400_000;
-    return { date: new Date(start).toISOString().slice(0, 10), stamps: count('stamped', start, end), enrolled: count('enrolled', start, end) };
-  });
-  const cards = d.cards.filter((k) => k.campaignId === campaignId && k.status === 'active');
-  const status = { apple: cards.filter((k) => k.appleInstalled).length, google: cards.filter((k) => k.googleSaved).length, web: cards.filter((k) => !k.appleInstalled && !k.googleSaved).length };
-  const revenue = c.stampValueCents ? cur.stamps * c.stampValueCents : undefined;
-  const cost = c.reward.costCents ? cur.redeemed * c.reward.costCents : undefined;
-  return { ...cur, deltas: { enrolled: pct(cur.enrolled, prev.enrolled), stamps: pct(cur.stamps, prev.stamps), redeemed: pct(cur.redeemed, prev.redeemed) }, daily, status, revenue, cost, net: revenue !== undefined && cost !== undefined ? revenue - cost : undefined, currency: c.currency };
+  const c = await getCampaign(ctx, campaignId);
+  const agg = await one<Record<string, number | null>>(
+    `with e as (select type, quantity, created_at from card_events where campaign_id = $1 and org_id = $2 and created_at > now() - make_interval(days => $3 * 2))
+     select
+       coalesce(sum(quantity) filter (where type = 'enrolled' and created_at > now() - make_interval(days => $3)), 0)::int as enrolled,
+       coalesce(sum(case type when 'stamped' then quantity when 'unstamped' then -quantity end) filter (where created_at > now() - make_interval(days => $3)), 0)::int as stamps,
+       coalesce(sum(quantity) filter (where type = 'reward_earned' and created_at > now() - make_interval(days => $3)), 0)::int as earned,
+       coalesce(sum(quantity) filter (where type = 'reward_redeemed' and created_at > now() - make_interval(days => $3)), 0)::int as redeemed,
+       coalesce(sum(quantity) filter (where type = 'enrolled' and created_at <= now() - make_interval(days => $3)), 0)::int as p_enrolled,
+       coalesce(sum(case type when 'stamped' then quantity when 'unstamped' then -quantity end) filter (where created_at <= now() - make_interval(days => $3)), 0)::int as p_stamps,
+       coalesce(sum(quantity) filter (where type = 'reward_redeemed' and created_at <= now() - make_interval(days => $3)), 0)::int as p_redeemed
+     from e`, [campaignId, ctx.orgId, days]);
+  const daily = await q<{ date: string; stamps: number; enrolled: number }>(
+    `select to_char(d, 'YYYY-MM-DD') as date,
+            coalesce((select sum(quantity) from card_events e where e.campaign_id = $1 and e.type = 'stamped' and e.created_at >= d and e.created_at < d + interval '1 day'), 0)::int as stamps,
+            coalesce((select count(*) from card_events e where e.campaign_id = $1 and e.type = 'enrolled' and e.created_at >= d and e.created_at < d + interval '1 day'), 0)::int as enrolled
+       from generate_series(date_trunc('day', now() - make_interval(days => $2 - 1)), date_trunc('day', now()), interval '1 day') d order by d`, [campaignId, days]);
+  const st = await one<{ apple: number; google: number; web: number }>(
+    `select count(*) filter (where apple_installed)::int as apple, count(*) filter (where google_saved and not apple_installed)::int as google,
+            count(*) filter (where not apple_installed and not google_saved)::int as web from cards where campaign_id = $1 and status = 'active'`, [campaignId]);
+  const a = agg!;
+  const pct = (x: number, y: number) => (y === 0 ? undefined : Math.round(((x - y) / y) * 100));
+  const revenue = c.stampValueCents ? (a.stamps as number) * c.stampValueCents : undefined;
+  const cost = c.reward.costCents ? (a.redeemed as number) * c.reward.costCents : undefined;
+  return {
+    enrolled: a.enrolled as number, stamps: a.stamps as number, earned: a.earned as number, redeemed: a.redeemed as number,
+    deltas: { enrolled: pct(a.enrolled as number, a.pEnrolled as number), stamps: pct(a.stamps as number, a.pStamps as number), redeemed: pct(a.redeemed as number, a.pRedeemed as number) },
+    daily, status: st!, revenue, cost, net: revenue !== undefined && cost !== undefined ? revenue - cost : undefined, currency: c.currency,
+  };
 }
 
 // ---------------------------------------------------------------- locations
 
 export async function listLocations(ctx: OrgContext) {
-  const d = db();
-  return d.locations.filter((l) => l.orgId === ctx.orgId).map((l) => ({ ...l, cards: d.campaigns.filter((c) => c.locationIds.includes(l.id)).length }));
+  return q<Location & { cards: number }>(
+    `select l.*, coalesce(l.address, '') as address, coalesce(l.address_on_card, '') as address_on_card, coalesce(l.relevant_text, '') as relevant_text,
+            (select count(*) from campaign_locations cl where cl.location_id = l.id)::int as cards
+       from locations l where l.org_id = $1 order by l.created_at`, [ctx.orgId]);
 }
 
 export async function upsertLocation(ctx: OrgContext, input: Omit<Location, 'id' | 'orgId'> & { id?: string }) {
-  const d = db();
-  const o = org(ctx);
   if (!input.name.trim()) throw new DataError('invalid', 'Give the place a name.');
-  if (Number.isNaN(input.lat) || Number.isNaN(input.lon) || Math.abs(input.lat) > 90 || Math.abs(input.lon) > 180) throw new DataError('invalid', 'Pick the place on the map or enter a valid latitude and longitude.');
-  if (input.id) {
-    const l = d.locations.find((x) => x.id === input.id && x.orgId === ctx.orgId);
-    if (!l) throw new DataError('not_found');
-    Object.assign(l, { ...input, orgId: ctx.orgId });
-    d.campaigns.filter((c) => c.locationIds.includes(l.id)).forEach((c) => d.cards.filter((k) => k.campaignId === c.id && k.status === 'active').forEach(touchPass));
-  } else {
-    if (d.locations.filter((l) => l.orgId === ctx.orgId).length >= PLAN_LIMITS[o.plan].locations) throw new DataError('plan_limit', `Your plan includes ${PLAN_LIMITS[o.plan].locations} locations.`);
-    d.locations.push({ ...input, id: uuid(), orgId: ctx.orgId });
+  if (!Number.isFinite(input.lat) || !Number.isFinite(input.lon) || Math.abs(input.lat) > 90 || Math.abs(input.lon) > 180) {
+    throw new DataError('invalid', 'Enter a valid latitude and longitude, or use “where I am now”.');
   }
-  save();
+  const vals = [input.name.trim().slice(0, 80), input.address || null, input.lat, input.lon, input.addressOnCard || null, input.showOnCard, input.relevantText?.slice(0, 120) || null];
+  if (input.id) {
+    const r = await one(
+      `with l as (update locations set name = $3, address = $4, lat = $5, lon = $6, address_on_card = $7, show_on_card = $8, relevant_text = $9 where id = $1 and org_id = $2 returning id)
+       update cards set pass_modified_at = clock_timestamp() from campaign_locations cl, l
+        where cl.location_id = l.id and cards.campaign_id = cl.campaign_id and cards.status = 'active' returning l.id`, [input.id, ctx.orgId, ...vals]);
+    void r;
+  } else {
+    const o = await planOf(ctx);
+    const r = await one(
+      `insert into locations (org_id, name, address, lat, lon, address_on_card, show_on_card, relevant_text)
+       select $1,$2,$3,$4,$5,$6,$7,$8 where (select count(*) from locations where org_id = $1) < $9 returning id`, [ctx.orgId, ...vals, PLAN_LIMITS[o.plan].locations]);
+    if (!r) throw new DataError('plan_limit', `Your plan includes ${PLAN_LIMITS[o.plan].locations} locations.`);
+  }
 }
 
 export async function deleteLocation(ctx: OrgContext, id: string) {
-  const d = db();
-  d.locations = d.locations.filter((l) => !(l.id === id && l.orgId === ctx.orgId));
-  d.campaigns.filter((c) => c.orgId === ctx.orgId).forEach((c) => { c.locationIds = c.locationIds.filter((x) => x !== id); });
-  save();
+  await q('delete from locations where id = $1 and org_id = $2', [id, ctx.orgId]);
 }
 
 // ---------------------------------------------------------------- counter devices
 
 export async function listDevices(ctx: OrgContext): Promise<ScannerDevice[]> {
-  return db().devices.filter((x) => x.orgId === ctx.orgId && !x.revokedAt);
+  return q<ScannerDevice>('select id, org_id, label, location_id, last_seen_at, created_at from scanner_devices where org_id = $1 and revoked_at is null order by created_at', [ctx.orgId]);
 }
 
 export async function createPairingCode(ctx: OrgContext, label: string, locationId?: string) {
-  const o = org(ctx);
   if (!label.trim()) throw new DataError('invalid', 'Name the phone, like “Front counter”.');
-  if ((await listDevices(ctx)).length >= PLAN_LIMITS[o.plan].devices) throw new DataError('plan_limit', `Your plan includes ${PLAN_LIMITS[o.plan].devices} counter phones.`);
+  const o = await planOf(ctx);
   const code = randomToken(4).slice(0, 6);
-  const expiresAt = new Date(Date.now() + 10 * 60_000).toISOString();
-  db().pairingCodes.push({ code, orgId: ctx.orgId, label: label.trim(), locationId, expiresAt });
-  save();
-  return { code, expiresAt };
+  const r = await one<{ expiresAt: string }>(
+    `insert into pairing_codes (code, org_id, label, location_id, expires_at)
+     select $1, $2, $3, (select id from locations where id = $4 and org_id = $2), now() + interval '10 minutes'
+      where (select count(*) from scanner_devices where org_id = $2 and revoked_at is null) < $5 returning expires_at`,
+    [code, ctx.orgId, label.trim().slice(0, 40), locationId ?? null, PLAN_LIMITS[o.plan].devices]);
+  if (!r) throw new DataError('plan_limit', `Your plan includes ${PLAN_LIMITS[o.plan].devices} counter phones.`);
+  return { code, expiresAt: r.expiresAt };
 }
 
-/** Counter phone exchanges a pairing code for a device token (shown once). */
-export async function pairDevice(codeRaw: string) {
-  const d = db();
-  const code = codeRaw.trim().toUpperCase();
-  const p = d.pairingCodes.find((x) => x.code === code && new Date(x.expiresAt) > now());
-  if (!p) throw new DataError('bad_code', 'That code didn’t work. Codes last 10 minutes; ask for a new one.');
-  d.pairingCodes = d.pairingCodes.filter((x) => x !== p);
+/** One use: the code is deleted in the same statement that creates the device. */
+export async function pairDevice(codeRaw: string, ip?: string) {
+  if (ip) await rateLimit(`pair:${ip}`, 10, 600);
   const token = randomToken(32);
-  d.devices.push({ id: uuid(), orgId: p.orgId, label: p.label, tokenHash: sha(token), locationId: p.locationId, lastSeenAt: iso(), createdAt: iso() });
-  save();
+  const r = await one(
+    `with p as (delete from pairing_codes where code = $1 and expires_at > now() returning org_id, label, location_id)
+     insert into scanner_devices (org_id, label, token_hash, location_id, last_seen_at) select org_id, label, $2, location_id, now() from p returning id`,
+    [codeRaw.trim().toUpperCase(), sha(token)]);
+  if (!r) throw new DataError('bad_code', 'That code didn’t work. Codes last 10 minutes; ask for a new one.');
   return token;
 }
 
 export async function revokeDevice(ctx: OrgContext, id: string) {
-  const dev = db().devices.find((x) => x.id === id && x.orgId === ctx.orgId);
-  if (dev) { dev.revokedAt = iso(); save(); }
+  await q('update scanner_devices set revoked_at = now() where id = $1 and org_id = $2', [id, ctx.orgId]);
 }
 
 // ---------------------------------------------------------------- messages
 
-const BUDGET = 3;
-function claimSlot(cardId: string, channel: 'apple' | 'google'): boolean {
-  const d = db();
-  const since = Date.now() - 86_400_000;
-  if (d.notifications.filter((n) => n.cardId === cardId && n.channel === channel && +new Date(n.at) > since).length >= BUDGET) return false;
-  d.notifications.push({ cardId, channel, at: iso() });
-  return true;
-}
-
 export async function broadcastReach(ctx: OrgContext, campaignId: string) {
-  campaignOf(ctx, campaignId);
-  const cards = db().cards.filter((k) => k.campaignId === campaignId && k.status === 'active');
-  const since = Date.now() - 90 * 86_400_000;
-  return {
-    wallet: cards.filter((k) => k.appleInstalled || k.googleSaved).length,
-    webCards: cards.filter((k) => !k.appleInstalled && !k.googleSaved && k.webCardSeenAt && +new Date(k.webCardSeenAt) > since).length,
-  };
+  const r = await one<{ wallet: number; webCards: number }>(
+    `select count(*) filter (where apple_installed or google_saved)::int as wallet,
+            count(*) filter (where not apple_installed and not google_saved and web_card_seen_at > now() - interval '90 days')::int as web_cards
+       from cards where campaign_id = $1 and org_id = $2 and status = 'active'`, [campaignId, ctx.orgId]);
+  return r ?? { wallet: 0, webCards: 0 };
 }
 
-/** FAKE delivery: claims budget slots and updates passes; no Apple/Google calls yet. */
+/** Records the message, shows it on every pass + web card, and delivers to wallets after the response. */
 export async function sendBroadcast(ctx: OrgContext, campaignId: string, body: string): Promise<Message> {
-  const c = campaignOf(ctx, campaignId);
   const text = body.trim();
   if (!text) throw new DataError('invalid', 'Write a message first.');
   if (text.length > 300) throw new DataError('invalid', 'Keep it under 300 characters.');
+  const c = await getCampaign(ctx, campaignId);
   if (c.status !== 'live') throw new DataError('closed', 'Activate the card before sending messages.');
-  const d = db();
-  const cards = d.cards.filter((k) => k.campaignId === campaignId && k.status === 'active');
-  let delivered = 0, skipped = 0;
-  for (const k of cards.filter((x) => x.appleInstalled || x.googleSaved)) {
-    if (claimSlot(k.id, k.appleInstalled ? 'apple' : 'google')) { delivered++; touchPass(k); } else skipped++;
-  }
-  c.newsText = text; c.newsUpdatedAt = iso();
   const reach = await broadcastReach(ctx, campaignId);
-  const m: Message = { id: uuid(), orgId: ctx.orgId, campaignId, kind: 'broadcast', body: text, status: 'sent', recipients: delivered + skipped, delivered, skipped, webCards: reach.webCards, createdAt: iso() };
-  d.messages.push(m);
-  save();
-  return m;
+  const m = await one<Message>(
+    `with m as (insert into messages (org_id, campaign_id, kind, body, status, recipients, web_cards, created_by) values ($1,$2,'broadcast',$3,'queued',$4,$5,$6) returning *),
+          c as (update campaigns set news_text = $3, news_updated_at = now() where id = $2 and org_id = $1),
+          k as (update cards set pass_modified_at = clock_timestamp() where campaign_id = $2 and status = 'active')
+     select * from m`, [ctx.orgId, campaignId, text, reach.wallet, reach.webCards, ctx.userId]);
+  try { after(() => deliverMessage(m!.id)); } catch { /* outside a request: the cron retry picks it up */ }
+  return m!;
+}
+
+/** Wallet fan-out for one message (idempotent: message_deliveries is unique per card + channel). */
+export async function deliverMessage(messageId: string) {
+  const m = await one<{ id: string; campaignId: string; body: string; status: string; business: string }>(
+    `update messages set status = 'sending', started_at = coalesce(started_at, now()) where id = $1 and status in ('queued','sending')
+     returning id, campaign_id, body, status, (select program_name from campaigns where id = campaign_id) as business`, [messageId]);
+  if (!m) return;
+  const targets = await q<{ cardId: string; channel: 'apple' | 'google' }>(
+    `insert into message_deliveries (message_id, card_id, channel)
+     select $1, k.id, case when k.apple_installed then 'apple' else 'google' end from cards k
+      where k.campaign_id = $2 and k.status = 'active' and (k.apple_installed or k.google_saved)
+     on conflict (message_id, card_id, channel) do nothing returning card_id, channel`, [messageId, m.campaignId]);
+  const pending = await q<{ cardId: string }>(`select card_id from message_deliveries where message_id = $1 and status = 'pending'`, [messageId]);
+  void targets;
+  const { pushCardUpdate } = await import('@/lib/wallet/notify');
+  for (const { cardId } of pending) {
+    try {
+      const r = await pushCardUpdate(cardId, { reason: 'broadcast', messageId, message: { header: m.business, body: m.body } });
+      await q(`update message_deliveries set status = $3, sent_at = now(), attempts = attempts + 1 where message_id = $1 and card_id = $2`, [messageId, cardId, r.notified ? 'sent' : 'skipped']);
+    } catch (e) {
+      await q(`update message_deliveries set status = 'failed', error = $3, attempts = attempts + 1 where message_id = $1 and card_id = $2`, [messageId, cardId, String((e as Error).message).slice(0, 300)]);
+    }
+  }
+  await q(`update messages set status = 'sent', finished_at = now(),
+             delivered = (select count(*) from message_deliveries where message_id = $1 and status = 'sent'),
+             skipped = (select count(*) from message_deliveries where message_id = $1 and status = 'skipped'),
+             failed = (select count(*) from message_deliveries where message_id = $1 and status = 'failed')
+           where id = $1`, [messageId]);
 }
 
 export async function listMessages(ctx: OrgContext, campaignId: string) {
-  campaignOf(ctx, campaignId);
-  return db().messages.filter((m) => m.campaignId === campaignId).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return q<Message>('select * from messages where campaign_id = $1 and org_id = $2 order by created_at desc limit 50', [campaignId, ctx.orgId]);
 }
 
 // ---------------------------------------------------------------- automations
 
 export async function getAutomations(ctx: OrgContext, campaignId: string): Promise<Record<'birthday' | 'winback', Automation>> {
-  campaignOf(ctx, campaignId);
-  const d = db();
-  const find = (kind: 'birthday' | 'winback') => d.automations.find((a) => a.campaignId === campaignId && a.kind === kind);
-  const fallback = (kind: 'birthday' | 'winback'): Automation => ({
-    id: uuid(), orgId: ctx.orgId, campaignId, kind, enabled: false, sendHour: 10,
+  await getCampaign(ctx, campaignId);
+  const rows = await q<Automation>('select * from automations where campaign_id = $1 and org_id = $2', [campaignId, ctx.orgId]);
+  const pick = (kind: 'birthday' | 'winback'): Automation => rows.find((a) => a.kind === kind) ?? {
+    id: '', orgId: ctx.orgId, campaignId, kind, enabled: false, sendHour: 10,
     body: kind === 'birthday' ? 'Happy birthday {name}! Come by for a treat on us.' : 'We miss you, {name}. Come by this week for a double stamp.',
     daysInactive: kind === 'winback' ? 30 : undefined,
-  });
-  return { birthday: find('birthday') ?? fallback('birthday'), winback: find('winback') ?? fallback('winback') };
+  };
+  return { birthday: pick('birthday'), winback: pick('winback') };
 }
 
 export async function saveAutomation(ctx: OrgContext, campaignId: string, kind: 'birthday' | 'winback', input: { enabled: boolean; body: string; daysInactive?: number; sendHour: number }) {
-  const c = campaignOf(ctx, campaignId);
-  if (!input.body.trim()) throw new DataError('invalid', 'Write the message.');
-  if (input.body.length > 300) throw new DataError('invalid', 'Keep it under 300 characters.');
+  const c = await getCampaign(ctx, campaignId);
+  const body = input.body.trim();
+  if (!body) throw new DataError('invalid', 'Write the message.');
+  if (body.length > 300) throw new DataError('invalid', 'Keep it under 300 characters.');
   if (kind === 'winback' && (!input.daysInactive || input.daysInactive < 7 || input.daysInactive > 365)) throw new DataError('invalid', 'Choose between 7 and 365 days.');
-  if (kind === 'birthday' && input.enabled && !c.fields.some((f) => f.type === 'birthday')) {
-    throw new DataError('no_birthday_field', 'Add a Birthday field to the signup form first.');
-  }
-  const d = db();
-  let a = d.automations.find((x) => x.campaignId === campaignId && x.kind === kind);
-  if (!a) { a = (await getAutomations(ctx, campaignId))[kind]; d.automations.push(a); }
-  const turningOn = input.enabled && !a.enabled;
-  Object.assign(a, { enabled: input.enabled, body: input.body.trim(), sendHour: input.sendHour, daysInactive: kind === 'winback' ? input.daysInactive : undefined });
-  if (turningOn) a.enabledAt = iso(); // reset on every off->on (review M9)
-  save();
+  if (input.sendHour < 0 || input.sendHour > 23) throw new DataError('invalid', 'Pick a time.');
+  if (kind === 'birthday' && input.enabled && !c.fields.some((f) => f.type === 'birthday')) throw new DataError('no_birthday_field', 'Add a Birthday field to the signup form first.');
+  // enabled_at resets on every off->on switch (review M9)
+  await q(
+    `insert into automations (org_id, campaign_id, kind, enabled, body, days_inactive, send_hour, enabled_at)
+     values ($1,$2,$3,$4,$5,$6,$7, case when $4 then now() end)
+     on conflict (campaign_id, kind) do update set enabled = excluded.enabled, body = excluded.body, days_inactive = excluded.days_inactive, send_hour = excluded.send_hour,
+       enabled_at = case when excluded.enabled and not automations.enabled then now() else automations.enabled_at end`,
+    [ctx.orgId, campaignId, kind, input.enabled, body, kind === 'winback' ? input.daysInactive : null, input.sendHour]);
 }
 
-/** Rough 7-day forecast for the automation card. */
 export async function automationForecast(ctx: OrgContext, campaignId: string, kind: 'birthday' | 'winback', daysInactive = 30) {
-  campaignOf(ctx, campaignId);
-  const d = db();
-  const cards = d.cards.filter((k) => k.campaignId === campaignId && k.status === 'active' && (k.appleInstalled || k.googleSaved));
   if (kind === 'birthday') {
-    let n = 0;
-    for (let i = 0; i < 7; i++) {
-      const dt = new Date(Date.now() + i * 86_400_000);
-      n += cards.filter((k) => {
-        const c = d.customers.find((x) => x.id === k.customerId)!;
-        return c.birthdayMonth && c.birthdayDay && isBirthdayToday(c.birthdayMonth, c.birthdayDay, dt.getUTCFullYear(), dt.getUTCMonth() + 1, dt.getUTCDate());
-      }).length;
-    }
-    return n;
+    const r = await one<{ n: number }>(
+      `select count(*)::int as n from cards k join customers cu on cu.id = k.customer_id join orgs o on o.id = k.org_id,
+              generate_series(0, 6) g
+        where k.campaign_id = $1 and k.org_id = $2 and k.status = 'active' and (k.apple_installed or k.google_saved)
+          and cu.birthday_month = extract(month from (now() at time zone o.timezone)::date + g) and cu.birthday_day = extract(day from (now() at time zone o.timezone)::date + g)`, [campaignId, ctx.orgId]);
+    return r?.n ?? 0;
   }
-  // cards that will cross the N-day mark during the next 7 days
-  const lo = Date.now() - daysInactive * 86_400_000, hi = lo + 7 * 86_400_000;
-  return cards.filter((k) => { const t = +new Date(k.lastVisitAt); return t > lo && t <= hi; }).length;
+  const r = await one<{ n: number }>(
+    `select count(*)::int as n from cards where campaign_id = $1 and org_id = $2 and status = 'active' and (apple_installed or google_saved)
+        and last_visit_at > now() - make_interval(days => $3) and last_visit_at <= now() - make_interval(days => $3) + interval '7 days'`, [campaignId, ctx.orgId, daysInactive]);
+  return r?.n ?? 0;
 }
 
-// ---------------------------------------------------------------- billing (fake)
+// ---------------------------------------------------------------- billing
 
 export const PRICES = {
   starter: { RWF: 15000, USD: 12 }, growth: { RWF: 35000, USD: 29 }, pro: { RWF: 60000, USD: 49 },
 } as const;
 
 export async function getBilling(ctx: OrgContext) {
-  const o = org(ctx);
+  const o = await one<{ plan: keyof typeof PLAN_LIMITS; planStatus: string; trialEndsAt: string; defaultCurrency: string }>(
+    'select plan, plan_status, trial_ends_at, default_currency from orgs where id = $1', [ctx.orgId]);
+  if (!o) throw new DataError('org_not_found');
   const daysLeft = Math.max(0, Math.ceil((+new Date(o.trialEndsAt) - Date.now()) / 86_400_000));
-  return { plan: o.plan, planStatus: o.planStatus, trialEndsAt: o.trialEndsAt, daysLeft, currency: o.defaultCurrency === 'RWF' ? 'RWF' as const : 'USD' as const, limits: PLAN_LIMITS[o.plan] };
+  return { plan: o.plan, planStatus: o.planStatus as Org['planStatus'], trialEndsAt: o.trialEndsAt, daysLeft, currency: o.defaultCurrency === 'RWF' ? ('RWF' as const) : ('USD' as const), limits: PLAN_LIMITS[o.plan] };
 }
 
-/** FAKE checkout: marks the plan active. Real Paddle / Flutterwave in /replica-backend. */
+/** Dev-only plan switch when no payment provider is configured (refused in production). */
 export async function fakeCheckout(ctx: OrgContext, plan: 'starter' | 'growth' | 'pro') {
-  const o = org(ctx);
-  o.plan = plan; o.planStatus = 'active';
-  save();
+  if (process.env.NODE_ENV === 'production') throw new DataError('not_configured', 'Payments aren’t set up yet.');
+  await q(`update orgs set plan = $2, plan_status = 'active' where id = $1`, [ctx.orgId, plan]);
 }
