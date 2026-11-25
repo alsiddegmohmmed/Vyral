@@ -1,0 +1,98 @@
+feature,area,priority,original,clone,notes
+Merchant sign up with email and password,onboarding,must,yes,no,S01; email login (not username); Google sign-in is a should row
+Log in with email and reset password,onboarding,must,yes,no,S02
+Free trial with no payment card until going live,billing,must,yes,no,15 days at original; card required to activate
+First-run empty state that leads to creating a card,onboarding,must,yes,no,S03
+Card designs list with draft and live status,designer,must,yes,no,S03
+Single reward card (one reward at N stamps),designer,must,yes,no,S04; v1 card type
+Multi reward card (rewards at several stamp positions),designer,should,yes,no,later; v1 is single reward only
+Set number of stamps 1 to 30,designer,must,yes,no,S04; locked after activation
+Upload logo and icon,designer,must,yes,no,S04; Apple sizes 480x150 and 87x87
+Pick stamped and unstamped images from built-in set or upload,designer,must,yes,no,S04; our own icon set
+Set pass background and text colours,designer,must,yes,no,S04; text colour Apple only
+Live pass preview while designing (Apple and Google),designer,must,yes,no,S04-S09
+Description and how-to-earn text,designer,must,yes,no,S05
+Rewards with name text and stamps required,designer,must,yes,no,"S05; v1: one reward per card, card resets when full"
+"Reward-earned lock-screen message, plus stamp count text on the pass",designer,must,yes,no,"S05; reward message notifies (uses budget); stamp text ""You have {n} stamps"" is silent"
+Card expiry: never / fixed date / N days after join,designer,must,yes,no,S05; locked after activation
+Terms text and business issuer details on card back,designer,must,yes,no,S07
+Signup form builder: fields with type and required flag,enrolment,must,yes,no,S08
+Consent text and checkbox on signup,enrolment,must,yes,no,S08 S22; default unchecked
+Install a preview pass on your own phone,designer,must,yes,no,S10; original preview cannot be stamped (common confusion)
+Activate card with unique name and lock warning,designer,must,yes,no,S11
+Live link and QR code for each card,sharing,must,yes,no,S12
+Edit live card and push design changes to all issued passes,designer,must,yes,no,S12; 10 min cooldown at original
+Hosted branded enrolment page,enrolment,must,yes,no,S22; mobile first
+Add to Apple Wallet after joining,wallet,must,yes,no,S23 S24; needs our own Pass Type ID cert
+Save to Google Wallet after joining,wallet,must,yes,no,S23 S25; needs our own issuer account
+"Web card page for every customer (live QR, stamps, messages, add to home screen)",wallet,must,no,no,/c/{serial}; baseline for phones without Apple/Google Wallet (common in Kigali); architecture decision 1
+Pass updates live when stamped or redeemed,wallet,must,yes,no,APNs + Google object update; core of the product
+Pass status tracking issued installed removed,wallet,must,yes,no,S14; from wallet register/unregister callbacks
+Pair a counter phone to the scanner (no owner login on shop phones),scanner,must,yes,no,S19-lite S27; revocable device token; audit log names the device
+Scan pass barcode with phone camera,scanner,must,yes,no,S28
+Add stamps with + and submit,scanner,must,yes,no,S29
+Remove stamps (never below 0),scanner,must,yes,no,S29; v1 never forfeits a banked reward; corrections lower the lifetime total
+Redeem reward in the same scan,scanner,must,yes,no,S29
+Confirm transaction step and clear success / error feedback,scanner,must,yes,no,S30; full error list in recon
+Reject deleted expired or foreign cards,scanner,must,yes,no,S30
+Customers table with search and sort,crm,must,yes,no,S14
+Customer card detail with event history,crm,must,yes,no,S15
+Remote stamping and rewards from the dashboard,crm,must,yes,no,S16
+Push message to all customers of a card,messaging,must,yes,no,S17
+Birthday field on signup form (day and month),enrolment,must,partial,no,original only as a generic date field; we make it a known field so automations can use it
+Automated birthday message on the customer's birthday,automations,must,no,no,S35 F15; gap at original; sends in the business's time zone
+Automated win-back message after N days without a visit,automations,must,no,no,"S35 F16; gap at original; once per lapse, resets on next stamp"
+"Automations settings per card (on/off, days, message text, preview)",automations,must,no,no,S35
+Bonus stamp or reward attached to birthday / win-back message,automations,could,no,no,later; differentiator
+Skip automated messages for opted-out or removed passes,automations,must,no,no,only installed passes receive; respect opt-out
+Audit log of every transaction with device or user and time,crm,must,yes,no,S15 S32
+Subscription plans with limits on designs locations and staff,billing,must,yes,no,S21; original 1/3/10 designs 1/3/10 locations 3/10/50 staff
+Billing in RWF with MTN MoMo and Airtel Money (prepaid periods),billing,must,no,no,Flutterwave Rwanda; Stripe not available in Rwanda
+International card billing with tax handled (merchant of record),billing,must,yes,no,Paddle
+Sign in with Google,onboarding,should,no,no,gap at original; cheap with Supabase Auth
+Preview pass that can actually be stamped,designer,should,no,no,fixes original's #1 support confusion
+SMS and WhatsApp messages for web-card customers,messaging,should,no,no,Africa's Talking / WhatsApp Cloud API; fallback channel
+Notification budget: max 3 visible updates per pass per day,messaging,must,unknown,no,Google hard limit; we apply to Apple too
+Signed rotating barcode (old screenshots stop working),scanner,must,no,no,rotates on redemption; HMAC rejects forged codes
+Daily stamp cap and cooldown per card,scanner,must,no,no,fraud concern in reviews
+Push message to a segment with live match count,messaging,should,yes,no,S17; original one condition only
+Push message to one customer,messaging,should,yes,no,S17
+Location-based lock-screen messages,messaging,must,yes,no,S06 S18; v1 scope; Apple max 10 locations per pass; verify current iOS/Google behaviour in architect
+Account-level locations shared across cards,locations,must,yes,no,S18; needed for location alerts
+Staff personal logins with location and limited permissions,team,should,yes,no,S19 full; later; paired devices cover v1
+Links on card back (url phone email address),designer,should,yes,no,S05
+Background image on pass strip,designer,should,yes,no,S04
+Custom label text on pass,designer,should,yes,no,S09; gated to mid tier at original
+Choose which field shows on pass front,designer,should,yes,no,S09
+Unique enrolment by email phone or text (no duplicates),enrolment,should,yes,no,S08 S22; top tier only at original
+Default phone country on signup,enrolment,should,yes,no,S08
+Restore a lost card from the same link,enrolment,should,yes,no,S26
+Staff enrols a customer by showing a QR,scanner,should,yes,no,S31
+Staff creates customer and sends their card link,crm,should,yes,no,S14 via internal enrol
+Insights: enrolments stamps redemptions over time,analytics,should,yes,no,S13
+ROI: stamp value vs reward cost and net benefit,analytics,should,yes,no,S13
+Delete customer with optional farewell message,crm,should,yes,no,S15; irreversible; frees unique fields
+CSV export of customers and transactions,analytics,should,yes,no,S12; top tier only at original; emailed 24h link
+Scanner transaction history,scanner,should,yes,no,S32
+Edit customer details from scanner,scanner,should,yes,no,S33
+Scanner settings (vibrate beep confirm GPS biometrics),scanner,should,yes,no,S34
+Upgrade downgrade cancel and trial-expired lock,billing,should,yes,no,S21
+Duplicate a card design,designer,could,yes,no,S03
+Beacon lock-screen messages,messaging,could,yes,no,S18; Apple only; hardware needed
+Record GPS of the stamping device,scanner,could,yes,no,S34; fraud signal
+Biometric login on scanner,scanner,could,yes,no,S34; native only
+Multi-language passes and labels,designer,could,yes,no,labels array in original
+Webhooks for enrol stamp reward redeem forfeit,integrations,could,yes,no,S20
+Public REST API with API key,integrations,could,yes,no,S20; out of slice but cheap if API-first
+Resync a card that disagrees with the server,crm,could,yes,no,S15
+Poster and tent-card download for the QR,sharing,could,partial,no,S12; original lists print promotion in help
+Sent message history,messaging,should,no,no,S17; needed to see what automations sent
+Scheduled one-off broadcast at a set date and time,messaging,could,no,no,later: general scheduled broadcasts; birthday and win-back are their own must rows
+Native iOS and Android scanner apps,scanner,could,yes,no,PWA first; native later
+Rich media (images) in messages,messaging,could,no,no,review complaint at original; wallet limits apply
+Zapier and Make app listings,integrations,skip,yes,skip,partner marketplaces; apply separately once we have an API
+Square Acuity Mailchimp integrations,integrations,skip,yes,skip,run via partners at original
+Original stamp artwork templates and card templates,designer,skip,yes,skip,owned by Loopy; we draw our own
+PassKit pass-issuing platform,wallet,skip,yes,skip,their vendor; we build or rent our own pass engine
+Affiliate programme,business,skip,yes,skip,business arrangement not product
+Loopy brand name copy and marketing claims,brand,skip,yes,skip,owned by Loopy; /replica-brand makes ours
