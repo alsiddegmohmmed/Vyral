@@ -8,9 +8,17 @@ import { Banner } from '@/components/ui/feedback';
 import { pairingCodeAction, revokeDeviceAction, type SettingsState } from '../actions';
 
 export function PairPhone({ locations, disabled }: { locations: { id: string; name: string }[]; disabled: boolean }) {
-  const [state, action, pending] = useActionState<SettingsState, FormData>(pairingCodeAction, {});
   return (
     <Dialog trigger={<Button disabled={disabled}><Plus aria-hidden className="size-4" /> Pair a phone</Button>} title="Pair a phone" description="On the counter phone, open /scan in the browser.">
+      <PairForm locations={locations} />
+    </Dialog>
+  );
+}
+
+function PairForm({ locations }: { locations: { id: string; name: string }[] }) {
+  const [state, action, pending] = useActionState<SettingsState, FormData>(pairingCodeAction, {});
+  return (
+    <>
       {state.code ? (
         <div className="flex flex-col items-center gap-3 text-center">
           <p className="text-sm text-text-muted">Type this code on the phone:</p>
@@ -27,7 +35,7 @@ export function PairPhone({ locations, disabled }: { locations: { id: string; na
           <Button type="submit" loading={pending} block>Get pairing code</Button>
         </form>
       )}
-    </Dialog>
+    </>
   );
 }
 

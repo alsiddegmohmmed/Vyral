@@ -9,6 +9,7 @@ import { one, pgCode, pgMessage, q } from '@/lib/db/client';
 import { randomToken } from '@/lib/ids';
 import { decodeBarcode, encodeBarcode } from '@/lib/barcode';
 import { emails } from '@/lib/email';
+import { toE164 } from '@/lib/phone';
 import type { TxErrorKey } from './rules';
 import { hashPassword, verifyPassword } from './password';
 import type { Automation, Campaign, CardEvent, FormField, Location, Message, Org, PublicCard, ScannerDevice, TxResult } from './types';
@@ -133,6 +134,8 @@ export async function getContextFromDevice(token: string | undefined): Promise<O
 }
 
 // ---------------------------------------------------------------- org
+
+async function orgCountry(ctx: OrgContext) { return (await one<{ country: string }>('select coalesce(country, \'RW\') as country from orgs where id = $1', [ctx.orgId]))?.country ?? 'RW'; }
 
 export async function getOrg(ctx: OrgContext): Promise<Org & { emailVerified: boolean }> {
   const o = await one<Org & { emailVerified: boolean }>(
@@ -337,7 +340,7 @@ export type PublicCampaign = Pick<Campaign, 'name' | 'programName' | 'descriptio
 
 export async function getPublicCampaign(shortCode: string): Promise<PublicCampaign | null> {
   if (!/^[0-9a-z]{4,16}$/.test(shortCode)) return null;
-  const r = await one<CampaignRow & { business: string }>(`select x.*, o.name as business from (${CAMPAIGN_SELECT} where c.short_code = $1 and c.status in ('live','paused')) x join orgs o on o.id = x.org_id`, [shortCode]);
+  const r = await one<CampaignRow & { business: string }>(`select x.*, o.name as business from (${CAMPAIGN_SELECT} where c.short_code = $1 and c.status in ('live','paused')) x join orgs o on o.id = x.org_id and o.deletion_scheduled_at is null`, [shortCode]);
   if (!r) return null;
   const c = toCampaign(r);
   const { name, programName, description, howToEarn, terms, hideTerms, reward, design, fields, defaultCountry, consentEnabled, consentText, totalStamps, status } = c;
@@ -366,12 +369,10 @@ export async function joinCampaign(shortCode: string, input: JoinInput): Promise
     throw e;
   }
   if (r?.status === 'created') return { status: 'created', serial: r.serial! };
-  // existing member: send their own link to the contact on file (email today; SMS later)
-  if (email && camp) {
-    const k = await one<{ serial: string }>(
-      `select k.serial from cards k join customers cu on cu.id = k.customer_id join campaigns c on c.id = k.campaign_id
-        where c.short_code = $1 and cu.email = $2 and k.status = 'active' limit 1`, [shortCode, email]);
-    if (k) await emails.cardLink(email, camp.business, k.serial, camp.orgId);
+  // existing person: their (possibly new) card link goes to the email ON FILE, never back to this browser
+  if (r?.serial && camp) {
+    const onFile = await one<{ email: string | null }>('select cu.email::text as email from cards k join customers cu on cu.id = k.customer_id where k.serial = $1', [r.serial]);
+    if (onFile?.email) await emails.cardLink(onFile.email, camp.business, r.serial, camp.orgId);
   }
   return { status: 'sent' };
 }
@@ -531,9 +532,9 @@ export async function getCardDetail(ctx: OrgContext, cardId: string) {
 
 export async function updateCustomer(ctx: OrgContext, cardId: string, patch: { name?: string; email?: string; phone?: string }) {
   const email = patch.email?.trim().toLowerCase() || null;
-  const phone = patch.phone?.replace(/[^\d+]/g, '') || null;
-  if (!email && !phone) throw new DataError('contact_required', 'Keep an email or a phone number.');
-  if (phone && !/^\+[1-9]\d{6,14}$/.test(phone)) throw new DataError('invalid_phone', 'Use the full number with country code, like +250788123456.');
+  const phone = patch.phone?.trim() ? toE164(patch.phone, await orgCountry(ctx)) : null;
+  if (!email && !phone && !patch.phone?.trim()) throw new DataError('contact_required', 'Keep an email or a phone number.');
+  if (patch.phone?.trim() && !phone) throw new DataError('invalid_phone', 'Use the full number with country code, like +250788123456.');
   try {
     const r = await one(
       `with k as (select id, customer_id, campaign_id from cards where id = $1 and org_id = $2),
@@ -564,7 +565,9 @@ export async function deleteCard(ctx: OrgContext, cardId: string, farewell?: str
 export async function createCardForCustomer(ctx: OrgContext, campaignId: string, input: { name: string; phone?: string; email?: string }) {
   const c = await getCampaign(ctx, campaignId);
   if (c.status !== 'live') throw new DataError('closed', 'Activate the card first.');
-  const res = await joinCampaign(c.shortCode, { values: { name: input.name, phone: input.phone ?? '', email: input.email ?? '' }, consent: false });
+  const phone = input.phone?.trim() ? toE164(input.phone, c.defaultCountry) : null;
+  if (input.phone?.trim() && !phone) throw new DataError('invalid_phone', 'Enter a valid phone number, like 0788 123 456.');
+  const res = await joinCampaign(c.shortCode, { values: { name: input.name, phone: phone ?? '', email: input.email ?? '' }, consent: false });
   if (res.status === 'sent') throw new DataError('duplicate', 'This customer already has this card. Search for them in the list.');
   return res.serial;
 }
@@ -689,6 +692,7 @@ export async function sendBroadcast(ctx: OrgContext, campaignId: string, body: s
   if (text.length > 300) throw new DataError('invalid', 'Keep it under 300 characters.');
   const c = await getCampaign(ctx, campaignId);
   if (c.status !== 'live') throw new DataError('closed', 'Activate the card before sending messages.');
+  if ((await planOf(ctx)).planStatus === 'locked') throw new DataError('locked', 'Your account is locked. Choose a plan to send messages.');
   const reach = await broadcastReach(ctx, campaignId);
   const m = await one<Message>(
     `with m as (insert into messages (org_id, campaign_id, kind, body, status, recipients, web_cards, created_by) values ($1,$2,'broadcast',$3,'queued',$4,$5,$6) returning *),

@@ -30,7 +30,9 @@ export function Designer({ campaign, locations }: { campaign: Campaign; location
 
   const set = <K extends keyof Campaign>(k: K, v: Campaign[K]) => setC((x) => ({ ...x, [k]: v }));
   const setDesign = (k: keyof Campaign['design'], v: string) => setC((x) => ({ ...x, design: { ...x.design, [k]: v } }));
-  const dirty = useMemo(() => JSON.stringify([c, fields, locIds]) !== JSON.stringify([campaign, campaign.fields, campaign.locationIds]), [c, fields, locIds, campaign]);
+  // compare only what the owner edits: server-managed fields (updatedAt, lastPushedAt...) change on every save
+  const editable = (x: Campaign) => { const { updatedAt: _u, lastPushedAt: _l, createdAt: _c, activatedAt: _a, status: _s, ...rest } = x; return rest; };
+  const dirty = useMemo(() => JSON.stringify([editable(c), fields, [...locIds].sort()]) !== JSON.stringify([editable(campaign), campaign.fields, [...campaign.locationIds].sort()]), [c, fields, locIds, campaign]);
 
   const save = () => start(async () => {
     setMsg(null);

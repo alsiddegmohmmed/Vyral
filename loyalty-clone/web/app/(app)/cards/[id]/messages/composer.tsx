@@ -1,5 +1,5 @@
 'use client';
-import { useActionState, useState } from 'react';
+import { useActionState, useEffect, useState } from 'react';
 import { Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Field, Textarea } from '@/components/ui/field';
@@ -11,8 +11,10 @@ export function Composer({ id, wallet, webCards, business }: { id: string; walle
   const [state, action, pending] = useActionState<ActionState, FormData>(sendBroadcastAction.bind(null, id), {});
   const [body, setBody] = useState('');
   let formRef: HTMLFormElement | null = null;
+  // keep the text when sending fails (B-009); clear it only after a successful send
+  useEffect(() => { if (state.ok) setBody(''); }, [state]);
   return (
-    <form ref={(f) => { formRef = f; }} action={(fd) => { action(fd); setBody(''); }} className="flex flex-col gap-4">
+    <form ref={(f) => { formRef = f; }} action={action} className="flex flex-col gap-4">
       {state.ok && <Banner tone="success" title="Sent">{state.ok}</Banner>}
       {state.error && <Banner tone="danger" title={state.error} />}
       <Field label="Message" hint="Under 90 characters shows in full on the lock screen. Appears as news from your business.">

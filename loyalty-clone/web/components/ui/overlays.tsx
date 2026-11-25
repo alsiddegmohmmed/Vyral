@@ -19,8 +19,10 @@ const panel =
 export function Dialog({ trigger, title, description, children, footer, wide }: {
   trigger: React.ReactNode; title: string; description?: string; children: React.ReactNode; footer?: React.ReactNode; wide?: boolean;
 }) {
+  // every open starts fresh (B-006): children remount, so forms and results reset
+  const [openCount, setOpenCount] = useState(0);
   return (
-    <RDialog.Root>
+    <RDialog.Root onOpenChange={(o) => { if (o) setOpenCount((n) => n + 1); }}>
       <RDialog.Trigger asChild>{trigger}</RDialog.Trigger>
       <RDialog.Portal>
         <RDialog.Overlay className={overlay} />
@@ -41,7 +43,7 @@ export function Dialog({ trigger, title, description, children, footer, wide }: 
               <IconButton aria-label="Close" size="sm" icon={<X aria-hidden className="size-4" />} />
             </RDialog.Close>
           </div>
-          <div className="mt-5">{children}</div>
+          <div className="mt-5" key={openCount}>{children}</div>
           {footer && <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">{footer}</div>}
         </RDialog.Content>
       </RDialog.Portal>

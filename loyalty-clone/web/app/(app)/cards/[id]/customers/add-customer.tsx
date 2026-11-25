@@ -8,11 +8,19 @@ import { Banner } from '@/components/ui/feedback';
 import { addCustomerAction, type ActionState } from '../../actions';
 
 export function AddCustomer({ campaignId }: { campaignId: string }) {
+  return (
+    <Dialog trigger={<Button size="sm" variant="secondary"><UserPlus aria-hidden className="size-4" /> Add customer</Button>} title="Add a customer" description="For customers who can’t scan the QR. You’ll get a link to send them.">
+      <AddCustomerForm campaignId={campaignId} />
+    </Dialog>
+  );
+}
+
+function AddCustomerForm({ campaignId }: { campaignId: string }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(addCustomerAction.bind(null, campaignId), {});
   const [copied, setCopied] = useState(false);
   const link = state.ok ? `${location.origin}/c/${state.ok}` : '';
   return (
-    <Dialog trigger={<Button size="sm" variant="secondary"><UserPlus aria-hidden className="size-4" /> Add customer</Button>} title="Add a customer" description="For customers who can’t scan the QR. You’ll get a link to send them.">
+    <>
       {state.ok ? (
         <div className="flex flex-col gap-3">
           <Banner tone="success" title="Card created">Send this link by WhatsApp or SMS. It opens their card.</Banner>
@@ -28,6 +36,6 @@ export function AddCustomer({ campaignId }: { campaignId: string }) {
           <Button type="submit" loading={pending} block>Create card</Button>
         </form>
       )}
-    </Dialog>
+    </>
   );
 }

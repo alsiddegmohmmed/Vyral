@@ -9,16 +9,20 @@ import type { Location } from '@/lib/data/types';
 import { deleteLocationAction, upsertLocationAction, type SettingsState } from '../settings/actions';
 
 export function LocationDialog({ location: l, disabled }: { location?: Location; disabled: boolean }) {
+  const trigger = l ? <IconButton aria-label={`Edit ${l.name}`} size="sm" icon={<Pencil aria-hidden className="size-4" />} />
+    : <Button disabled={disabled}><Plus aria-hidden className="size-4" /> Add location</Button>;
+  return <Dialog trigger={trigger} title={l ? `Edit ${l.name}` : 'Add a location'} wide><LocationForm location={l} /></Dialog>;
+}
+
+function LocationForm({ location: l }: { location?: Location }) {
   const [state, action, pending] = useActionState<SettingsState, FormData>(upsertLocationAction, {});
   const [pos, setPos] = useState({ lat: l ? String(l.lat) : '', lon: l ? String(l.lon) : '' });
   const [geoErr, setGeoErr] = useState<string | null>(null);
   const here = () => navigator.geolocation?.getCurrentPosition(
     (p) => setPos({ lat: p.coords.latitude.toFixed(6), lon: p.coords.longitude.toFixed(6) }),
     () => setGeoErr('Couldn’t get your location. Type the coordinates instead.'), { enableHighAccuracy: true, timeout: 8000 });
-  const trigger = l ? <IconButton aria-label={`Edit ${l.name}`} size="sm" icon={<Pencil aria-hidden className="size-4" />} />
-    : <Button disabled={disabled}><Plus aria-hidden className="size-4" /> Add location</Button>;
   return (
-    <Dialog trigger={trigger} title={l ? `Edit ${l.name}` : 'Add a location'} wide>
+    <>
       {state.ok ? <Banner tone="success" title="Saved">Use “Update all cards” on a card to send the change to phones.</Banner> : (
         <form action={action} className="flex flex-col gap-4">
           {state.error && <Banner tone="danger" title={state.error} />}
@@ -40,7 +44,7 @@ export function LocationDialog({ location: l, disabled }: { location?: Location;
           <Button type="submit" loading={pending} block>Save location</Button>
         </form>
       )}
-    </Dialog>
+    </>
   );
 }
 

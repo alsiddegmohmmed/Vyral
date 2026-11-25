@@ -92,7 +92,7 @@ export async function sendBroadcastAction(campaignId: string, _: ActionState, fo
   try {
     const m = await api.sendBroadcast(ctx, campaignId, String(form.get('body') ?? ''));
     revalidatePath(`/cards/${campaignId}/messages`);
-    return { ok: `Sent to ${m.delivered} wallet ${m.delivered === 1 ? 'pass' : 'passes'}${m.skipped ? `, ${m.skipped} skipped (daily limit)` : ''}. Also showing on ${m.webCards} web cards.` };
+    return { ok: `Sending to ${m.recipients} wallet ${m.recipients === 1 ? 'pass' : 'passes'} now. Also showing on ${m.webCards} web cards. Delivery numbers appear in the list below.` };
   } catch (e) { return fail(e); }
 }
 

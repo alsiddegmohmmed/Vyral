@@ -21,7 +21,7 @@ export function AccountActions({ businessName, verified }: { businessName: strin
       <form action={signOutEverywhereAction}><Button type="submit" variant="secondary"><LogOut aria-hidden className="size-4" /> Sign out on all devices</Button></form>
       <ConfirmDialog trigger={<Button variant="ghost" className="self-start text-danger"><Trash2 aria-hidden className="size-4" /> Delete account</Button>}
         title="Delete your account?" action="Delete account" typeToConfirm={businessName} onConfirm={() => start(() => deleteAccountAction().then(() => undefined))}>
-        Your cards stop working, you’re signed out everywhere, and all business and customer data is deleted for good after 7 days. Changed your mind? Sign in again within those 7 days.
+        You’re signed out everywhere and new customers can’t join from now on. Existing cards keep working for 7 days, then everything, including customer data, is deleted for good. Changed your mind? Sign in again within those 7 days.
       </ConfirmDialog>
     </section>
   );

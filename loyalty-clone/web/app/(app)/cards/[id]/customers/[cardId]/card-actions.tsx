@@ -22,6 +22,7 @@ export function CardActions({ campaignId, cardId, firstName, current, rewards, c
     const r = await fn();
     setMsg(r.error ? { tone: 'danger', text: r.error } : { tone: 'success', text: r.ok ?? 'Done' });
     key.current = crypto.randomUUID();
+    if (!r.error) setStamps(1); // B-014: never offer to remove stamps that are already gone
   });
   return (
     <aside className="flex flex-col gap-4">

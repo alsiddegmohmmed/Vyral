@@ -13,7 +13,8 @@
     "assets": "node ../replica/design/build-tokens.mjs && node scripts/copy-wasm.mjs",
     "db:dev": "pglite-server -d .data/pglite -p 54321 -m 10 -e pgcrypto,citext,pg_trgm",
     "db:migrate": "node db/migrate.mjs",
-    "db:seed": "node db/seed.mjs"
+    "db:seed": "node db/seed.mjs",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.3.16",
@@ -41,6 +42,8 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.1",
+    "@playwright/test": "^1.65.1",
     "@tailwindcss/postcss": "^4.3.5",
     "@types/node": "^24.10.1",
     "@types/pg": "^8.23.1",

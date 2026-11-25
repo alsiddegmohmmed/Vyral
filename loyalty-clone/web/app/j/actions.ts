@@ -5,7 +5,7 @@ import { clientIp } from '@/lib/request';
 
 export type JoinState = { error?: string; fieldErrors?: Record<string, string>; sent?: boolean; values?: Record<string, string> };
 
-const DIAL: Record<string, string> = { RW: '250', KE: '254', UG: '256', TZ: '255', BI: '257', CD: '243', NG: '234', ZA: '27', US: '1', GB: '44' };
+import { toE164 } from '@/lib/phone';
 
 export async function joinAction(shortCode: string, _: JoinState, form: FormData): Promise<JoinState> {
   const c = await getPublicCampaign(shortCode);
@@ -16,15 +16,17 @@ export async function joinAction(shortCode: string, _: JoinState, form: FormData
     let v = String(form.get(f.key) ?? '').trim();
     if (f.type === 'phone' && v) {
       const cc = String(form.get(`${f.key}__cc`) ?? c.defaultCountry);
-      const digits = v.replace(/\D/g, '').replace(/^0+/, '');
-      v = v.startsWith('+') ? `+${v.replace(/\D/g, '')}` : `+${DIAL[cc] ?? ''}${digits}`;
-      if (!/^\+[1-9]\d{6,14}$/.test(v)) errs[f.key] = 'Enter a valid phone number.';
+      const e164 = toE164(v, cc);
+      if (!e164) errs[f.key] = 'Enter a valid phone number.';
+      v = e164 ?? v;
     }
     if (f.type === 'birthday') {
       const m = String(form.get(`${f.key}__m`) ?? ''), d = String(form.get(`${f.key}__d`) ?? '');
       v = m && d ? `${m}-${d}` : '';
       if ((m && !d) || (!m && d)) errs[f.key] = 'Choose both the day and the month.';
+      else if (m && d && Number(d) > [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][Number(m) - 1]) errs[f.key] = 'That date doesn’t exist. Check the day.';
     }
+    if ((f.type === 'name' || f.type === 'text') && v.length > 120) errs[f.key] = 'Keep it under 120 characters.';
     if (f.type === 'email' && v && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) errs[f.key] = 'Enter an email like name@example.com.';
     if (f.required && !v && !errs[f.key]) errs[f.key] = `“${f.label}” is required.`;
     values[f.key] = v;
