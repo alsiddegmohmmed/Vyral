@@ -21,3 +21,25 @@ export async function expectNoHorizontalScroll(page: Page) {
   const r = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, w: window.innerWidth }));
   expect(r.sw, `page is ${r.sw}px wide in a ${r.w}px viewport`).toBeLessThanOrEqual(r.w);
 }
+
+/**
+ * Create a card through the new-card wizard (/cards/new), which replaced the
+ * one-field "New card" dialog. Picks a business type, names the card, keeps the
+ * suggested stamps and reward, then opens the designer or goes live.
+ */
+export async function wizardCreate(page: Page, name: string, opts: { type?: string; goLive?: boolean } = {}) {
+  await page.getByRole('link', { name: 'New card' }).first().click();
+  await expect(page).toHaveURL(/\/cards\/new$/);
+  await page.getByRole('button', { name: opts.type ?? 'Café' }).click();
+  await page.getByLabel('Card name').fill(name);
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'What does a full card get?' })).toBeVisible();
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  // the locations step only appears when the business has locations
+  const where = page.getByRole('heading', { name: 'Where can customers use it?' });
+  const review = page.getByRole('heading', { name: 'Ready to go?' });
+  await expect(where.or(review)).toBeVisible();
+  if (await where.isVisible()) await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await expect(review).toBeVisible();
+  await page.getByRole('button', { name: opts.goLive ? 'Create and go live' : 'Fine-tune in the designer first' }).click();
+}

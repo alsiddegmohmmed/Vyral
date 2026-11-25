@@ -22,7 +22,7 @@ export default async function CardsPage() {
   const designed = !!activated || cards.some((c) => c.updatedAt !== c.createdAt);
   const checklist: ChecklistItem[] = [
     { key: 'account', done: true },
-    { key: 'card', done: cards.length > 0 },
+    { key: 'card', done: cards.length > 0, href: '/cards/new', cta: 'Start a card' },
     { key: 'design', done: designed, href: draft ? `/cards/${draft.id}/design` : undefined, cta: 'Open the designer' },
     { key: 'live', done: !!activated, href: draft ? `/cards/${draft.id}/design` : undefined, cta: 'Review and go live' },
     { key: 'qr', done: cards.some((c) => c.customers > 0), href: activated ? `/cards/${activated.id}` : undefined, cta: 'Get the QR code' },

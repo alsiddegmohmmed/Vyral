@@ -2,13 +2,12 @@
 import { test, expect } from './support/fixtures';
 import { coffeeCampaign, one, seedOrg, sql } from './support/db';
 import type { Page } from '@playwright/test';
+import { wizardCreate } from './support/flows';
 
+// "New card" is now the step-by-step wizard (/cards/new) instead of a one-field dialog.
 async function createCard(page: Page, name: string) {
   await page.goto('/cards');
-  await page.getByRole('button', { name: 'New card' }).first().click();
-  const dialog = page.getByRole('dialog', { name: 'New card' });
-  await dialog.getByLabel('Card name').fill(name);
-  await dialog.getByRole('button', { name: 'Create and design' }).click();
+  await wizardCreate(page, name);
   await expect(page).toHaveURL(/\/cards\/[0-9a-f-]{36}\/design$/);
   return /\/cards\/([0-9a-f-]{36})\//.exec(page.url())![1];
 }
@@ -65,19 +64,23 @@ test.describe('F02 design and publish a card', () => {
 
   test('F02-E1 a card name already used (any case) is refused', async ({ page }) => {
     await page.goto('/cards');
-    await page.getByRole('button', { name: 'New card' }).first().click();
-    const dialog = page.getByRole('dialog', { name: 'New card' });
-    await dialog.getByLabel('Card name').fill('COFFEE CARD');
-    await dialog.getByRole('button', { name: 'Create and design' }).click();
-    await expect(dialog.getByRole('alert')).toHaveText('You already have a card with this name.');
+    await wizardCreate(page, 'COFFEE CARD');
+    // the wizard sends the owner back to the name, with the reason, and nothing is created
+    await expect(page.getByRole('main').getByRole('alert')).toHaveText('You already have a card with this name.');
+    await expect(page.getByRole('heading', { name: 'How should the card look?' })).toBeVisible();
+    const n = await one<{ n: number }>(`select count(*)::int as n from campaigns c join orgs o on o.id = c.org_id where o.name = 'Café Neza' and c.status <> 'archived'`);
+    expect(n!.n).toBe(2);
   });
 
   test('F02-E2 plan limit: at 3 of 3 designs, New card becomes Upgrade', async ({ page }) => {
     await createCard(page, 'Third card');
     await page.goto('/cards');
     await expect(page.getByText('3 of 3 card designs on your plan')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'New card' })).toHaveCount(0);
-    await expect(page.getByRole('link', { name: 'Upgrade for more cards' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'New card' })).toHaveCount(0);
+    // going to the wizard directly explains the limit instead of failing at the end
+    await page.goto('/cards/new');
+    await expect(page.getByRole('heading', { name: 'Your plan includes 3 card designs' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Upgrade for more cards' }).first()).toBeVisible();
   });
 
   test('F02-E3 removing every required contact field blocks going live and warns', async ({ page }) => {

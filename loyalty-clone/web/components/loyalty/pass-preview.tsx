@@ -102,7 +102,11 @@ function PlayToggle({ playing, onChange, className }: { playing: boolean; onChan
  * Designer preview. With `play`, the card fills one stamp at a time, rests on the
  * reward, and starts again; `design.filled` is what shows when paused.
  */
-export function PassPreview({ design, play }: { design: CardDesign; play?: { playing: boolean; onChange: (p: boolean) => void } }) {
+export function PassPreview({ design, play, onTap }: {
+  design: CardDesign; play?: { playing: boolean; onChange: (p: boolean) => void };
+  /** tap the card to add a stamp (new-card wizard) */
+  onTap?: () => void;
+}) {
   const [view, setView] = useState<'front' | 'back' | 'google'>('front');
   const loop = useStampLoop(design.total, !!play?.playing);
   const d = loop.running ? { ...design, filled: loop.filled } : design;
@@ -114,9 +118,14 @@ export function PassPreview({ design, play }: { design: CardDesign; play?: { pla
         onChange={setView}
         options={[{ value: 'front', label: 'Apple' }, { value: 'back', label: 'Back' }, { value: 'google', label: 'Google' }]}
       />
-      {view === 'front' && <AppleFront d={d} anim={loop.running} />}
       {view === 'back' && <AppleBack d={d} />}
-      {view === 'google' && <GoogleCard d={d} anim={loop.running} />}
+      {view !== 'back' && (
+        // with onTap the card itself is a pointer shortcut; the "Add a stamp" button below is the accessible control
+        <div onClick={onTap} className={onTap ? 'w-full cursor-pointer transition-transform duration-[var(--tk-motion-fast)] active:scale-[.98]' : 'w-full'}>
+          {view === 'front' ? <AppleFront d={d} anim={loop.running} /> : <GoogleCard d={d} anim={loop.running} />}
+        </div>
+      )}
+      {onTap && view !== 'back' && <Button variant="secondary" size="sm" onClick={onTap}>Add a stamp</Button>}
       {play && !loop.reduced && view !== 'back' && <PlayToggle playing={play.playing} onChange={play.onChange} />}
       <p className="text-center text-xs text-text-muted">Close to what customers see. Apple and Google draw the final card.</p>
     </div>

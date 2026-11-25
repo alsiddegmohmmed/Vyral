@@ -8,13 +8,6 @@ import type { FormField } from '@/lib/data/types';
 export type ActionState = { error?: string; ok?: string };
 const fail = (e: unknown): ActionState => ({ error: e instanceof api.DataError ? e.message : 'Something went wrong. Try again.' });
 
-export async function createCardAction(_: ActionState, form: FormData): Promise<ActionState> {
-  const ctx = await requireOwner();
-  let id: string;
-  try { id = (await api.createCampaign(ctx, String(form.get('name') ?? ''))).id; } catch (e) { return fail(e); }
-  redirect(`/cards/${id}/design`);
-}
-
 export async function saveDesignAction(id: string, patch: api.CampaignPatch): Promise<ActionState> {
   const ctx = await requireOwner();
   try { await api.updateCampaign(ctx, id, patch); } catch (e) { return fail(e); }
@@ -101,4 +94,44 @@ export async function saveAutomationAction(campaignId: string, kind: 'birthday' 
   try { await api.saveAutomation(ctx, campaignId, kind, input); } catch (e) { return fail(e); }
   revalidatePath(`/cards/${campaignId}/automations`);
   return { ok: 'Saved' };
+}
+
+export type WizardInput = {
+  name: string; programName: string; icon: string; totalStamps: number; reward: string;
+  theme: { background: string; foreground: string; label: string; stamp: string };
+  locationIds: string[]; goLive: boolean;
+};
+
+/**
+ * New-card wizard (/cards/new): validate everything first, so a taken name or a bad
+ * value never leaves a half-made card behind; then create, apply the choices, and
+ * either go live (overview with the QR) or open the designer.
+ */
+export async function createCardFromWizardAction(input: WizardInput): Promise<ActionState & { step?: number }> {
+  const ctx = await requireOwner();
+  const name = input.name.trim();
+  if (!name) return { error: 'Give the card a name.', step: 2 };
+  if (name.length > 60) return { error: 'Card name: 60 characters max.', step: 2 };
+  const reward = input.reward.trim();
+  if (!reward) return { error: 'Say what a full card gets.', step: 3 };
+  if (reward.length > 60) return { error: 'Reward: 60 characters max.', step: 3 };
+  if (!Number.isInteger(input.totalStamps) || input.totalStamps < 1 || input.totalStamps > 30) return { error: 'Choose between 1 and 30 stamps.', step: 3 };
+  if (!Object.values(input.theme).every((c) => /^#[0-9A-Fa-f]{6}$/.test(c))) return { error: 'Choose one of the colour themes.', step: 2 };
+  let id: string;
+  try {
+    const c = await api.createCampaign(ctx, name);
+    id = c.id;
+    const programName = input.programName.trim().slice(0, 40) || c.programName;
+    await api.updateCampaign(ctx, id, {
+      programName, totalStamps: input.totalStamps, reward: { ...c.reward, name: reward },
+      design: { ...c.design, ...input.theme, icon: input.icon, logoText: programName.slice(0, 24) },
+    });
+    if (input.locationIds.length) await api.setCampaignLocations(ctx, id, input.locationIds);
+    if (input.goLive) await api.activateCampaign(ctx, id);
+  } catch (e) {
+    const r = fail(e);
+    return { ...r, step: e instanceof api.DataError && e.key === 'name_taken' ? 2 : undefined };
+  }
+  revalidatePath('/cards', 'layout');
+  redirect(input.goLive ? `/cards/${id}?live=1` : `/cards/${id}/design`);
 }

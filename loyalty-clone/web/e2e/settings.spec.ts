@@ -1,7 +1,7 @@
 // F10 locations, F13 counter phones (pairing), F14 plan and billing, S20 settings.
 import { test, expect } from './support/fixtures';
 import { clearRateLimits, coffeeCampaign, newCard, one, seedOrg, sql } from './support/db';
-import { expectNoHorizontalScroll } from './support/flows';
+import { expectNoHorizontalScroll, wizardCreate } from './support/flows';
 
 test.beforeEach(async ({ loginAsOwner }) => { await loginAsOwner(); await clearRateLimits(); });
 
@@ -280,11 +280,7 @@ test.describe('S20 settings', () => {
     await p.getByLabel('Password').fill('long-enough-1');
     await p.getByRole('button', { name: 'Create account' }).click();
     await expect(p).toHaveURL(/\/cards$/);
-    await p.getByRole('button', { name: 'New card' }).first().click();
-    await p.getByRole('dialog').getByLabel('Card name').fill('Closing card');
-    await p.getByRole('dialog').getByRole('button', { name: 'Create and design' }).click();
-    await p.getByRole('button', { name: 'Go live' }).click();
-    await p.getByRole('alertdialog').getByRole('button', { name: 'Go live' }).click();
+    await wizardCreate(p, 'Closing card', { goLive: true });
     await expect(p.getByText('Your card is live')).toBeVisible();
     const camp = await one<{ short_code: string }>(`select c.short_code from campaigns c join orgs o on o.id = c.org_id where o.name = 'Closing Down' order by c.created_at desc limit 1`);
     await p.goto('http://localhost:3100/settings');
