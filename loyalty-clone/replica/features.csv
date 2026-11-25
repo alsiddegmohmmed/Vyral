@@ -7,8 +7,8 @@ Card designs list with draft and live status,designer,must,yes,yes,S03; build: S
 Single reward card (one reward at N stamps),designer,must,yes,yes,S04; v1 card type; build: single reward only in v1
 Multi reward card (rewards at several stamp positions),designer,should,yes,no,later; v1 is single reward only
 Set number of stamps 1 to 30,designer,must,yes,yes,S04; locked after activation; build: locked after going live
-Upload logo and icon,designer,must,yes,no,S04; Apple sizes 480x150 and 87x87; build: logo text only; image upload needs storage (backend)
-Pick stamped and unstamped images from built-in set or upload,designer,must,yes,partial,S04; our own icon set; build: 10 built-in icons; custom upload not built
+Upload logo and icon,designer,must,yes,yes,"S04; Apple sizes 480x150 and 87x87; build: logo text only; image upload needs storage (backend); images: PNG/JPEG/WebP upload checked from the bytes (SVG refused, 1 MB, min sizes), stored in Postgres, shown on designer/join/web card; Apple/Google pass images still placeholders until wired"
+Pick stamped and unstamped images from built-in set or upload,designer,must,yes,yes,S04; our own icon set; build: 10 built-in icons; custom upload not built; images: custom stamp image upload replaces the icon on filled stamps everywhere
 Set pass background and text colours,designer,must,yes,yes,S04; text colour Apple only; build: with live contrast check
 Live pass preview while designing (Apple and Google),designer,must,yes,yes,S04-S09; build: approximate Apple front/back + Google preview
 Description and how-to-earn text,designer,must,yes,yes,S05

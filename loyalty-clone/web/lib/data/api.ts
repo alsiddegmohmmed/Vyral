@@ -187,6 +187,8 @@ function toCampaign(r: CampaignRow): Campaign {
     design: {
       background: r.backgroundColor as string, foreground: r.foregroundColor as string, label: r.labelColor as string,
       stamp: r.stampColor as string, icon: r.stampIcon as string, logoText: (r.logoText as string) ?? '',
+      logoUrl: r.logoImageId ? `/api/images/${r.logoImageId}` : undefined, iconUrl: r.iconImageId ? `/api/images/${r.iconImageId}` : undefined,
+      stampUrl: r.stampImageId ? `/api/images/${r.stampImageId}` : undefined,
     },
     fields: r.fieldsJson, links: r.linksJson, locationIds: r.locationIdsJson,
     defaultCountry: (r.defaultCountry as string) ?? 'RW', consentEnabled: r.consentEnabled as boolean, consentText: (r.consentText as string) ?? '',

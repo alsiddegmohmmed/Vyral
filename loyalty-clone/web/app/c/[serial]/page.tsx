@@ -24,9 +24,9 @@ export default async function CardPage({ params, searchParams }: { params: Promi
       <article aria-label={`${c.business} stamp card`} className="mx-auto w-full max-w-[440px] bg-bg sm:my-8 sm:overflow-hidden sm:rounded-xl sm:shadow-pop">
         {sp.new && !dead && <div className="bg-success-bg px-5 py-3 text-sm font-semibold text-success" role="status">You’re in! Save this page or add the card to your wallet below.</div>}
         <header className="px-5 pb-6 pt-6" style={{ background: d.background, color: d.foreground }}>
-          <p className="text-sm font-semibold" style={{ color: d.label }}>{c.business}</p>
+          {d.logoUrl ? <img src={d.logoUrl} alt={c.business} className="h-10 max-w-[180px] object-contain object-left" /> : <p className="text-sm font-semibold" style={{ color: d.label }}>{c.business}</p>}
           <h1 className="mt-1 text-2xl">{card.firstName ? `Hi ${card.firstName}` : c.programName}</h1>
-          <StampStrip total={c.totalStamps} filled={card.currentStamps} icon={d.icon} stamp={d.stamp} empty={`${d.foreground}66`} background={d.background} className="mt-4 w-full" />
+          <StampStrip total={c.totalStamps} filled={card.currentStamps} icon={d.icon} image={d.stampUrl} stamp={d.stamp} empty={`${d.foreground}66`} background={d.background} className="mt-4 w-full" />
           <p className="mt-3 text-sm" aria-live="polite">
             {dead ? 'This card no longer works.' : card.rewardsAvailable > 0 ? 'Your reward is ready. Show this card at the counter.' : `${toGo} more ${toGo === 1 ? 'stamp' : 'stamps'} to ${c.reward.name.toLowerCase()}.`}
           </p>

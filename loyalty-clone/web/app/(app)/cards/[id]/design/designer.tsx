@@ -8,6 +8,7 @@ import { SegmentedControl, Stepper, Switch } from '@/components/ui/controls';
 import { Banner, Badge } from '@/components/ui/feedback';
 import { ConfirmDialog, Tabs } from '@/components/ui/overlays';
 import { ColorField } from '@/components/ui/color-field';
+import { ImageUpload } from '@/components/ui/image-upload';
 import { PassPreview } from '@/components/loyalty/pass-preview';
 import { stampIcons } from '@/components/loyalty/stamp-strip';
 import type { Campaign, CardLink, FieldType, FormField, Location } from '@/lib/data/types';
@@ -29,7 +30,7 @@ export function Designer({ campaign, locations }: { campaign: Campaign; location
   const [previewStamps, setPreviewStamps] = useState(Math.ceil(campaign.totalStamps * 0.6));
 
   const set = <K extends keyof Campaign>(k: K, v: Campaign[K]) => setC((x) => ({ ...x, [k]: v }));
-  const setDesign = (k: keyof Campaign['design'], v: string) => setC((x) => ({ ...x, design: { ...x.design, [k]: v } }));
+  const setDesign = (k: keyof Campaign['design'], v: string | undefined) => setC((x) => ({ ...x, design: { ...x.design, [k]: v } }));
   // compare only what the owner edits: server-managed fields (updatedAt, lastPushedAt...) change on every save
   const editable = (x: Campaign) => { const { updatedAt: _u, lastPushedAt: _l, createdAt: _c, activatedAt: _a, status: _s, ...rest } = x; return rest; };
   const dirty = useMemo(() => JSON.stringify([editable(c), fields, [...locIds].sort()]) !== JSON.stringify([editable(campaign), campaign.fields, [...campaign.locationIds].sort()]), [c, fields, locIds, campaign]);
@@ -68,7 +69,7 @@ export function Designer({ campaign, locations }: { campaign: Campaign; location
   const design = {
     business: c.programName, programName: c.programName, reward: c.reward.name || 'Your reward', total: c.totalStamps,
     filled: Math.min(previewStamps, c.totalStamps), icon: c.design.icon, background: c.design.background,
-    foreground: c.design.foreground, label: c.design.label, stamp: c.design.stamp, logoText: c.design.logoText,
+    foreground: c.design.foreground, label: c.design.label, stamp: c.design.stamp, logoText: c.design.logoText, logoUrl: c.design.logoUrl, stampUrl: c.design.stampUrl,
   };
 
   const designTab = (
@@ -76,7 +77,15 @@ export function Designer({ campaign, locations }: { campaign: Campaign; location
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Card name" hint="Only you see this."><TextInput value={c.name} maxLength={60} onChange={(e) => set('name', e.target.value)} /></Field>
         <Field label="Name on the card" hint="Your business or programme name."><TextInput value={c.programName} maxLength={40} onChange={(e) => set('programName', e.target.value)} /></Field>
-        <Field label="Logo text" hint="Shown at the top of Apple passes. Logo images come with the backend step."><TextInput value={c.design.logoText} maxLength={24} onChange={(e) => setDesign('logoText', e.target.value)} /></Field>
+        <Field label="Logo text" hint="Shown next to the logo on Apple passes."><TextInput value={c.design.logoText} maxLength={24} onChange={(e) => setDesign('logoText', e.target.value)} /></Field>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <ImageUpload label="Logo" kind="logo" campaignId={c.id} url={c.design.logoUrl} hint="Wide PNG with a transparent background, at least 160×50 (best 480×150)."
+          onChange={(u) => { setDesign('logoUrl', u as string); router.refresh(); }} />
+        <ImageUpload label="Icon" kind="icon" campaignId={c.id} url={c.design.iconUrl} hint="Square, at least 87×87. Shown in notifications."
+          onChange={(u) => { setDesign('iconUrl', u as string); router.refresh(); }} />
+        <ImageUpload label="Custom stamp" kind="stamp" campaignId={c.id} url={c.design.stampUrl} hint="Square, at least 100×100. Replaces the icon on filled stamps."
+          onChange={(u) => { setDesign('stampUrl', u as string); router.refresh(); }} />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <ColorField label="Card background" value={c.design.background} onChange={(v) => setDesign('background', v)} against={c.design.foreground} againstLabel="text colour" />

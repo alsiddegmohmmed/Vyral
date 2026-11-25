@@ -5,7 +5,7 @@ import { StampStrip } from './stamp-strip';
 
 export type CardDesign = {
   business: string; programName: string; reward: string; total: number; filled: number; icon: string;
-  background: string; foreground: string; label: string; stamp: string; logoText: string;
+  background: string; foreground: string; label: string; stamp: string; logoText: string; logoUrl?: string; stampUrl?: string;
 };
 
 const QRStub = () => (
@@ -19,14 +19,14 @@ function AppleFront({ d }: { d: CardDesign }) {
   return (
     <div className="flex aspect-[1/1.4] w-full flex-col overflow-hidden rounded-xl shadow-pass" style={{ background: d.background, color: d.foreground }}>
       <div className="flex items-center justify-between px-4 pt-4">
-        <span className="font-bold">{d.logoText}</span>
+        <span className="flex min-w-0 items-center gap-2 font-bold">{d.logoUrl && <img src={d.logoUrl} alt="" className="h-8 max-w-[110px] object-contain" />}{d.logoText}</span>
         <span className="text-right">
           <span className="block text-[10px] font-semibold uppercase tracking-wide" style={{ color: d.label }}>Stamps</span>
           <span className="tabular text-lg font-semibold">{d.filled}/{d.total}</span>
         </span>
       </div>
       <div className="mt-3 px-4" style={{ background: 'rgba(0,0,0,.12)' }}>
-        <StampStrip total={d.total} filled={d.filled} icon={d.icon} stamp={d.stamp} empty={`${d.foreground}55`} background={d.background} className="w-full py-3" />
+        <StampStrip total={d.total} filled={d.filled} icon={d.icon} image={d.stampUrl} stamp={d.stamp} empty={`${d.foreground}55`} background={d.background} className="w-full py-3" />
       </div>
       <div className="grid grid-cols-2 gap-2 px-4 pt-3 text-sm">
         <div><p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: d.label }}>Reward</p><p className="font-medium">{d.reward}</p></div>
@@ -72,7 +72,7 @@ function GoogleCard({ d }: { d: CardDesign }) {
         <p className="text-xs opacity-80">Stamps</p>
         <p className="tabular text-2xl font-semibold">{d.filled}/{d.total}</p>
       </div>
-      <StampStrip total={d.total} filled={d.filled} icon={d.icon} stamp={d.stamp} empty={`${d.foreground}55`} background={d.background} className="mx-4 mt-3" />
+      <StampStrip total={d.total} filled={d.filled} icon={d.icon} image={d.stampUrl} stamp={d.stamp} empty={`${d.foreground}55`} background={d.background} className="mx-4 mt-3" />
       <div className="mt-auto pb-5"><QRStub /></div>
     </div>
   );

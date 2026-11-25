@@ -25,7 +25,7 @@ export type Campaign = {
   terms: string; hideTerms: boolean;
   stampMessage: string; rewardMessage: string; newsText?: string; newsUpdatedAt?: string;
   reward: { name: string; details: string; costCents?: number };
-  design: { background: string; foreground: string; label: string; stamp: string; icon: string; logoText: string };
+  design: { background: string; foreground: string; label: string; stamp: string; icon: string; logoText: string; logoUrl?: string; iconUrl?: string; stampUrl?: string };
   fields: FormField[]; links: CardLink[]; locationIds: string[];
   defaultCountry: string; consentEnabled: boolean; consentText: string;
   expiryMode: 'never' | 'fixed_date' | 'days_after_join'; expiryDate?: string; expiryDays?: number;
