@@ -65,6 +65,7 @@ export function JoinForm({ shortCode, campaign: c }: { shortCode: string; campai
         <details className="text-xs text-text-muted"><summary className="cursor-pointer font-semibold">Terms</summary><p className="mt-2 whitespace-pre-line">{c.terms}</p></details>
       )}
       <p className="text-center text-xs text-text-subtle">No app needed. Your card lives in your phone’s wallet or browser.</p>
+      <p className="text-center text-xs text-text-subtle">{c.business} keeps your details; Garuka looks after them for it. <a href="/privacy" target="_blank" rel="noopener" className="underline">How your details are used</a></p>
     </form>
   );
 }

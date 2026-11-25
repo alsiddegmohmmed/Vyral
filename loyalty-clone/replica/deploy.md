@@ -2,7 +2,7 @@
 
 Date: 2026-11-25. Commit: `6015780` (brand kit applied), on `recon/loyalty-clone`.
 
-**Go from the owner: NOT YET.** The preflight fails on two items: 13 must-have features aren't done, and the privacy and terms pages don't exist. Nothing has been deployed, bought or signed into. Live keys don't belong in the repo; the owner adds them in the host.
+**Go from the owner: NOT YET.** The preflight still fails on two items: 13 must-have features aren't done, and the privacy and terms pages exist only as drafts waiting for legal review. Nothing has been deployed, bought or signed into. Live keys don't belong in the repo; the owner adds them in the host.
 
 ## Preflight (all must pass)
 
@@ -24,15 +24,13 @@ Date: 2026-11-25. Commit: `6015780` (brand kit applied), on `recon/loyalty-clone
 - [x] **Rebrand sweep clean.** `sweep.py . --config replica/brand.json` exit 0: "Clean". The accepted Sunrise near-match is logged in `brand.md`.
 - [x] **Store listing passes.** `listing.py replica/launch/listing.json`: 0 errors, 0 warnings. That's for the later store release; the first launch is the web app.
 - [x] **Production build passes.** `npm run build`: exit 0, every route compiled.
-- [ ] **Privacy policy and terms: FAIL.** No `/privacy` or `/terms` page exists, and sign-up refers to them without a link. Every processor needs to be listed:
-  - the host (Vercel) and the database provider;
-  - Resend (email);
-  - Paddle (card billing, merchant of record);
-  - Flutterwave (MoMo, Airtel, cards);
-  - Apple and Google (wallet passes);
-  - the WhatsApp support number's provider;
-  - error tracking and analytics, once chosen.
-  - Rwanda's data protection law (Law No. 058/2021) applies to Kigali customers; get a local legal review.
+- [ ] **Privacy policy and terms: DRAFTED, waiting for review.** `/privacy` and `/terms` exist (`web/app/(legal)/`). They show a "Draft for legal review" banner until `LEGAL.reviewed` is set in `web/lib/legal.ts`. They're linked from sign-up, the join page and the landing page, and e2e LG-H1 to LG-H3 check them, with axe.
+  - **Every processor is listed** (`PROCESSORS` in `lib/legal.ts`): Vercel, the Postgres provider, Resend, Paddle, Flutterwave, Apple, Google, and WhatsApp (Meta) for support chats.
+  - **The privacy statements were checked against the code:** what's collected, the cookies (`lc_session`, `lc_device`), browser storage, the retention jobs and the deletion timings. It states that no location or tracking data is collected, which is true today.
+  - **The owner fills in** the legal entity, address, privacy and support emails, the effective date, and the database region.
+  - **Marked [owner to confirm] in the terms:** the refund promise, a customer export before deletion, and the liability cap.
+  - **Question for the lawyer:** invoices are deleted with the account (`on delete cascade`). Rwandan tax law may require keeping them. If so, change the schema to keep invoices after deletion, and update the privacy notice.
+  - **Law:** Rwanda Law No. 058/2021 for Kigali, plus GDPR and UK GDPR for EU and UK owners. Get a local legal review before `reviewed: true`.
 - [x] **Account deletion works.** Deletion closes the join page at once (e2e F01-E12). The org is purged after 7 days by the `/api/cron/cleanup` job, and the orphaned owner account the day after. Deleted customers' details are scrubbed after 30 days.
 - [x] **Favicon, titles, OG image, emails and app icon are ours.**
   - **Favicon and icons:** a one-colour Full Circle favicon, an Apple touch icon, and counter icons on Night.

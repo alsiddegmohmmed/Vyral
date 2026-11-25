@@ -30,7 +30,7 @@ export default function SignupPage() {
         <input type="hidden" name="timezone" value={tz} />
         <p className="text-xs text-text-muted">Time zone: {tz}. You can change it in Settings.</p>
         <Button type="submit" size="lg" loading={pending} block>Create account</Button>
-        <p className="text-xs text-text-muted">By creating an account you agree to our terms and privacy policy.</p>
+        <p className="text-xs text-text-muted">By creating an account you agree to our <Link href="/terms" className="underline">terms of service</Link> and <Link href="/privacy" className="underline">privacy notice</Link>.</p>
       </form>
       <p className="mt-6 text-center text-sm text-text-muted">Already have an account? <Link href="/login" className="font-semibold text-text underline">Sign in</Link></p>
     </>

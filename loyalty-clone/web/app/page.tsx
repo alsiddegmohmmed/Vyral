@@ -196,7 +196,7 @@ export default async function Landing() {
       <footer className="border-t border-border">
         <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-4 px-4 py-8 text-sm text-text-muted sm:px-6">
           <p className="flex items-center gap-2"><GarukaMark className="size-4 text-accent" />Garuka · Made in Kigali for shops everywhere.</p>
-          <p className="flex gap-4"><Link href="/login" className="hover:text-text hover:underline">Sign in</Link><Link href="/signup" className="hover:text-text hover:underline">Start free</Link></p>
+          <p className="flex flex-wrap gap-4"><Link href="/privacy" className="hover:text-text hover:underline">Privacy</Link><Link href="/terms" className="hover:text-text hover:underline">Terms</Link><Link href="/login" className="hover:text-text hover:underline">Sign in</Link><Link href="/signup" className="hover:text-text hover:underline">Start free</Link></p>
         </div>
       </footer>
     </div>
