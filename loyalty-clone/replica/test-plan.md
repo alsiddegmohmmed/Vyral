@@ -119,7 +119,7 @@ Plan: 147 numbered rows: 114 automated, 19 manual, 14 needs keys. Of the manual 
 | F06-E4 | edge | second stamp within 5-min cooldown | "stamped a moment ago" | auto | pass |
 | F06-E5 | edge | stepper past 5 / type 9 / API 7 | stops at 5, clamps to 5, too_many_stamps | auto | pass |
 | F06-E6 | edge | 5 then 2 more in a day | daily_limit_reached | auto | pass |
-| F06-E7 | expired session | delete session on the transaction screen, submit | "This phone was signed out", nothing saved | auto | pass |
+| F06-E7 | expired session | delete session on the transaction screen, submit | "This phone needs pairing again" with the code input, nothing saved | auto | pass |
 | F06-E8 | offline | offline at submit | "No connection", nothing saved | auto | pass |
 | F06-E9 | keyboard only | scan by keyboard only | card found and stamped | auto (+390) | pass |
 | F06-E10 | edge | confirm step on | "Yes, save it" before saving | auto | pass |
@@ -200,10 +200,27 @@ Plan: 147 numbered rows: 114 automated, 19 manual, 14 needs keys. Of the manual 
 
 | case | type | steps | expected | auto | result |
 | --- | --- | --- | --- | --- | --- |
-| F13-H1 | happy | Pair a phone "Back bar ☕" → code typed in lowercase on a 390 px phone → stamp → revoke | paired as "Scanner · Back bar ☕", event names the phone, can't open /cards, code single-use, revoked phone back at "Set up this phone" | auto (+390) | pass |
+| F13-H1 | happy | Pair a phone "Back bar ☕" → code typed in lowercase on a 390 px phone → stamp → revoke | paired as "Scanner · Back bar ☕", event names the phone, can't open /cards, code single-use, revoked phone sees "This phone needs pairing again" naming the removed phone | auto (+390) | pass |
 | F13-E1 | edge | pair a second phone in the same visit | new form / new code | auto | FAIL → B-006 |
 | F13-E2 | negative | expired code; 11 wrong codes | "That code didn’t work"; "Too many tries" | auto | pass |
 | F13-N1 | permission denied | paired phone requests the customers page | redirected to /login | auto | pass |
+
+## R Counter phone recovers by itself (fixes.md #1, #3, #4) — `scanner-recovery.spec.ts`
+
+| id | type | steps | expected | how | status |
+| --- | --- | --- | --- | --- | --- |
+| R1 | revoked device | paired phone is removed, then looks up a card; owner makes a new code; phone types it | "This phone needs pairing again" naming the phone, code input on the same screen; new code restores it with no reload; stamping works | auto (+390) | pass |
+| R2 | cookie lost | paired phone loses its cookie, reloads | says the pairing still exists but this browser forgot its sign-in | auto | pass |
+| R3 | no silent logout | inspect the device cookie and schema | httpOnly cookie lasts 400 days; scanner_devices has no expiry column | auto | pass |
+| R4 | timeout after save | first submit reaches the server but the answer is lost; Retry | "No connection — nothing was saved" with Retry focused; Retry sends the same idempotency key; exactly one stamp and one event | auto | pass |
+| R5 | offline submit | offline, submit, Retry still offline, back online, Retry | card stays open, nothing saved until online, then one stamp | auto | pass |
+| R6 | flaky lookup | first lookup request dropped | retried once automatically, card opens | auto | pass |
+| R7 | crash | malformed lookup answer makes the card screen throw | "The scanner stopped" with "Restart scanner"; restart works; crash kept as last error | auto | pass |
+| R8 | self-check | Scanner settings → Check this phone | connection, pairing, camera, QR reader, clock each with a plain result | auto | pass |
+| R9 | update mid-shift | server reports a newer build while a card is open | "Update ready · installs after this card", no reload until back at the camera | auto | pass |
+| R10 | problem report | paired phone → Report a problem; owner opens Counter phones | report listed with the phone name and scrubbed last error (no card code or phone number); phone shows Online | auto | pass |
+| R11 | report API | unpaired phone posts a report; paired phone posts extra fields | 401 `not_paired`; only whitelisted, scrubbed fields stored | auto | pass |
+| R12 | real phone | camera permission states and WASM decoder on a cheap Android | self-check matches reality | manual | todo (needs a phone) |
 
 ## F14 Trial ends, plan and billing (S21) — `settings.spec.ts`
 

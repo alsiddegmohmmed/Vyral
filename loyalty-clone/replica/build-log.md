@@ -67,3 +67,14 @@ Checks used throughout:
    - A replay returns the original result; a reused key with different amounts is refused.
    - Earn and redeem in one scan works; the old QR then says "replaced".
 3. **Pairing (F13):** the code works once, and the scanner then acts as "Back bar".
+
+## 2026-11-25: a counter phone that recovers by itself (fixes.md #1, scanner half of #3 and #4)
+
+- **Re-pair from the error screen.** Every scanner 401 now carries a reason (`device_removed`, `cookie_missing`, `session_expired`, `device_unknown`, `not_paired`). The phone remembers its device id and name in localStorage, so a lost cookie is told apart from a removed phone. The screen says "This phone needs pairing again" with the code input right there; pairing goes back to the camera without a reload. A 60 s heartbeat (`/api/scan/status`) moves an idle phone to that screen and never interrupts an open card.
+- **No silent logouts.** Device tokens still have no expiry; the cookie stays at 400 days (tested). Counter phones shows **Online** (seen in the last 3 minutes) or "Last seen …".
+- **Self-check** in scanner settings: connection (with latency), pairing name, camera permission, QR reader WASM compile, clock skew. Plain results with a fix hint each.
+- **Scan loop.** Error boundary with "Restart scanner"; one automatic retry of a dropped lookup; a submit that fails keeps the card open with "No connection — nothing was saved" and a Retry that resends the same idempotency key (amounts are locked meanwhile), so a timeout after the save never double-stamps. Requests time out after 10–15 s.
+- **Updates.** `NEXT_PUBLIC_APP_VERSION` (or Vercel's commit SHA) is the build id; `/api/scan/version` and `/api/scan/status` report the live one. A newer build shows "Update ready" and applies on the next return to the camera. No kill switch, rollback or service worker yet.
+- **Report a problem.** Migration `0007_scanner_reports.sql`. The bundle is whitelisted and scrubbed on the phone and again on the server (QR payloads, card codes, serials, ids, emails and numbers removed), rate limited to 5 per 10 minutes, and listed under Problem reports on Counter phones. "Contact support" reads `SUPPORT_WHATSAPP` (empty: "not set up yet").
+- **Tests.** Unit 61/61 (7 new in `tests/scanner-health.test.mjs`). E2E 146/146 (12 new in `e2e/scanner-recovery.spec.ts`; F06-E7 and F13-H1 now expect the re-pair screen).
+- **Not verified:** a real camera, permission prompts and the decoder on a cheap Android phone; the heartbeat's effect on battery and data.

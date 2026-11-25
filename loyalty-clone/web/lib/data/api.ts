@@ -11,6 +11,7 @@ import { decodeBarcode, encodeBarcode } from '@/lib/barcode';
 import { emails } from '@/lib/email';
 import { toE164 } from '@/lib/phone';
 import type { TxErrorKey } from './rules';
+import type { ReportBundle, UnpairedReason } from '@/lib/scanner-health';
 import { hashPassword, verifyPassword } from './password';
 import type { Automation, Campaign, CardEvent, FormField, Location, Message, Org, PublicCard, ScannerDevice, TxResult } from './types';
 
@@ -131,6 +132,21 @@ export async function getContextFromDevice(token: string | undefined): Promise<O
   const d = await one<{ id: string; orgId: string; label: string }>(
     `update scanner_devices set last_seen_at = now() where token_hash = $1 and revoked_at is null returning id, org_id, label`, [sha(token)]);
   return d ? { orgId: d.orgId, userId: null, deviceId: d.id, role: 'device', actorLabel: d.label } : null;
+}
+
+/** Why a scanner got 401: was the token revoked, unknown, or is the cookie simply gone? Read only. */
+export async function unpairedReason(deviceToken: string | undefined, sessionToken: string | undefined, deviceHint: string | null): Promise<UnpairedReason> {
+  if (deviceToken) {
+    const d = await one<{ revoked: boolean }>('select revoked_at is not null as revoked from scanner_devices where token_hash = $1', [sha(deviceToken)]);
+    return d ? (d.revoked ? 'device_removed' : 'device_unknown') : 'device_unknown';
+  }
+  if (sessionToken) return 'session_expired';
+  // no cookie at all: the phone remembers which device it was (localStorage), so say plainly whether that pairing still exists
+  if (deviceHint && /^[0-9a-f-]{36}$/.test(deviceHint)) {
+    const d = await one<{ revoked: boolean }>('select revoked_at is not null as revoked from scanner_devices where id = $1', [deviceHint]);
+    if (d) return d.revoked ? 'device_removed' : 'cookie_missing';
+  }
+  return 'not_paired';
 }
 
 // ---------------------------------------------------------------- org
@@ -686,6 +702,26 @@ export async function pairDevice(codeRaw: string, ip?: string) {
 
 export async function revokeDevice(ctx: OrgContext, id: string) {
   await q('update scanner_devices set revoked_at = now() where id = $1 and org_id = $2', [id, ctx.orgId]);
+}
+
+// ---------------------------------------------------------------- counter phone problem reports
+
+export type ScannerReport = { id: string; deviceId: string | null; deviceLabel: string; appVersion: string; userAgent: string; lastError: string | null; checks: ReportBundle['checks']; createdAt: string };
+
+/** One insert, org-scoped. The bundle is whitelisted and scrubbed by buildReport() before it gets here. */
+export async function createScannerReport(ctx: OrgContext, bundle: ReportBundle) {
+  await rateLimit(`report:${ctx.deviceId ?? ctx.userId ?? ctx.orgId}`, 5, 600);
+  const r = await one<{ id: string }>(
+    `insert into scanner_reports (org_id, device_id, device_label, app_version, user_agent, last_error, checks)
+     values ($1, (select id from scanner_devices where id = $2 and org_id = $1), $3, $4, $5, $6, $7::jsonb) returning id`,
+    [ctx.orgId, ctx.deviceId ?? null, (ctx.role === 'device' ? ctx.actorLabel : `Owner: ${ctx.actorLabel}`).slice(0, 60), bundle.appVersion, bundle.userAgent, bundle.lastError, JSON.stringify(bundle.checks)]);
+  return r!.id;
+}
+
+export async function listScannerReports(ctx: OrgContext, limit = 20): Promise<ScannerReport[]> {
+  return q<ScannerReport>(
+    `select id, device_id, device_label, app_version, user_agent, last_error, checks, created_at
+       from scanner_reports where org_id = $1 order by created_at desc limit $2`, [ctx.orgId, limit]);
 }
 
 // ---------------------------------------------------------------- messages

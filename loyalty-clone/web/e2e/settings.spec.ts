@@ -133,7 +133,8 @@ test.describe('F13 counter phones', () => {
     await page.getByRole('alertdialog').getByRole('button', { name: 'Remove phone' }).click();
     await expect(page.getByText('Back bar ☕')).toHaveCount(0);
     await p.goto('http://localhost:3100/scan');
-    await expect(p.getByRole('heading', { name: 'Set up this phone' })).toBeVisible();
+    await expect(p.getByRole('heading', { name: 'This phone needs pairing again' })).toBeVisible();
+    await expect(p.getByText(/“Back bar ☕” was removed from Counter phones/)).toBeVisible();
     await phone.close();
   });
 

@@ -165,7 +165,9 @@ test.describe('F06 staff stamps a card (owner session)', () => {
     const token = (await context.cookies()).find((c) => c.name === 'lc_session')!.value;
     await sql('delete from sessions where token_hash = $1', [sha(token)]);
     await page.getByRole('button', { name: 'Add 1 stamp' }).click();
-    await expect(page.getByText('This phone was signed out. Pair it again.')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'This phone needs pairing again' })).toBeVisible();
+    await expect(page.getByText(/The sign-in on this phone has ended/)).toBeVisible();
+    await expect(page.getByLabel('Pairing code')).toBeVisible();
     expect((await cardById(card.id))!.current_stamps).toBe(0);
   });
 
