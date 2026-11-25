@@ -1,9 +1,10 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter, JetBrains_Mono } from 'next/font/google';
+import { Bricolage_Grotesque, IBM_Plex_Mono } from 'next/font/google';
 import './globals.css';
 
-const inter = Inter({ subsets: ['latin'], variable: '--nf-inter', display: 'swap' });
-const mono = JetBrains_Mono({ subsets: ['latin'], variable: '--nf-mono', display: 'swap' });
+// Garuka kit: one variable family (optical size + width axes) and a mono for labels.
+const sans = Bricolage_Grotesque({ subsets: ['latin', 'latin-ext'], axes: ['opsz', 'wdth'], variable: '--nf-sans', display: 'swap' });
+const mono = IBM_Plex_Mono({ subsets: ['latin'], weight: ['400', '500'], variable: '--nf-mono', display: 'swap' });
 
 export const metadata: Metadata = {
   title: { default: 'Garuka', template: '%s · Garuka' },
@@ -11,11 +12,11 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: '#ffffff' };
+export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: '#fbf9ff' };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${mono.variable}`}>
+    <html lang="en" className={`${sans.variable} ${mono.variable}`}>
       <body>{children}</body>
     </html>
   );

@@ -3,6 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { ArrowRight, Check, LifeBuoy, MessageCircle, QrCode, RefreshCw, ScanLine, ShieldCheck, Smartphone, Stamp, Wallet } from 'lucide-react';
+import { GarukaLockup, GarukaMark } from '@/components/brand/garuka-mark';
 import { buttonClass } from '@/components/ui/button';
 import { getContextFromSession, PLAN_LIMITS, PRICES } from '@/lib/data/api';
 import { SESSION_COOKIE } from '@/lib/session';
@@ -40,10 +41,7 @@ export default async function Landing() {
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-[60] focus:rounded-md focus:bg-accent focus:px-3 focus:py-2 focus:text-on-accent">Skip to content</a>
       <header className="sticky top-0 z-[20] border-b border-border bg-bg/95 backdrop-blur">
         <nav aria-label="Site" className="mx-auto flex h-16 max-w-[1200px] items-center gap-4 px-4 sm:px-6">
-          <Link href="/" className="flex items-center gap-2.5 font-semibold">
-            <span aria-hidden className="grid size-8 place-items-center rounded-sm bg-accent text-on-accent"><Stamp className="size-[18px]" /></span>
-            Garuka
-          </Link>
+          <Link href="/" aria-label="Garuka home" className="text-[26px] text-accent"><GarukaLockup word="var(--tk-color-text)" /></Link>
           <div className="ml-auto flex items-center gap-1 sm:gap-2">
             <a href="#pricing" className="hidden h-10 items-center rounded-md px-3 text-sm font-medium text-text-muted hover:text-text sm:inline-flex">Pricing</a>
             <a href="#faq" className="hidden h-10 items-center rounded-md px-3 text-sm font-medium text-text-muted hover:text-text sm:inline-flex">Questions</a>
@@ -59,7 +57,7 @@ export default async function Landing() {
         <section className="mx-auto grid max-w-[1200px] items-center gap-10 px-4 pb-16 pt-12 sm:px-6 lg:grid-cols-[1fr_1.15fr] lg:pb-24 lg:pt-20">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-accent">Stamp cards for cafés, salons and shops</p>
-            <h1 className="mt-3 text-[2.5rem] font-bold leading-[1.05] tracking-tight sm:text-[3.25rem]">A loyalty card your counter can’t break.</h1>
+            <h1 className="mt-3 text-[2.75rem] font-extrabold leading-[0.98] tracking-[-0.045em] sm:text-[3.5rem]">A loyalty card your counter can’t break.</h1>
             <p className="mt-5 max-w-xl text-lg text-text-muted">Customers get a stamp card on their own phone. Your staff stamp it from any phone at the till, and if that phone fails, another one takes over in 30 seconds.</p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               {primary}
@@ -182,9 +180,10 @@ export default async function Landing() {
 
         {/* 7. final call */}
         <section aria-labelledby="final" className="mx-auto max-w-[1200px] px-4 py-16 sm:px-6 lg:py-24">
-          <div className="flex flex-col items-start gap-6 rounded-xl bg-accent p-8 text-on-accent sm:p-12 lg:flex-row lg:items-center lg:justify-between">
+          <div className="relative flex flex-col items-start gap-6 overflow-hidden rounded-xl bg-accent p-8 text-on-accent sm:p-12 lg:flex-row lg:items-center lg:justify-between">
+            <GarukaMark className="pointer-events-none absolute -right-16 -top-16 size-64 opacity-20" ring="#ffffff" />
             <div>
-              <h2 id="final" className="text-2xl">Bring your regulars back.</h2>
+              <h2 id="final" className="text-2xl">Come back around.</h2>
               <p className="mt-2 max-w-xl">Garuka means “come back”. Set up your card today; your first customer can join this afternoon.</p>
             </div>
             <Link href={signedIn ? '/cards' : '/signup'} className="inline-flex h-12 shrink-0 items-center gap-2 rounded-md bg-bg px-5 font-semibold text-text hover:bg-surface">
@@ -196,7 +195,7 @@ export default async function Landing() {
 
       <footer className="border-t border-border">
         <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-4 px-4 py-8 text-sm text-text-muted sm:px-6">
-          <p>Garuka · Made in Kigali for shops everywhere.</p>
+          <p className="flex items-center gap-2"><GarukaMark className="size-4 text-accent" />Garuka · Made in Kigali for shops everywhere.</p>
           <p className="flex gap-4"><Link href="/login" className="hover:text-text hover:underline">Sign in</Link><Link href="/signup" className="hover:text-text hover:underline">Start free</Link></p>
         </div>
       </footer>

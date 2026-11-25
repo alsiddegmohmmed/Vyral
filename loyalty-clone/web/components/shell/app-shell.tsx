@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { CreditCard, LayoutGrid, LogOut, MapPin, Menu, ScanLine, Settings, Smartphone, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { IconButton } from '@/components/ui/button';
+import { GarukaLockup } from '@/components/brand/garuka-mark';
 
 const nav = [
   { href: '/cards', label: 'Cards', icon: LayoutGrid },
@@ -29,7 +30,8 @@ export function AppShell({ orgName, planLabel, banner, children, signOut }: {
 
   const sidebar = (
     <nav aria-label="Main" className="flex h-full flex-col p-3">
-      <div className="flex items-center gap-3 px-2 pb-4 pt-1.5">
+      <Link href="/cards" aria-label="Garuka, your cards" className="mb-4 ml-2 mt-1 w-fit text-[22px] text-accent"><GarukaLockup word="var(--tk-color-text)" /></Link>
+      <div className="flex items-center gap-3 px-2 pb-4">
         <OrgTile name={orgName} />
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold" title={orgName}>{orgName}</p>

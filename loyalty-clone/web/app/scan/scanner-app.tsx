@@ -71,7 +71,7 @@ class ScannerErrorBoundary extends Component<{ children: React.ReactNode; onRest
   render() {
     if (!this.state.failed) return this.props.children;
     return (
-      <main className="flex min-h-dvh flex-col bg-scanner-bg text-scanner-text">
+      <main data-scanner className="flex min-h-dvh flex-col bg-scanner-bg text-scanner-text">
         <div role="alert" className="m-auto flex w-full max-w-[440px] flex-col items-center gap-4 px-4 text-center">
           <AlertTriangle aria-hidden className="size-16 text-scanner-danger" />
           <h1 className="text-2xl">The scanner stopped</h1>
@@ -162,7 +162,7 @@ function Scanner({ supportUrl }: { supportUrl: string | null }) {
   const ready = updateReady(APP_VERSION, latest);
   const busyScreen = view.v === 'card' || view.v === 'result';
   return (
-    <main className="flex min-h-dvh flex-col bg-scanner-bg text-scanner-text">
+    <main data-scanner className="flex min-h-dvh flex-col bg-scanner-bg text-scanner-text">
       <header className="flex h-14 items-center justify-between gap-2 px-3">
         <span className="truncate px-2 text-sm text-scanner-muted">{who && view.v !== 'pair' ? `Scanner · ${who}` : 'Scanner'}</span>
         <div className="flex shrink-0 items-center gap-1">

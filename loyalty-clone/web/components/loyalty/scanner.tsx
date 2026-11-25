@@ -9,7 +9,7 @@ import { cn } from '@/lib/cn';
 /** S28: camera view (static stand-in on the design page: no camera access). */
 export function ScannerFrame() {
   return (
-    <div className="relative flex aspect-[9/16] w-full max-w-[300px] flex-col overflow-hidden rounded-xl bg-scanner-bg text-scanner-text">
+    <div data-scanner className="relative flex aspect-[9/16] w-full max-w-[300px] flex-col overflow-hidden rounded-xl bg-scanner-bg text-scanner-text">
       <div aria-hidden className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,#3a4350,transparent_70%)]" />
       <div className="relative flex justify-between p-3">
         <IconButton aria-label="Close scanner" size="lg" variant="ghost" className="text-scanner-text hover:bg-scanner-surface" icon={<X aria-hidden className="size-6" />} />

@@ -2,7 +2,28 @@
 
 Skill: replica-brand. Date: 2026-11-25. Angle (from `fixes.md` §5): **the counter never stops** (A), packaged for Kigali (B): mobile money, any phone, a person on WhatsApp.
 
-Status: **applied.** The owner chose **Garuka** and the **Kivu** palette on 2026-11-25. Trademark checks are still to run; see Step 2.
+Status: **applied.** The owner chose the name **Garuka** on 2026-11-25. Later the same day they supplied the brand kit **"Garuka · Full Circle" v1.0** (claude.ai artifact `SdM5mHpaJzuE4EidKcX5yc`). The kit replaces the Kivu palette and the logo brief below. See "Brand kit applied". Trademark checks are still to run; see Step 2.
+
+## Brand kit applied (2026-11-25)
+
+| kit element | where it lives in the code |
+| --- | --- |
+| Mark: an open ring (r80, stroke 44, gap −10° to +55°) and a Sunrise dot (r22 at +22.5°) | `web/components/brand/garuka-mark.tsx`: `GarukaMark`, `GarukaLockup`, `GarukaSpinner`. SVGs and 1024 px icons are in `replica/design/brand/`. |
+| Favicon: one colour at 16 px (the kit's rule) | `web/app/icon.svg` (Jacaranda ring and dot) |
+| App icons | `web/app/apple-icon.png` (Jacaranda ground); the counter app on Night: `web/public/icons/counter-*.png`, wired into `scan.webmanifest` |
+| Social image | `web/app/opengraph-image.png`, 1200×630: lockup plus "Come back around." |
+| Colour roles | `tokens.json`: Paper is the page, Jacaranda the accent (hover Jacaranda-deep), Petal the accent-subtle, Night the text, line `#DDD3F7` the borders, and muted `#5E5779`. Brand primitives `jacaranda`, `night`, `sunrise`, `petal`, `paper` and `leaf` are added as tokens. 44 pairs, 0 failing AA. |
+| Sunrise is only the dot and the reward moment | It's never used as text on light grounds. It's the focus ring only on the dark counter app (`[data-scanner]`), where it scores 10:1. On light pages the focus ring is Jacaranda. |
+| Leaf `#1F9D5C` is success only | It's too light for small text on Paper (under 4.5:1), so the `success` text token is a deeper Leaf, `#177A47`, and Leaf itself is kept for large fills. |
+| Type: Bricolage Grotesque (opsz, wdth, wght) and IBM Plex Mono | `next/font` in `app/layout.tsx`. Headings run 800 weight with negative tracking, per the kit's scale (H1 36/38, H2 24/30, display 56). The app's page titles use 30/34. |
+| Rounder shapes | radius 8 / 12 / 20 / 28, pill buttons, and the kit's soft Night-tinted shadows |
+| Motion: "the dot orbits" replaces every spinner | `GarukaSpinner` (1100 ms, anticlockwise, kit ease). Reduced motion stops it in place. |
+
+**Known risk, accepted by the owner on 2026-11-25:** Sunrise `#FFB23F` sits ΔE 6.1 from the original's `#ffbd45` and ΔE 13.4 from its `#ffb30c`, both measured on loopyloyalty.com. The sweep compares exact hex codes, so it doesn't flag this. Raise it in the trademark and lawyer review, together with the use of an open ring as the mark next to an original whose name is about loops. Put both marks side by side before filing.
+
+**Kit copy not used yet:**
+- The kit's offline lines ("Offline. Still counting. We'll sync when you're back", "3 saved · syncs when back") describe offline stamping that **isn't built**. Today the counter says "nothing was saved" when it's offline. Keep the honest line until an offline queue ships.
+- The ring-as-progress card ("the logo is the progress bar") isn't built on the web card or the passes yet. It's a follow-up.
 
 ## What we must not resemble
 
@@ -76,11 +97,11 @@ Every option keeps the token role names. Each was run through `contrast.py` agai
 | **Kivu** (lake blue, hue ≈218°) | `#1f56b8` / `#18459a` / `#eaf0fb` | cool: surface `#f4f6f9`, sidebar `#eef2f8` | terracotta `#d2501c`; info moves to `#0e6a8a` so banners don't read as brand | 6.81:1 |
 | **Roast** (dark coffee, hue ≈20°) | `#4a2c1f` / `#5f3a29` / `#f3ece6` | warm, like Clay | blue `#1d5fd1` | 12.57:1 |
 
-**Chosen: Kivu.** It's applied to `tokens.json`, and `contrast.py` reports 38 pairs with 0 failing AA (`design/contrast-report.txt`).
+**Chosen at the time: Kivu**, since replaced by the brand kit (see above). It's applied to `tokens.json`, and `contrast.py` reports 38 pairs with 0 failing AA (`design/contrast-report.txt`).
 
 New merchant cards also start in Kivu: background `#1F56B8`, label `#D6E2F7`, white text and stamps. These are only defaults (in `createCampaign`); the owner changes them in the designer.
 
-## Step 4: logo brief
+## Step 4: logo brief (superseded by the brand kit's Full Circle mark)
 
 - **The idea:** "come back". A path that returns to where it started, so one more visit closes the circle. It should feel like a stamp landing, not a loop. The original's name is about loops, so **no ring, no infinity sign and no circular arrow.**
 - **Mark type:** a symbol plus a wordmark.

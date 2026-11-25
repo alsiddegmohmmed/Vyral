@@ -1,4 +1,5 @@
-import { AlertCircle, AlertTriangle, CheckCircle2, Info, Loader2 } from 'lucide-react';
+import { AlertCircle, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
+import { GarukaSpinner } from '@/components/brand/garuka-mark';
 import { cn } from '@/lib/cn';
 
 type Tone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';
@@ -65,7 +66,7 @@ export function Skeleton({ className }: { className?: string }) {
 }
 
 export function Spinner({ className }: { className?: string }) {
-  return <Loader2 aria-hidden className={cn('size-5 animate-spin', className)} />;
+  return <GarukaSpinner className={cn('size-5', className)} />;
 }
 
 export function StatTile({ label, value, delta, period, loading }: {

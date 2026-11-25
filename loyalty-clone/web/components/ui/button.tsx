@@ -1,5 +1,5 @@
 import { forwardRef } from 'react';
-import { Loader2 } from 'lucide-react';
+import { GarukaSpinner } from '@/components/brand/garuka-mark';
 import { cn } from '@/lib/cn';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
@@ -33,7 +33,7 @@ const iconSizes: Record<ButtonSize, string> = {
 
 export const buttonClass = (variant: ButtonVariant = 'primary', size: ButtonSize = 'md', block = false, iconOnly = false) =>
   cn(
-    'inline-flex items-center justify-center whitespace-nowrap rounded-md select-none',
+    'inline-flex items-center justify-center whitespace-nowrap rounded-pill select-none',
     'transition-[background-color,transform,filter] duration-[var(--tk-motion-fast)] ease-out active:translate-y-px',
     'disabled:opacity-50 disabled:cursor-not-allowed disabled:active:translate-y-0',
     '[&>svg]:shrink-0',
@@ -53,7 +53,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       aria-busy={loading || undefined}
       {...rest}
     >
-      {loading && <Loader2 aria-hidden className="size-4 animate-spin" />}
+      {loading && <GarukaSpinner className="size-4" />}
       {children}
     </button>
   );

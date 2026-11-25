@@ -1,40 +1,46 @@
-  AAA   17.80:1  text                     on bg                   
-  AAA   16.45:1  text                     on surface              
-  AA     6.47:1  text-muted               on bg                   
-  AA     5.97:1  text-muted               on surface              
-  AA     4.86:1  text-subtle              on bg                   
-  AAA   15.85:1  text                     on sidebar              
-  AA     5.76:1  text-muted               on sidebar              
-  AAA   14.44:1  text                     on nav-active           
-  AA     5.24:1  text-muted               on nav-active           
-  AAA   15.56:1  text                     on accent-subtle        
-  AA     5.65:1  text-muted               on accent-subtle        
-  AA     5.96:1  accent                   on accent-subtle        
-  AA     6.29:1  success                  on sidebar              
-  AA     6.81:1  on-accent                on accent               
-  AAA    8.91:1  on-accent                on accent-hover         
-  AA     6.81:1  accent                   on bg                   
-  AA     6.29:1  accent                   on surface              
-  AA     6.55:1  on-danger                on danger               
-  AA     6.55:1  danger                   on bg                   
-  AA     5.74:1  danger                   on danger-bg            
-  AAA    7.07:1  success                  on bg                   
-  AA     6.31:1  success                  on success-bg           
+  AAA   17.36:1  text                     on bg                   
+  AAA   16.04:1  text                     on surface              
+  AA     6.45:1  text-muted               on bg                   
+  AA     5.96:1  text-muted               on surface              
+  AA     5.37:1  text-subtle              on bg                   
+  AAA   15.67:1  text                     on sidebar              
+  AA     5.82:1  text-muted               on sidebar              
+  AAA   13.91:1  text                     on nav-active           
+  AA     5.17:1  text-muted               on nav-active           
+  AAA   15.12:1  text                     on accent-subtle        
+  AA     5.62:1  text-muted               on accent-subtle        
+  AA     5.28:1  accent                   on accent-subtle        
+  AA     4.64:1  success                  on sidebar              
+  AA     6.34:1  on-accent                on accent               
+  AAA    9.17:1  on-accent                on accent-hover         
+  AA     6.06:1  accent                   on bg                   
+  AA     5.60:1  accent                   on surface              
+  AA     5.90:1  on-danger                on danger               
+  AA     5.65:1  danger                   on bg                   
+  AA     5.18:1  danger                   on danger-bg            
+  AA     5.14:1  success                  on bg                   
+  AA     4.75:1  success                  on success-bg           
   AA     5.81:1  warning                  on warning-bg           
-  AA     6.33:1  warning                  on bg                   
+  AA     6.06:1  warning                  on bg                   
   AA     5.41:1  info                     on info-bg              
-  AA     6.09:1  info                     on bg                   
-  AAA   16.34:1  text                     on warning-bg           
-  AAA   17.21:1  scanner-text             on scanner-bg           
-  AAA   14.84:1  scanner-text             on scanner-surface      
-  AAA    8.67:1  scanner-muted            on scanner-bg           
-  AAA    7.48:1  scanner-muted            on scanner-surface      
-  AAA    9.29:1  scanner-success          on scanner-surface      
-  AAA    7.09:1  scanner-danger           on scanner-surface      
-  PASS   3.64:1  border-input             on bg                   ui
-  PASS   3.36:1  border-input             on surface              ui
-  PASS   4.28:1  focus                    on bg                   ui
-  PASS   3.95:1  focus                    on surface              ui
-  PASS   4.39:1  focus                    on scanner-bg           ui
+  AA     5.83:1  info                     on bg                   
+  AAA   16.64:1  text                     on warning-bg           
+  AAA   16.70:1  scanner-text             on scanner-bg           
+  AAA   14.97:1  scanner-text             on scanner-surface      
+  AAA    8.69:1  scanner-muted            on scanner-bg           
+  AAA    7.79:1  scanner-muted            on scanner-surface      
+  AAA    8.92:1  scanner-success          on scanner-surface      
+  AAA    7.12:1  scanner-danger           on scanner-surface      
+  PASS   3.72:1  border-input             on bg                   ui
+  PASS   3.44:1  border-input             on surface              ui
+  PASS   6.06:1  focus                    on bg                   ui
+  PASS   5.60:1  focus                    on surface              ui
+  PASS  10.10:1  scanner-focus            on scanner-bg           ui
+  PASS   9.05:1  scanner-focus            on scanner-surface      ui
+  AAA   10.10:1  sunrise                  on night                
+  AA     6.34:1  on-accent                on jacaranda            
+  AA     5.28:1  jacaranda                on petal                
+  AAA   17.36:1  night                    on paper                
+  AAA   13.91:1  text                     on nav-active           
 
-  38 pairs, 0 failing AA
+  44 pairs, 0 failing AA

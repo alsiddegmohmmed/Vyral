@@ -32,6 +32,13 @@
   --color-scanner-muted: var(--tk-color-scanner-muted);
   --color-scanner-success: var(--tk-color-scanner-success);
   --color-scanner-danger: var(--tk-color-scanner-danger);
+  --color-scanner-focus: var(--tk-color-scanner-focus);
+  --color-jacaranda: var(--tk-color-jacaranda);
+  --color-night: var(--tk-color-night);
+  --color-sunrise: var(--tk-color-sunrise);
+  --color-petal: var(--tk-color-petal);
+  --color-paper: var(--tk-color-paper);
+  --color-leaf: var(--tk-color-leaf);
   --color-transparent: transparent;
   --color-current: currentColor;
   --color-white: #fff;
@@ -80,5 +87,5 @@
   --breakpoint-md: 48rem;
   --breakpoint-lg: 64rem;
   --breakpoint-xl: 80rem;
-  --ease-out: cubic-bezier(.2,.8,.2,1);
+  --ease-out: cubic-bezier(.65,0,.35,1);
 }
