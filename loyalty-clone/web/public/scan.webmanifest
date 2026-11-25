@@ -1,0 +1,9 @@
+{
+  "name": "Card scanner",
+  "short_name": "Scanner",
+  "start_url": "/scan",
+  "scope": "/scan",
+  "display": "standalone",
+  "background_color": "#0f1216",
+  "theme_color": "#0f1216"
+}

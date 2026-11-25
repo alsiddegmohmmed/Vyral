@@ -43,8 +43,8 @@ export function Dialog({ trigger, title, description, children, footer, wide }: 
 }
 export const DialogClose = RDialog.Close;
 
-export function ConfirmDialog({ trigger, title, children, action, typeToConfirm, onConfirm }: {
-  trigger: React.ReactNode; title: string; children: React.ReactNode; action: string; typeToConfirm?: string; onConfirm: () => void;
+export function ConfirmDialog({ trigger, title, children, action, typeToConfirm, onConfirm, tone = 'danger' }: {
+  trigger: React.ReactNode; title: string; children: React.ReactNode; action: string; typeToConfirm?: string; onConfirm: () => void; tone?: 'danger' | 'primary';
 }) {
   const [typed, setTyped] = useState('');
   const blocked = !!typeToConfirm && typed.trim() !== typeToConfirm;
@@ -64,7 +64,7 @@ export function ConfirmDialog({ trigger, title, children, action, typeToConfirm,
           )}
           <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <RAlert.Cancel className={buttonClass('secondary')}>Cancel</RAlert.Cancel>
-            <RAlert.Action className={buttonClass('danger')} disabled={blocked} onClick={onConfirm}>{action}</RAlert.Action>
+            <RAlert.Action className={buttonClass(tone)} disabled={blocked} onClick={onConfirm}>{action}</RAlert.Action>
           </div>
         </RAlert.Content>
       </RAlert.Portal>
