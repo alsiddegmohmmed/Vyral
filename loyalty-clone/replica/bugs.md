@@ -334,6 +334,6 @@ Each fix was checked by the tester's failing Playwright case turning green, plus
 | F02-E5 | S3 | **fixed** | Link, name and reward lengths are checked before the database, with messages that name the field. |
 | F03-E2 | S3 | **fixed** | The designer sends only the fields that tab changed. They're merged onto the latest saved card, so a stale tab can't undo another tab's newer edits, and its own change still saves. Two tabs editing the *same* field: last save wins. |
 
-**Flaky:** F04-E10 (keyboard-only join) passes alone 2/2 but fails in the full run, on desktop and mobile. Name, country code and phone take focus in order; the run breaks after the two birthday selects, where focus doesn't reach the consent checkbox. Suspected cause, not verified: state left by earlier tests (dev server or browser). The manual keyboard pass completed join and scan without a mouse. To check against a production build.
+**Flaky (resolved):** F04-E10 (keyboard-only join) wasn't an app bug. **F03-H3 added an Email field to the shared live Coffee card and never removed it**, so every later run of the join form had an extra field between birthday and consent, and the keyboard test's tab count was off by one. It started failing only once B-001 was fixed, because before that the field never saved. It reproduced with just F03-H3 then F04-E10. Fix: F03-H3 restores the seed in `finally`, and the other Coffee-card edits were already restored. The full suite passed 132/132 twice in a row.
 
-**Update (S3 pass): the suite now runs 132 tests, 130 pass, and only F04-E10 (flaky, two projects) fails. Open S1: none. Open S2: none. Open S3/S4: none.**
+**Current: 132/132 pass, twice in a row. Open bugs at any severity: none. Flaky tests: none.**

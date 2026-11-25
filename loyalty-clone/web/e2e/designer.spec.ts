@@ -151,13 +151,19 @@ test.describe('F03 edit a live card', () => {
 
   test('F03-H3 signup form change (add an Email field) is saved', async ({ page }) => {
     const camp = await coffeeCampaign();
-    await page.goto(`/cards/${camp!.id}/design`);
-    await page.getByRole('tab', { name: /Signup form/ }).click();
-    await page.getByLabel('Add a field').selectOption('email');
-    await page.getByRole('button', { name: 'Save changes' }).click();
-    await expect(page.getByText(/Saved\./).or(page.getByRole('main').getByRole('alert'))).toBeVisible();
-    const f = await one<{ n: number }>(`select count(*)::int as n from campaign_fields where campaign_id = $1 and type = 'email'`, [camp!.id]);
-    expect(f!.n, 'email field was not stored').toBe(1);
+    try {
+      await page.goto(`/cards/${camp!.id}/design`);
+      await page.getByRole('tab', { name: /Signup form/ }).click();
+      await page.getByLabel('Add a field').selectOption('email');
+      await page.getByRole('button', { name: 'Save changes' }).click();
+      await expect(page.getByText(/Saved\./).or(page.getByRole('main').getByRole('alert'))).toBeVisible();
+      const f = await one<{ n: number }>(`select count(*)::int as n from campaign_fields where campaign_id = $1 and type = 'email'`, [camp!.id]);
+      expect(f!.n, 'email field was not stored').toBe(1);
+    } finally {
+      // restore the shared seed: an extra field on the live Coffee card changes the join
+      // form for every later test (it broke F04-E10's tab order in full runs)
+      await sql(`delete from campaign_fields where campaign_id = $1 and type = 'email'`, [camp!.id]);
+    }
   });
 
   test('F03-H4 Update all cards works once, then the 10-minute cooldown applies', async ({ page }) => {
