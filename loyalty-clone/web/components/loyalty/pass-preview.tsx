@@ -151,37 +151,52 @@ export function LivePassCard({ design, className }: { design: CardDesign; classN
  * (Night frame, status bar, wallet-style screen). Fills itself, a tap on the card
  * adds a stamp, and the two pill buttons underneath are the accessible controls.
  */
-export function PhoneMockup({ design, playing, onPlayingChange, onTap }: {
+export function PhoneMockup({ design, playing, onPlayingChange, onTap, views = false }: {
   design: CardDesign; playing: boolean; onPlayingChange: (p: boolean) => void; onTap: () => void;
+  /** designer: switch the phone between the Apple front, the Apple back and Google Wallet */
+  views?: boolean;
 }) {
+  const [view, setView] = useState<'front' | 'back' | 'google'>('front');
   const loop = useStampLoop(design.total, playing);
   const d = loop.running ? { ...design, filled: loop.filled } : design;
   return (
     <div className="flex flex-col items-center gap-4">
-      <div aria-hidden className="relative w-[270px] rounded-[46px] bg-[var(--tk-color-night)] p-[9px] shadow-[0_40px_80px_-30px_rgba(23,18,43,.75)] ring-1 ring-white/15">
+      {views && (
+        <fieldset className="flex gap-1 rounded-pill bg-white/15 p-1 backdrop-blur">
+          <legend className="sr-only">Preview</legend>
+          {([['front', 'Apple'], ['back', 'Back'], ['google', 'Google']] as const).map(([v, l]) => (
+            <label key={v} className="cursor-pointer">
+              <input type="radio" name="phone-view" value={v} checked={view === v} onChange={() => setView(v)} className="peer sr-only" />
+              <span className="flex h-8 items-center rounded-pill px-3.5 text-sm font-medium text-white peer-checked:bg-white peer-checked:font-semibold peer-checked:text-[var(--tk-color-night)] peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-white">{l}</span>
+            </label>
+          ))}
+        </fieldset>
+      )}
+      <div className="relative w-[270px] rounded-[46px] bg-[var(--tk-color-night)] p-[9px] shadow-[0_40px_80px_-30px_rgba(23,18,43,.75)] ring-1 ring-white/15">
         <div className="flex h-[547px] flex-col overflow-hidden rounded-[38px] bg-[#f3f1f8]">
-          <div className="relative flex items-center justify-between px-6 pb-2 pt-3 text-[11px] font-semibold tabular text-[var(--tk-color-night)]">
+          <div aria-hidden className="relative flex items-center justify-between px-6 pb-2 pt-3 text-[11px] font-semibold tabular text-[var(--tk-color-night)]">
             <span>9:41</span>
             <span className="absolute left-1/2 top-2 h-[22px] w-[84px] -translate-x-1/2 rounded-pill bg-[var(--tk-color-night)]" />
             <span className="flex items-center gap-1"><span className="h-2 w-3 rounded-[2px] border border-current" /><span className="h-2 w-4 rounded-[3px] bg-current" /></span>
           </div>
-          <div className="flex items-center justify-between px-4 pb-2 pt-1 text-[var(--tk-color-night)]">
+          <div aria-hidden className="flex items-center justify-between px-4 pb-2 pt-1 text-[var(--tk-color-night)]">
             <span className="grid size-6 place-items-center rounded-pill bg-black/10 text-[10px]">✕</span>
             <span className="h-6 w-12 rounded-pill bg-black/10" />
           </div>
-          <div onClick={onTap} className="cursor-pointer px-2.5 transition-transform duration-[var(--tk-motion-fast)] active:scale-[.98]">
-            <AppleFront d={d} anim={loop.running} fit />
+          {/* the card is a pointer shortcut; the "Add a stamp" pill below is the accessible control */}
+          <div onClick={view === 'back' ? undefined : onTap} className={view === 'back' ? 'min-h-0 flex-1 px-2.5 pb-2.5' : 'cursor-pointer px-2.5 transition-transform duration-[var(--tk-motion-fast)] active:scale-[.98]'}>
+            {view === 'front' ? <AppleFront d={d} anim={loop.running} fit /> : view === 'google' ? <GoogleCard d={d} anim={loop.running} /> : <AppleBack d={d} />}
           </div>
         </div>
       </div>
       <div className="flex gap-2">
-        {!loop.reduced && (
+        {!loop.reduced && view !== 'back' && (
           <button type="button" onClick={() => onPlayingChange(!playing)}
             className="inline-flex h-9 items-center gap-1.5 rounded-pill bg-white/15 px-3.5 text-sm font-medium text-white backdrop-blur hover:bg-white/25">
             {playing ? <Pause aria-hidden className="size-3.5" /> : <Play aria-hidden className="size-3.5" />}{playing ? 'Pause filling' : 'Play filling'}
           </button>
         )}
-        <button type="button" onClick={onTap} className="inline-flex h-9 items-center rounded-pill bg-white px-3.5 text-sm font-semibold text-[var(--tk-color-night)] hover:bg-white/90">Add a stamp</button>
+        {view !== 'back' && <button type="button" onClick={onTap} className="inline-flex h-9 items-center rounded-pill bg-white px-3.5 text-sm font-semibold text-[var(--tk-color-night)] hover:bg-white/90">Add a stamp</button>}
       </div>
     </div>
   );

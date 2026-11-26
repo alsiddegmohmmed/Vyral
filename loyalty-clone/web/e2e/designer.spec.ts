@@ -24,7 +24,7 @@ test.describe('F02 design and publish a card', () => {
     const id = await createCard(page, 'Smoothie card');
     await checkA11y('S04 designer: design tab');
     await page.getByLabel('Name on the card').fill('Neza Smoothies');
-    await page.getByRole('radio', { name: 'flower' }).click();
+    await page.locator('label', { has: page.getByRole('radio', { name: 'flower' }) }).click();
     await page.getByRole('button', { name: 'More (Stamps for a reward)' }).click();
     await page.getByRole('tab', { name: 'Details' }).click();
     await checkA11y('S05 designer: details tab');
@@ -285,5 +285,36 @@ test.describe('F02 mystery box in the designer', () => {
       `select c.reward_mode, (select count(*)::int from reward_prizes p where p.campaign_id = c.id) as n, r.name as reward
          from campaigns c join rewards r on r.campaign_id = c.id and r.position = 1 where c.id = $1`, [id]);
     expect(c).toMatchObject({ reward_mode: 'mystery', n: 3, reward: 'Mystery box' });
+  });
+});
+
+test.describe('F02 logo → design in the designer', () => {
+  test.beforeEach(async ({ loginAsOwner }) => {
+    await loginAsOwner();
+    const org = await seedOrg();
+    await sql(`delete from campaigns where org_id = $1 and short_code not in ('neza1cup','neza2pas')`, [org!.id]);
+  });
+
+  test('F02-L1 a logo uploaded in the designer sets the colours, header and stamp; presets and the logo stamp switch', async ({ page, checkA11y }) => {
+    const id = await createCard(page, 'Designer logo');
+    await page.getByLabel('Upload your logo').setInputFiles('e2e/fixtures/test-logo.png');
+    await expect(page.getByRole('status').filter({ hasText: 'We found a symbol and a wordmark.' })).toBeVisible();
+    await expect(page.getByRole('radio', { name: 'From your logo' })).toBeChecked();
+    await expect(page.getByRole('radio', { name: 'Your logo', exact: true })).toBeChecked();
+    await checkA11y('designer: logo designed');
+    const imgs = () => one<{ logo: boolean; stamp: boolean }>('select logo_image_id is not null as logo, stamp_image_id is not null as stamp from campaigns where id = $1', [id]);
+    expect(await imgs()).toMatchObject({ logo: true, stamp: true });
+    // the colours need a save, like any other edit
+    await page.getByRole('button', { name: 'Save changes' }).click();
+    await expect(page.getByText('Saved.', { exact: true })).toBeVisible();
+    expect((await one<{ bg: string; logo_text: string }>(`select background_color as bg, coalesce(logo_text, '') as logo_text from campaigns where id = $1`, [id]))).toMatchObject({ bg: '#EDEDE7', logo_text: '' });
+    // a preset stamp replaces the logo's symbol, and the logo can come back
+    await page.locator('label', { has: page.getByRole('radio', { name: 'flower' }) }).click();
+    await expect.poll(async () => (await imgs())!.stamp).toBe(false);
+    await page.locator('label', { has: page.getByRole('radio', { name: 'Your logo', exact: true }) }).click();
+    await expect.poll(async () => (await imgs())!.stamp).toBe(true);
+    // the phone switches between Apple, the back and Google
+    await page.locator('label', { has: page.getByRole('radio', { name: 'Google' }) }).click();
+    await expect(page.getByRole('radio', { name: 'Google' })).toBeChecked();
   });
 });
