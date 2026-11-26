@@ -39,6 +39,9 @@
 @keyframes box-pulse { 0%, 55% { opacity: 0; transform: scale(.6); } 72% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1.3); } }
 .box-close { stroke-dasharray: 503; animation: box-close 1100ms var(--tk-motion-ease) both; }
 .box-pulse { transform-box: view-box; transform-origin: 128px 128px; animation: box-pulse 1400ms ease-out both; }
+/* mystery box game: each tap shakes the box harder; reduced motion keeps it still */
+@keyframes box-shake { 0%, 100% { transform: rotate(0); } 20% { transform: rotate(calc(var(--k) * -1deg)) scale(1.04); } 40% { transform: rotate(calc(var(--k) * 1deg)); } 60% { transform: rotate(calc(var(--k) * -.6deg)); } 80% { transform: rotate(calc(var(--k) * .4deg)); } }
+.box-shake { animation: box-shake 420ms var(--tk-motion-ease); }
 /* a stamp drops into place with a small overshoot (kit: Motion, Stamp added) */
 @keyframes stamp-land { from { opacity: 0; transform: scale(.35); } to { opacity: 1; transform: none; } }
 .stamp-land { transform-box: fill-box; transform-origin: center; animation: stamp-land 450ms var(--tk-motion-land) both; }

@@ -53,7 +53,7 @@ test('M-H1 set up a mystery box, a full card draws a prize, the customer opens i
   // 3. the customer opens it on the web card
   await page.goto(`/c/${card.serial}`);
   await expect(page.getByRole('heading', { name: 'You have a mystery box' })).toBeVisible();
-  await page.getByRole('button', { name: 'Open your mystery box' }).click();
+  for (let i = 0; i < 3; i++) await page.getByRole('button', { name: /^Open your mystery box/ }).click(); // three taps open it
   await expect(page.getByRole('status').filter({ hasText: won!.prize_name })).toBeVisible();
   await checkA11y('web card: mystery box opened');
 
