@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState, useTransition } from 'react';
-import { ArrowLeft, ArrowRight, Check, Rocket, SlidersHorizontal } from 'lucide-react';
+import Link from 'next/link';
+import { ArrowLeft, ArrowRight, Check, Gift, MapPin, Palette, Rocket, SlidersHorizontal, Store } from 'lucide-react';
 import { Banner } from '@/components/ui/feedback';
 import { Field, TextInput } from '@/components/ui/field';
 import { PhoneMockup } from '@/components/loyalty/pass-preview';
@@ -12,10 +13,10 @@ import { cn } from '@/lib/cn';
 import type { Prize } from '@/lib/data/types';
 import { createCardFromWizardAction } from '@/app/(app)/cards/actions';
 
-// New-card wizard. Structure and proportions follow StampMate's /start (measured,
-// see replica/design/reference-stampmate.md): a two-part frame, a white question
-// card and a stage with the card in a phone. Everything you see is Garuka's own:
-// colours, type, mark, phone drawing, wording and presets.
+// New-card wizard, inside the dashboard shell. The question card, tiles, inputs and
+// review list use the same bordered-card language as the rest of the dashboard; the
+// pill buttons and the phone stage keep the StampMate-derived treatment
+// (replica/design/reference-stampmate.md). Colours, type, mark and copy are Garuka's.
 
 type StepId = 'intro' | 'type' | 'look' | 'reward' | 'where' | 'review';
 type State = {
@@ -26,10 +27,11 @@ type State = {
 const KEY = 'garuka:new-card';
 const ICON_NAMES: Record<string, string> = { cup: 'Cup', soda: 'Juice', scissors: 'Scissors', dumbbell: 'Dumbbell', utensils: 'Plate', croissant: 'Croissant', star: 'Star', heart: 'Heart', paw: 'Paw', flower: 'Flower' };
 
-// shared pieces of the measured look
-const tileCls = 'relative flex w-full flex-col items-start justify-between gap-2.5 rounded-[20px] bg-surface p-3.5 text-left text-sm font-medium transition-colors duration-[var(--tk-motion-fast)] hover:bg-nav-active';
-const chipCls = 'grid h-12 min-w-12 place-items-center rounded-[14px] bg-surface px-3 font-mono text-base tabular text-text peer-checked:bg-accent-subtle peer-checked:text-accent peer-checked:ring-2 peer-checked:ring-accent peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus';
-const inputCls = 'h-12 rounded-[14px] border-transparent bg-surface px-4 text-base focus:border-accent';
+// dashboard language: bordered raised surfaces, accent ring + tint when chosen
+const tileCls = 'relative flex w-full flex-col items-start justify-between gap-3 rounded-md border border-border bg-surface-raised p-4 text-left text-sm font-semibold shadow-card transition-[border-color,background-color] duration-[var(--tk-motion-fast)] hover:border-border-input';
+const tileOn = 'border-accent bg-accent-subtle hover:border-accent';
+const chipCls = 'grid h-11 min-w-11 place-items-center rounded-md border border-border bg-surface-raised px-3 text-base font-semibold tabular text-text transition-colors duration-[var(--tk-motion-fast)] hover:border-border-input peer-checked:border-accent peer-checked:bg-accent-subtle peer-checked:text-accent peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus';
+const inputCls = 'h-12';
 const pillPrimary = 'inline-flex h-[54px] w-full items-center justify-center gap-2 rounded-pill bg-accent px-5 text-base font-semibold text-on-accent shadow-[0_12px_26px_-10px_rgba(106,59,224,.7)] transition-[background-color,transform] duration-[var(--tk-motion-fast)] hover:bg-accent-hover active:translate-y-px disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none';
 
 export function CardWizard({ orgName, locations }: { orgName: string; locations: { id: string; name: string }[] }) {
@@ -91,6 +93,15 @@ export function CardWizard({ orgName, locations }: { orgName: string; locations:
     }
   });
 
+  // what the intro lists: the questions ahead, in order
+  const ahead = [
+    { icon: Store, t: 'Your kind of business', d: 'We suggest a stamp, a reward and colours.' },
+    { icon: Palette, t: 'How the card looks', d: 'Names, colours and the stamp.' },
+    { icon: Gift, t: 'What a full card gets', d: 'One reward, or a mystery box of prizes.' },
+    ...(locations.length ? [{ icon: MapPin, t: 'Where it works', d: 'The locations customers can use it at.' }] : []),
+    { icon: Rocket, t: 'Go live or fine-tune', d: 'Get your QR code now, or keep it as a draft.' },
+  ];
+
   const title: Record<StepId, string> = {
     intro: 'Make a stamp card in a minute.', type: 'What kind of business is it?', look: 'How should the card look?',
     reward: 'What does a full card get?', where: 'Where can customers use it?', review: 'Ready to go?',
@@ -103,52 +114,42 @@ export function CardWizard({ orgName, locations }: { orgName: string; locations:
     where: 'Customers can collect stamps at the locations you tick.',
     review: 'Go live now and get your QR code, or fine-tune the details first.',
   };
-  const n = String(s.step).padStart(2, '0');
 
   return (
-    <div className="grid gap-4 rounded-[44px] bg-[radial-gradient(120%_80%_at_30%_0%,var(--tk-color-paper),var(--tk-color-nav-active))] p-3 shadow-[0_40px_90px_-30px_rgba(0,0,0,.6)] sm:p-4 lg:min-h-[672px] lg:grid-cols-[minmax(0,1.11fr)_minmax(0,1fr)]">
-      {/* question card */}
-      <section aria-labelledby="wizard-title" className="flex min-w-0 flex-col rounded-[32px] bg-white px-5 pb-6 pt-6 text-text sm:px-[30px] sm:pb-[30px] sm:pt-7">
-        {stepId === 'intro' ? (
-          <p className="font-mono text-[11px] uppercase tracking-[.08em] text-text-muted">Garuka · New card</p>
-        ) : (
-          <>
-            <div className="flex items-center justify-between gap-3">
-              <button type="button" onClick={() => go(s.step - 1)} className="inline-flex h-9 items-center gap-1.5 rounded-pill bg-surface pl-2 pr-3 text-[13px] font-medium text-text-muted hover:text-text">
-                <ArrowLeft aria-hidden className="size-4" />Back
-              </button>
-              <p className="flex items-baseline gap-1.5">
-                <span className="sr-only">Step {s.step} of {questions}</span>
-                <b aria-hidden className="font-mono text-[26px] font-medium leading-none tracking-tight text-accent tabular">{n}</b>
-                <span aria-hidden className="font-mono text-xs text-text-muted tabular">/ {String(questions).padStart(2, '0')}</span>
-              </p>
-            </div>
-            <div className="mt-4 h-1.5 overflow-hidden rounded-pill bg-surface" role="progressbar" aria-label="New card progress" aria-valuemin={1} aria-valuemax={questions} aria-valuenow={s.step}>
+    <>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 sm:mb-8">
+        {stepId === 'intro'
+          ? <Link href="/cards" className="inline-flex items-center gap-1.5 text-sm text-text-muted hover:text-text hover:underline"><ArrowLeft aria-hidden className="size-4" />All cards</Link>
+          : <button type="button" onClick={() => go(s.step - 1)} className="inline-flex items-center gap-1.5 text-sm text-text-muted hover:text-text hover:underline"><ArrowLeft aria-hidden className="size-4" />Back</button>}
+        {stepId !== 'intro' && (
+          <div className="flex min-w-[220px] flex-1 items-center justify-end gap-3 sm:flex-none">
+            <div className="h-1.5 w-full max-w-[200px] overflow-hidden rounded-pill bg-nav-active" role="progressbar" aria-label="New card progress" aria-valuemin={1} aria-valuemax={questions} aria-valuenow={s.step}>
               <div className="h-full rounded-pill bg-accent transition-[width] duration-[var(--tk-motion-base)] ease-out" style={{ width: `${(s.step / questions) * 100}%` }} />
             </div>
-          </>
+            <p className="shrink-0 text-sm tabular text-text-muted">Step {s.step} of {questions}</p>
+          </div>
         )}
+      </div>
 
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-8">
+      {/* question card */}
+      <section aria-labelledby="wizard-title" className="flex min-w-0 flex-col rounded-lg border border-border bg-surface-raised p-5 shadow-card sm:p-8">
         <h1 id="wizard-title" ref={heading} tabIndex={-1}
-          className={cn('outline-none', stepId === 'intro' ? 'mt-6 max-w-[11ch] text-[44px] leading-[1] tracking-[-0.045em] sm:text-[60px]' : 'mt-6 text-[30px] leading-[1.05] tracking-[-0.04em] sm:text-[38px]')}>
+          className={cn('text-balance font-extrabold outline-none tracking-[-0.035em]', stepId === 'intro' ? 'text-[2.5rem] leading-[1.02] sm:text-[3rem]' : 'text-3xl')}>
           {title[stepId]}
         </h1>
-        <p className="mt-3 max-w-[46ch] text-[15px] leading-[1.5] text-text-muted">{lead[stepId]}</p>
+        <p className="mt-3 max-w-[52ch] text-base text-text-muted">{lead[stepId]}</p>
 
         <div className="mt-6 flex-1">
           {stepId === 'intro' && (
-            <ul className="grid grid-cols-3 gap-2">
-              {[
-                { n: String(questions), l: 'quick questions', c: 'bg-accent text-on-accent' },
-                { n: '1', l: 'minute', c: 'bg-[var(--tk-color-night)] text-white' },
-                { n: '0', l: 'apps for customers', c: 'bg-[var(--tk-color-sunrise)] text-[var(--tk-color-night)]' },
-              ].map((t) => (
-                <li key={t.l} className={cn('flex min-h-[83px] flex-col justify-between rounded-[20px] px-4 py-3.5', t.c)}>
-                  <span className="font-mono text-[28px] font-medium leading-none tabular">{t.n}</span>
-                  <span className="text-[13px] font-medium leading-tight">{t.l}</span>
+            <ol className="divide-y divide-border rounded-md border border-border">
+              {ahead.map(({ icon: Icon, t, d }) => (
+                <li key={t} className="flex items-center gap-4 px-4 py-3.5">
+                  <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-sm bg-accent-subtle text-accent"><Icon className="size-[18px]" /></span>
+                  <span className="min-w-0 flex-1"><span className="block font-semibold">{t}</span><span className="block text-sm text-text-muted">{d}</span></span>
                 </li>
               ))}
-            </ul>
+            </ol>
           )}
 
           {stepId === 'type' && (
@@ -158,8 +159,8 @@ export function CardWizard({ orgName, locations }: { orgName: string; locations:
                 const on = s.typeId === b.id;
                 return (
                   <li key={b.id}>
-                    <button type="button" aria-pressed={on} onClick={() => pickType(b.id)} className={cn(tileCls, 'min-h-[96px]', on && 'bg-accent-subtle ring-2 ring-accent')}>
-                      <Icon aria-hidden className="size-[22px] text-accent" />
+                    <button type="button" aria-pressed={on} onClick={() => pickType(b.id)} className={cn(tileCls, 'min-h-[100px]', on && tileOn)}>
+                      <span aria-hidden className="grid size-9 place-items-center rounded-sm bg-accent-subtle text-accent"><Icon className="size-5" /></span>
                       {b.label}
                       {on && <Check aria-hidden className="absolute right-3.5 top-3.5 size-4 text-accent" />}
                     </button>
@@ -179,12 +180,12 @@ export function CardWizard({ orgName, locations }: { orgName: string; locations:
               </Field>
               <fieldset>
                 <legend className="text-sm font-semibold">Colours</legend>
-                <div className="mt-2 flex flex-wrap gap-2 rounded-[20px] bg-surface p-3">
+                <div className="mt-2 flex flex-wrap gap-2">
                   {THEMES.map((t) => (
                     <label key={t.id} className="cursor-pointer">
                       <input type="radio" name="theme" value={t.id} checked={s.themeId === t.id} onChange={() => setS((x) => ({ ...x, themeId: t.id }))} className="peer sr-only" />
                       <span className="sr-only">{t.name}</span>
-                      <span aria-hidden title={t.name} className="grid size-9 place-items-center rounded-pill ring-offset-2 ring-offset-[var(--tk-color-surface)] peer-checked:ring-2 peer-checked:ring-accent peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-4 peer-focus-visible:outline-focus" style={{ background: t.background }}>
+                      <span aria-hidden title={t.name} className="grid size-9 place-items-center rounded-pill ring-offset-2 ring-offset-[var(--tk-color-surface-raised)] peer-checked:ring-2 peer-checked:ring-accent peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-4 peer-focus-visible:outline-focus" style={{ background: t.background }}>
                         <span className="size-3 rounded-pill" style={{ background: t.stamp }} />
                       </span>
                     </label>
@@ -198,7 +199,7 @@ export function CardWizard({ orgName, locations }: { orgName: string; locations:
                     <label key={k} className="cursor-pointer">
                       <input type="radio" name="icon" value={k} checked={s.icon === k} onChange={() => setS((x) => ({ ...x, icon: k }))} className="peer sr-only" />
                       <span className="sr-only">{ICON_NAMES[k] ?? k}</span>
-                      <span aria-hidden className={cn(chipCls, 'w-12 px-0')}><Icon className="size-5" /></span>
+                      <span aria-hidden className={cn(chipCls, 'w-11 px-0')}><Icon className="size-5" /></span>
                     </label>
                   ))}
                 </div>
@@ -221,12 +222,12 @@ export function CardWizard({ orgName, locations }: { orgName: string; locations:
               </fieldset>
               <fieldset>
                 <legend className="sr-only">A full card gets</legend>
-                <div className="inline-flex gap-1 rounded-pill bg-surface p-1">
+                <div className="inline-flex gap-1 rounded-md bg-surface p-1">
                   {([['single', 'One reward'], ['mystery', 'Mystery box']] as const).map(([v, l]) => (
                     <label key={v} className="cursor-pointer">
                       <input type="radio" name="rewardMode" value={v} checked={s.rewardMode === v} className="peer sr-only"
                         onChange={() => setS((x) => ({ ...x, rewardMode: v, prizes: v === 'mystery' && x.prizes.length < 2 ? starterPrizes(x.reward) : x.prizes }))} />
-                      <span className="flex h-9 items-center rounded-pill px-4 text-sm font-medium text-text-muted peer-checked:bg-white peer-checked:text-text peer-checked:shadow-card peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-focus">{l}</span>
+                      <span className="flex h-9 items-center rounded-sm px-3.5 text-sm font-medium text-text-muted peer-checked:bg-surface-raised peer-checked:font-semibold peer-checked:text-text peer-checked:shadow-card peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-focus">{l}</span>
                     </label>
                   ))}
                 </div>
@@ -247,7 +248,7 @@ export function CardWizard({ orgName, locations }: { orgName: string; locations:
               <ul className="flex flex-col gap-2">
                 {locations.map((l) => (
                   <li key={l.id}>
-                    <label className={cn(tileCls, 'flex-row items-center justify-start gap-3 py-4 has-[:checked]:bg-accent-subtle has-[:checked]:ring-2 has-[:checked]:ring-accent')}>
+                    <label className={cn(tileCls, 'cursor-pointer flex-row items-center justify-start gap-3 has-[:checked]:border-accent has-[:checked]:bg-accent-subtle')}>
                       <input type="checkbox" className="size-5 accent-[var(--tk-color-accent)]" checked={s.locIds.includes(l.id)}
                         onChange={(e) => setS((x) => ({ ...x, locIds: e.target.checked ? [...x.locIds, l.id] : x.locIds.filter((i) => i !== l.id) }))} />
                       {l.name}
@@ -260,7 +261,7 @@ export function CardWizard({ orgName, locations }: { orgName: string; locations:
           )}
 
           {stepId === 'review' && (
-            <dl className="divide-y divide-white overflow-hidden rounded-[20px] bg-surface">
+            <dl className="divide-y divide-border rounded-md border border-border">
               {([
                 ['Card name', s.name, 'look'], ['Name on the card', s.programName || orgName, 'look'], ['Colours and stamp', `${theme.name}, ${ICON_NAMES[s.icon] ?? s.icon}`, 'look'],
                 ['Reward', s.rewardMode === 'mystery' ? `Mystery box of ${s.prizes.length} prizes after ${s.totalStamps} stamps` : `${s.reward} after ${s.totalStamps} stamps`, 'reward'],
@@ -294,17 +295,18 @@ export function CardWizard({ orgName, locations }: { orgName: string; locations:
               <p className="text-center text-xs text-text-muted">Going live locks the number of stamps ({s.totalStamps}). Colours and texts can still change later.</p>
             </>
           )}
-          {stepId === 'intro' && <p className="text-xs text-text-muted">Nothing goes live until you say so.</p>}
+          {stepId === 'intro' && <p className="text-center text-xs text-text-muted">Nothing goes live until you say so.</p>}
         </div>
       </section>
 
       {/* stage: the card in a phone */}
-      <aside aria-label="Card preview" className="relative flex min-h-[560px] items-center justify-center overflow-hidden rounded-[32px] bg-[radial-gradient(90%_70%_at_80%_10%,rgba(255,178,63,.55),transparent_60%),radial-gradient(80%_80%_at_10%_100%,var(--tk-color-night),transparent_70%),linear-gradient(160deg,var(--tk-color-jacaranda),var(--tk-color-accent-hover))] py-8">
+      <aside aria-label="Card preview" className="relative flex min-h-[640px] lg:sticky lg:top-6 items-center justify-center overflow-hidden rounded-lg bg-[radial-gradient(90%_70%_at_80%_10%,rgba(255,178,63,.55),transparent_60%),radial-gradient(80%_80%_at_10%_100%,var(--tk-color-night),transparent_70%),linear-gradient(160deg,var(--tk-color-jacaranda),var(--tk-color-accent-hover))] py-8">
         <GarukaMark className="pointer-events-none absolute -bottom-24 -right-20 size-[380px] opacity-[.14]" ring="#ffffff" dot="#ffffff" />
         <p className="sr-only" aria-live="polite">{design.programName}: {design.total}-stamp card, reward {design.reward}.</p>
         <PhoneMockup design={design} playing={playing} onPlayingChange={setPlaying}
           onTap={() => { setPlaying(false); setFilled((f) => (f >= s.totalStamps ? 0 : f + 1)); }} />
       </aside>
-    </div>
+      </div>
+    </>
   );
 }
