@@ -42,3 +42,23 @@ Studied 2026-11-25/26 at `trystampmate.com/start` in the in-app browser.
 
 **Not taken:**
 - **The Google business search.** It needs a Places API key.
+
+## Visual layout (measured 2026-11-26 at 1440 px) and how ours maps it
+
+The owner asked for the wizard to "look exactly like" StampMate's /start, in Garuka's identity. We copy the **structure and proportions**; colours, type, mark, phone drawing and wording are ours.
+
+| element | theirs (measured) | ours |
+| --- | --- | --- |
+| page | dark section, nav on top, 72 px side padding | full-screen route `app/(wizard)` (no sidebar): Night ground with a Jacaranda and Sunrise glow, Garuka lockup, and a "Close" pill |
+| frame | 1240×672, radius 44, padding 16, gap 16, light radial gradient, deep shadow | the same: radius 44, padding 16 (12 on phones), gap 16, a Paper→nav-active radial, the same shadow |
+| question card | white, radius 32, padding 28/30/30, ~52% of the width | the same; grid `1.11fr / 1fr` |
+| eyebrow | 11 px mono, tracked 0.08em, uppercase | IBM Plex Mono 11 px, "Garuka · New card" |
+| intro headline | 60/60, tracking −0.045em, light weight | Bricolage 60/60 (44 on phones), −0.045em |
+| intro pills | three 83 px colour pills, radius 20, padding 14/16 | the same shape in Jacaranda, Night and Sunrise: "5 quick questions · 1 minute · 0 apps for customers" |
+| primary button | full width, 54 px pill, tinted glow shadow | the same, Jacaranda with a Jacaranda glow |
+| step header | 36 px "Back" pill; counter "01" (26 px display) plus "/ 06" (12 px mono) | the same; the counter is Plex Mono in Jacaranda |
+| progress | 6 px pill track | the same |
+| step headline | 38/40, −0.04em | the same (30 on phones) |
+| option tiles | 3 columns, 8 px gap, 96 px tall, radius 20, padding 14, grey fill, 22 px accent icon, 14/500 label | the same in surface and accent; selected = accent-subtle plus a 2 px accent ring and a check |
+| inputs and chips | filled grey, no border, rounded | 48 px filled inputs (radius 14), 48 px chips (radius 14) with mono digits |
+| stage | radius 32, warm gradient, phone ~270×565 | radius 32, a Jacaranda gradient with a Sunrise glow and a large faint ring mark; our own 270×565 phone (Night frame, status bar, wallet-style screen); the card fits inside |

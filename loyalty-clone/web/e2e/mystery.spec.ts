@@ -14,6 +14,7 @@ test.beforeEach(async ({ loginAsOwner }) => {
 test('M-H1 set up a mystery box, a full card draws a prize, the customer opens it, staff hand it over', async ({ page, checkA11y }) => {
   // 1. owner: the wizard's reward step switches to a mystery box with three prizes
   await page.goto('/cards/new');
+  await page.getByRole('button', { name: 'Start', exact: true }).click();
   await page.getByRole('button', { name: 'Café' }).click();
   await page.getByLabel('Card name').fill('Box card');
   await page.getByRole('button', { name: 'Next', exact: true }).click();

@@ -30,6 +30,8 @@ export async function expectNoHorizontalScroll(page: Page) {
 export async function wizardCreate(page: Page, name: string, opts: { type?: string; goLive?: boolean } = {}) {
   await page.getByRole('link', { name: 'New card' }).first().click();
   await expect(page).toHaveURL(/\/cards\/new$/);
+  // an intro screen comes first (layout modelled on StampMate's /start)
+  await page.getByRole('button', { name: 'Start', exact: true }).click();
   await page.getByRole('button', { name: opts.type ?? 'Café' }).click();
   await page.getByLabel('Card name').fill(name);
   await page.getByRole('button', { name: 'Next', exact: true }).click();

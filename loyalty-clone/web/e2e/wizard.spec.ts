@@ -13,6 +13,9 @@ test.beforeEach(async ({ loginAsOwner }) => {
 test('W-H1 a barber card: the type fills in sensible defaults, every answer shows on the card, go live in one go @mobile', async ({ page, checkA11y }) => {
   await page.goto('/cards');
   await page.getByRole('link', { name: 'New card' }).first().click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Make a stamp card in a minute.' })).toBeVisible();
+  await checkA11y('wizard: intro');
+  await page.getByRole('button', { name: 'Start', exact: true }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'What kind of business is it?' })).toBeVisible();
   await expect(page.getByText('step 1 of 5')).toBeVisible();
   await checkA11y('wizard: type');
@@ -58,6 +61,7 @@ test('W-H1 a barber card: the type fills in sensible defaults, every answer show
 
 test('W-H2 tap the preview card to add a stamp; it stops filling by itself', async ({ page }) => {
   await page.goto('/cards/new');
+  await page.getByRole('button', { name: 'Start', exact: true }).click();
   await page.getByRole('button', { name: 'Café' }).click();
   const tap = page.getByRole('button', { name: 'Add a stamp', exact: true });
   await tap.click();
@@ -70,6 +74,7 @@ test('W-H2 tap the preview card to add a stamp; it stops filling by itself', asy
 
 test('W-E1 answers survive a reload, and an empty reward blocks Next', async ({ page }) => {
   await page.goto('/cards/new');
+  await page.getByRole('button', { name: 'Start', exact: true }).click();
   await page.getByRole('button', { name: 'Bakery' }).click();
   await page.getByLabel('Card name').fill('Croissant club');
   await page.reload();
