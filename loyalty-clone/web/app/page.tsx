@@ -4,13 +4,6 @@ import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { ArrowRight, Check, LifeBuoy, MessageCircle, QrCode, RefreshCw, ScanLine, ShieldCheck, Smartphone, Stamp, Wallet } from 'lucide-react';
 import { GarukaLockup, GarukaMark } from '@/components/brand/garuka-mark';
-import { LivePassCard } from '@/components/loyalty/pass-preview';
-
-// Demo card for the hero: a made-up café, so the stamps fill on their own.
-const demoCard = {
-  business: 'Café Neza', programName: 'Café Neza', reward: 'Free coffee', total: 8, filled: 5, icon: 'cup',
-  background: '#2b1e17', foreground: '#f3e6d3', label: '#d9b99b', stamp: '#ffb23f', logoText: 'Café Neza',
-};
 import { buttonClass } from '@/components/ui/button';
 import { getContextFromSession, PLAN_LIMITS, PRICES } from '@/lib/data/api';
 import { SESSION_COOKIE } from '@/lib/session';
@@ -72,12 +65,9 @@ export default async function Landing() {
             </div>
             <p className="mt-4 text-sm text-text-muted">No card or MoMo needed to start. Customers need no app.</p>
           </div>
-          <div className="relative lg:pb-16 lg:pl-16">
           <figure className="overflow-hidden rounded-lg border border-border bg-surface shadow-pass">
             <Image src="/landing/dashboard-overview-v4.jpg" alt="The Garuka dashboard for a café’s coffee card: new customers, stamps given and rewards for the last 30 days, a bar chart of stamps per day, and the QR code customers scan to join." width={1440} height={900} priority className="h-auto w-full" />
           </figure>
-          <LivePassCard design={demoCard} className="mx-auto mt-8 w-[220px] lg:absolute lg:bottom-0 lg:left-0 lg:mt-0 lg:w-[210px]" />
-          </div>
         </section>
 
         {/* 2. the problem */}
