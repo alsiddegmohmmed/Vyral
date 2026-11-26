@@ -213,12 +213,6 @@ export function CardWizard({ orgName, locations }: { orgName: string; locations:
                       {s.logo.symbol && <img src={s.logo.symbol} alt="Logo symbol" className="size-10 object-contain" />}
                       {s.logo.wordmark && <img src={s.logo.wordmark} alt="Logo wordmark" className="h-8 max-w-[160px] object-contain" />}
                     </div>
-                    {s.logo.symbol && (
-                      <label className="flex items-center gap-2 text-sm">
-                        <input type="checkbox" className="size-4 accent-[var(--tk-color-accent)]" checked={s.logoStamp} onChange={(e) => setS((x) => ({ ...x, logoStamp: e.target.checked }))} />
-                        Use the symbol as your stamp
-                      </label>
-                    )}
                   </div>
                 )}
               </section>
@@ -245,9 +239,16 @@ export function CardWizard({ orgName, locations }: { orgName: string; locations:
               <fieldset>
                 <legend className="text-sm font-semibold">Stamp</legend>
                 <div className="mt-2 flex flex-wrap gap-2">
+                  {s.logo?.symbol && (
+                    <label className="cursor-pointer">
+                      <input type="radio" name="icon" value="logo" checked={s.logoStamp} onChange={() => setS((x) => ({ ...x, logoStamp: true }))} className="peer sr-only" />
+                      <span className="sr-only">Your logo</span>
+                      <span aria-hidden className={cn(chipCls, 'w-11 px-0')}><img src={s.logo.symbol} alt="" className="size-6 object-contain" /></span>
+                    </label>
+                  )}
                   {Object.entries(stampIcons).map(([k, Icon]) => (
                     <label key={k} className="cursor-pointer">
-                      <input type="radio" name="icon" value={k} checked={s.icon === k} onChange={() => setS((x) => ({ ...x, icon: k }))} className="peer sr-only" />
+                      <input type="radio" name="icon" value={k} checked={!(s.logo?.symbol && s.logoStamp) && s.icon === k} onChange={() => setS((x) => ({ ...x, icon: k, logoStamp: false }))} className="peer sr-only" />
                       <span className="sr-only">{ICON_NAMES[k] ?? k}</span>
                       <span aria-hidden className={cn(chipCls, 'w-11 px-0')}><Icon className="size-5" /></span>
                     </label>

@@ -96,7 +96,8 @@ test('W-L1 a logo designs the card: symbol becomes the stamp, wordmark the heade
   await expect(page.getByRole('img', { name: 'Logo symbol' })).toBeVisible();
   await expect(page.getByRole('img', { name: 'Logo wordmark' })).toBeVisible();
   await expect(page.getByRole('radio', { name: 'From your logo' })).toBeChecked();
-  await expect(page.getByLabel('Use the symbol as your stamp')).toBeChecked();
+  // the logo's symbol is the first stamp option and is chosen; a preset can replace it
+  await expect(page.getByRole('radio', { name: 'Your logo', exact: true })).toBeChecked();
   await checkA11y('wizard: logo designed');
   await page.getByRole('button', { name: 'Next', exact: true }).click();
   await page.getByRole('button', { name: 'Next', exact: true }).click();
