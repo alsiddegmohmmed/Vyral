@@ -476,7 +476,7 @@ export async function scanLookup(ctx: OrgContext, code: { qr?: string; manual?: 
   const r = await one<Record<string, unknown> & { customerName: string; status: string }>(
     `select k.id, k.status, k.current_stamps, k.rewards_available, k.total_stamps_earned, k.last_visit_at, cu.name as customer_name,
             c.name as campaign_name, c.total_stamps, c.max_stamps_per_transaction, c.reward_mode,
-            coalesce((select json_agg(json_build_object('name', cp.prize_name, 'tier', cp.tier) order by cp.earned_at, cp.id) from card_prizes cp where cp.card_id = k.id and cp.redeemed_at is null), '[]') as prizes_json, c.background_color, c.foreground_color, c.label_color, c.stamp_color, c.stamp_icon, c.logo_text,
+            coalesce((select json_agg(json_build_object('name', cp.prize_name, 'tier', cp.tier, 'opened', cp.opened_at is not null) order by cp.earned_at, cp.id) from card_prizes cp where cp.card_id = k.id and cp.redeemed_at is null), '[]') as prizes_json, c.background_color, c.foreground_color, c.label_color, c.stamp_color, c.stamp_icon, c.logo_text,
             (select r.name from rewards r where r.campaign_id = c.id and r.position = 1) as reward_name
        from cards k join customers cu on cu.id = k.customer_id join campaigns c on c.id = k.campaign_id
       where k.org_id = $1 and ${where}`, [ctx.orgId, param]);
@@ -494,7 +494,7 @@ export async function scanLookup(ctx: OrgContext, code: { qr?: string; manual?: 
   };
 }
 
-const TX_KEYS: TxErrorKey[] = ['empty_transaction', 'invalid_redeem', 'card_deleted', 'card_expired', 'campaign_not_live', 'too_many_stamps', 'cooldown_active', 'daily_limit_reached', 'not_enough_stamps', 'no_reward_available'];
+const TX_KEYS: TxErrorKey[] = ['empty_transaction', 'invalid_redeem', 'card_deleted', 'card_expired', 'campaign_not_live', 'too_many_stamps', 'cooldown_active', 'daily_limit_reached', 'not_enough_stamps', 'no_reward_available', 'box_not_opened'];
 
 /** Calls apply_card_transaction (schema.sql): locked, idempotent, rule-checked, ledgered. */
 export async function applyCardTransaction(
@@ -502,6 +502,13 @@ export async function applyCardTransaction(
   input: { cardId: string; stamps: number; redeem: number; source: 'scanner' | 'dashboard'; idempotencyKey: string },
 ): Promise<{ ok: true; result: TxResult } | { ok: false; error: TxErrorKey | 'card_not_found' | 'idempotency_key_reused' }> {
   if (!/^[0-9a-f-]{36}$/.test(input.cardId)) return { ok: false, error: 'card_not_found' };
+  // a mystery prize is handed over only after the customer opened the box on their card (oldest box first)
+  if (input.redeem > 0) {
+    const box = await one<{ opened: boolean }>(
+      `select cp.opened_at is not null as opened from card_prizes cp join cards k on k.id = cp.card_id
+        where cp.card_id = $1 and k.org_id = $2 and cp.redeemed_at is null order by cp.earned_at, cp.id limit 1`, [input.cardId, ctx.orgId]);
+    if (box && !box.opened) return { ok: false, error: 'box_not_opened' };
+  }
   try {
     const r = await one<{ r: { card: Record<string, number | string>; earned: number; redeemed: number; replayed: boolean; prizes_earned?: WonPrize[]; prizes_redeemed?: WonPrize[] } }>(
       'select apply_card_transaction($1,$2,$3,$4,$5,$6,$7,$8,$9) as r',

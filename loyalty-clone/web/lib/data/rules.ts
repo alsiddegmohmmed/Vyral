@@ -28,7 +28,7 @@ export type TxInput = { stamps: number; redeem: number; source: TxSource };
 
 export type TxErrorKey =
   | 'empty_transaction' | 'invalid_redeem' | 'card_deleted' | 'card_expired' | 'campaign_not_live'
-  | 'too_many_stamps' | 'cooldown_active' | 'daily_limit_reached' | 'not_enough_stamps' | 'no_reward_available';
+  | 'too_many_stamps' | 'cooldown_active' | 'daily_limit_reached' | 'not_enough_stamps' | 'no_reward_available' | 'box_not_opened';
 
 export type TxOutcome =
   | { ok: true; earned: number; redeemed: number; card: TxCard; rotateBarcode: boolean }
@@ -98,6 +98,7 @@ export const txErrorMessage: Record<TxErrorKey | 'card_not_found' | 'card_replac
   daily_limit_reached: 'This card has had today’s maximum stamps.',
   not_enough_stamps: 'The card doesn’t have that many stamps to remove.',
   no_reward_available: 'There’s no reward ready on this card.',
+  box_not_opened: 'The customer hasn’t opened their mystery box yet. Ask them to open it on their card, then scan again.',
   card_not_found: 'We couldn’t find this card. It may belong to another business.',
   card_replaced: 'This card was replaced. Ask the customer to open their latest card and scan again.',
   invalid_code: 'That code isn’t one of our cards.',

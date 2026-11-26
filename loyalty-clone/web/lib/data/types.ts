@@ -89,7 +89,7 @@ export type IdempotencyRecord = { orgId: string; key: string; requestHash: strin
 
 export type PrizeTier = 'common' | 'rare' | 'legendary';
 export type Prize = { name: string; weight: number; tier: PrizeTier };
-export type WonPrize = { name: string; tier: PrizeTier };
+export type WonPrize = { name: string; tier: PrizeTier; /** the customer revealed it on their card (scan lookup only) */ opened?: boolean };
 export type TxResult = { cardId: string; earned: number; redeemed: number; currentStamps: number; rewardsAvailable: number; replayed: boolean; prizesEarned: WonPrize[]; prizesRedeemed: WonPrize[] };
 
 export type DB = {

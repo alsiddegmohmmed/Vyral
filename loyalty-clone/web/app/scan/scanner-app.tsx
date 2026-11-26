@@ -354,16 +354,19 @@ function Transaction({ card, confirm, onDone, onCancel, onSignedOut }: {
 
   const after = card.currentStamps + add;
   const earns = Math.floor(after / card.totalStamps);
-  const canRedeem = card.rewardsAvailable + earns > 0;
-  // mystery box: the prize is drawn by the server when the card fills; staff hand over the oldest one waiting
+  // mystery box: the prize is drawn by the server when the card fills, and the customer opens it on their
+  // card first (the little three-tap game). Staff can hand over the oldest box only once it's been opened,
+  // so a box is never given away before the customer has seen what's inside.
   const mystery = card.rewardMode === 'mystery';
   const waiting = card.prizes?.[0];
+  const unopened = mystery && !!waiting && waiting.opened === false;
+  const canRedeem = mystery ? card.rewardsAvailable > 0 && !!waiting && !unopened : card.rewardsAvailable + earns > 0;
   const tierName = (t: string) => t[0].toUpperCase() + t.slice(1);
   const giveLabel = mystery ? (waiting ? `Give ${waiting.name}` : 'Give the mystery prize') : `Give 1 ${card.rewardName.toLowerCase()}`;
   const outcome = add === 0 && !redeem ? 'Choose stamps or a reward.'
     : [add > 0 && `Add ${add} ${add === 1 ? 'stamp' : 'stamps'}`,
-      earns > 0 && (mystery ? `this completes the card: ${earns === 1 ? 'a mystery box opens' : `${earns} mystery boxes open`}` : `this completes the card: ${earns} ${card.rewardName.toLowerCase()} earned`),
-      redeem && (mystery ? (waiting ? `give ${waiting.name}` : 'give the prize the box draws') : `give 1 ${card.rewardName.toLowerCase()}`)].filter(Boolean).join(' · ');
+      earns > 0 && (mystery ? `this completes the card: ${earns === 1 ? 'a mystery box for them to open' : `${earns} mystery boxes for them to open`}` : `this completes the card: ${earns} ${card.rewardName.toLowerCase()} earned`),
+      redeem && (mystery ? `give ${waiting?.name ?? 'the prize'}` : `give 1 ${card.rewardName.toLowerCase()}`)].filter(Boolean).join(' · ');
 
   const submit = async () => {
     setBusy(true);
@@ -376,9 +379,10 @@ function Transaction({ card, confirm, onDone, onCancel, onSignedOut }: {
     const res = data.result as { earned: number; redeemed: number; currentStamps: number; replayed?: boolean; prizesEarned?: { name: string; tier: string }[]; prizesRedeemed?: { name: string; tier: string }[] };
     const title = [add > 0 && `${add} ${add === 1 ? 'stamp' : 'stamps'} added`, res.redeemed > 0 && 'Reward given'].filter(Boolean).join(' · ');
     const left = card.totalStamps - res.currentStamps;
-    const won = (res.prizesEarned ?? []).map((p) => `${p.name} (${tierName(p.tier)})`).join(', ');
     const gave = (res.prizesRedeemed ?? []).map((p) => p.name).join(', ');
-    const earnedLine = res.earned > 0 ? (won ? `Mystery box: ${won}! ` : `${res.earned} ${card.rewardName.toLowerCase()} earned! `) : '';
+    // the prize stays a surprise: the customer opens the box on their card, then staff hand it over
+    const boxes = (res.prizesEarned ?? []).length;
+    const earnedLine = res.earned > 0 ? (boxes ? `${boxes === 1 ? 'A mystery box is' : `${boxes} mystery boxes are`} ready. Ask them to open it on their card, then scan again to hand over the prize. ` : `${res.earned} ${card.rewardName.toLowerCase()} earned! `) : '';
     onDone(true, title, `${card.firstName} has ${res.currentStamps} of ${card.totalStamps}. ${earnedLine}${gave ? `Hand over: ${gave}. ` : ''}${left} more to the next reward.`);
   };
 
@@ -412,11 +416,18 @@ function Transaction({ card, confirm, onDone, onCancel, onSignedOut }: {
               <Gift aria-hidden className="size-6 shrink-0" />
               <span className="flex-1"><span className="block font-semibold">{giveLabel}</span>
                 <span className="text-xs text-scanner-muted">
-                  {mystery && waiting ? `Mystery box · ${tierName(waiting.tier)} · ` : mystery ? 'Mystery box · drawn when you save · ' : ''}
+                  {mystery && waiting ? `Mystery box · ${tierName(waiting.tier)} · ` : ''}
                   {card.rewardsAvailable + earns} {card.rewardsAvailable + earns === 1 ? 'reward' : 'rewards'} ready{earns > 0 && card.rewardsAvailable === 0 ? ' after these stamps' : ''}
                 </span></span>
               <span aria-hidden className={cn('size-6 rounded-full border-2', redeem ? 'border-scanner-success bg-scanner-success' : 'border-scanner-muted')} />
             </button>
+          )}
+          {unopened && (
+            <div role="status" className="flex min-h-16 items-center gap-3 rounded-lg border-2 border-dashed border-scanner-muted px-4">
+              <Gift aria-hidden className="size-6 shrink-0" />
+              <span className="flex-1"><span className="block font-semibold">{card.firstName || 'The customer'} has a mystery box to open</span>
+                <span className="text-xs text-scanner-muted">Ask them to open it on their card (three taps), then scan again to hand over the prize.</span></span>
+            </div>
           )}
           <p className="text-center text-sm text-scanner-muted" aria-live="polite">{outcome}</p>
           {asking ? (

@@ -50,6 +50,16 @@ test('M-H1 set up a mystery box, a full card draws a prize, the customer opens i
   await sql(`select apply_card_transaction($1, $2, 10, 0, 'dashboard', null, 'QA', $3)`, [camp!.org_id, card.id, `mystery-${card.id}`]);
   expect((await one<{ n: number }>('select count(*)::int as n from card_prizes where card_id = $1', [card.id]))!.n).toBe(1);
 
+  // 2b. staff can't hand it over before the customer has opened it (the surprise stays theirs)
+  await page.goto('/scan');
+  await page.getByRole('button', { name: 'Type the code instead' }).click();
+  await page.getByLabel('Card code').fill(card.manual_code);
+  await page.getByRole('button', { name: 'Find card' }).click();
+  await expect(page.getByText(/has a mystery box to open/)).toBeVisible();
+  await expect(page.getByRole('button', { name: `Give ${won!.prize_name}` })).toHaveCount(0);
+  await expect(page.getByText(won!.prize_name)).toHaveCount(0);
+  await checkA11y('scanner: mystery box not opened yet');
+
   // 3. the customer opens it on the web card
   await page.goto(`/c/${card.serial}`);
   await expect(page.getByRole('heading', { name: 'You have a mystery box' })).toBeVisible();

@@ -94,6 +94,8 @@ test.describe('F13 counter phones', () => {
     await checkA11y('S19 counter phones');
     await page.getByRole('button', { name: 'Pair a phone' }).click();
     const dlg = page.getByRole('dialog', { name: 'Pair a phone' });
+    // the scanner's full address is a link, not a bare "/scan"
+    await expect(dlg.getByRole('link', { name: /localhost:3100\/scan/ })).toHaveAttribute('href', '/scan');
     await dlg.getByLabel('Name for this phone').fill('Back bar ☕');
     await dlg.getByRole('button', { name: 'Get pairing code' }).click();
     const code = (await dlg.getByText(/^[0-9A-Z]{6}$/).textContent())!.trim();
