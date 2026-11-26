@@ -18,6 +18,9 @@ export async function getPassDataBySerial(serial: string): Promise<WalletPassDat
             coalesce(c.description,'') as description, coalesce(c.how_to_earn,'') as how_to_earn, coalesce(c.terms,'') as terms,
             c.stamp_message, c.reward_message, c.news_text, c.background_color, c.foreground_color, c.label_color, c.stamp_color, c.stamp_icon, c.logo_text,
             (select r.name from rewards r where r.campaign_id = c.id and r.position = 1) as reward_name,
+            c.reward_mode,
+            coalesce((select json_agg(json_build_object('name', cp.prize_name, 'tier', cp.tier, 'opened', cp.opened_at is not null) order by cp.earned_at, cp.id)
+                        from card_prizes cp where cp.card_id = k.id and cp.redeemed_at is null), '[]') as boxes,
             (select coalesce(r.details,'') from rewards r where r.campaign_id = c.id and r.position = 1) as reward_details,
             coalesce((select json_agg(json_build_object('kind', l.kind, 'label', l.label, 'value', l.value) order by l.position) from campaign_links l where l.campaign_id = c.id), '[]') as links,
             coalesce((select json_agg(json_build_object('name', l.name, 'lat', l.lat, 'lon', l.lon, 'addressOnCard', coalesce(l.address_on_card, ''), 'relevantText', coalesce(l.relevant_text, '')))
@@ -31,6 +34,8 @@ export async function getPassDataBySerial(serial: string): Promise<WalletPassDat
     currentStamps: r.currentStamps as number, rewardsAvailable: r.rewardsAvailable as number, totalStamps: r.totalStamps as number,
     noteText: (r.noteText as string) ?? undefined, newsText: (r.newsText as string) ?? undefined, passModifiedAt: r.passModifiedAt as string,
     appleAlert: { reward: r.alertReward as boolean, news: r.alertNews as boolean, note: r.alertNote as boolean },
+    mystery: r.rewardMode === 'mystery' ? { boxes: r.boxes as { name: string; tier: string; opened: boolean }[] } : undefined,
+    cardUrl: `${(process.env.PUBLIC_BASE_URL ?? 'http://localhost:3100').replace(/\/+$/, '')}/c/${r.serial as string}`,
     campaign: {
       id: r.campaignId as string, name: r.name as string, programName: r.programName as string, business: r.business as string,
       googleClassId: (r.googleClassId as string) ?? undefined, description: r.description as string, howToEarn: r.howToEarn as string, terms: r.terms as string,

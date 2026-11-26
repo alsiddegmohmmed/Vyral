@@ -317,3 +317,26 @@ test('pushPassUpdates reports malformed tokens as invalid without connecting', a
   const r = await pushPassUpdates(['not-a-token', '../../evil'], { config: { passTypeIdentifier: 'pass.x', teamIdentifier: 'T', webServiceURL: 'https://x', certPem: '', keyPem: '', wwdrPem: '' }, origin: 'https://127.0.0.1:1' });
   assert.deepEqual(r, { sent: 0, invalid: ['not-a-token', '../../evil'], failed: 0 });
 });
+
+test('mystery box on the Apple pass: "Ready to open" alerts once, the prize shows silently, the back links to the card', () => {
+  const url = 'https://garuka.example/c/ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const waiting = buildPassJson(passData({ rewardsAvailable: 1, cardUrl: url, mystery: { boxes: [{ name: 'Free pastry', tier: 'rare', opened: false }] } }), cfg);
+  const r1 = waiting.storeCard.secondaryFields[0];
+  assert.equal(r1.label, 'Mystery box'); assert.equal(r1.value, 'Ready to open');
+  assert.match(r1.changeMessage, /mystery box is ready/);
+  const link = waiting.storeCard.backFields.find((f) => f.key === 'open_box');
+  assert.match(link.attributedValue, /href='https:\/\/garuka\.example\/c\/[A-Z]+'>Open your mystery box</);
+  const opened = buildPassJson(passData({ rewardsAvailable: 1, cardUrl: url, mystery: { boxes: [{ name: 'Free pastry', tier: 'rare', opened: true }] } }), cfg);
+  const r2 = opened.storeCard.secondaryFields[0];
+  assert.equal(r2.value, 'Free pastry'); assert.equal(r2.changeMessage, undefined, 'revealing the prize must not alert again');
+});
+
+test('mystery box on the Google pass: a text module and a link to open it', () => {
+  const issuer = '3388000000012345678';
+  const classId = classIdFor(issuer, passData().campaign.id);
+  const o = buildLoyaltyObject(passData({ rewardsAvailable: 1, cardUrl: 'https://garuka.example/c/X', mystery: { boxes: [{ name: 'Free lunch', tier: 'legendary', opened: false }] } }), issuer, classId);
+  assert.ok(o.textModulesData.some((m) => m.id === 'mystery' && /ready/.test(m.body)));
+  assert.equal(o.linksModuleData.uris[0].description, 'Open your mystery box');
+  const plain = buildLoyaltyObject(passData({ rewardsAvailable: 1 }), issuer, classId);
+  assert.equal(plain.linksModuleData, undefined);
+});

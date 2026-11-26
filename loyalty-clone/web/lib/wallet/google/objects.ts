@@ -77,7 +77,19 @@ function textModules(d: WalletPassData) {
   const out: { id: string; header: string; body: string }[] = [];
   if (d.newsText) out.push({ id: 'news', header: `News from ${d.campaign.business}`, body: d.newsText });
   if (d.noteText) out.push({ id: 'note', header: 'Message', body: d.noteText });
+  if (d.mystery?.boxes.length) {
+    const waiting = d.mystery.boxes.filter((b) => !b.opened).length;
+    const won = d.mystery.boxes.filter((b) => b.opened).map((b) => b.name);
+    out.push({ id: 'mystery', header: 'Mystery box', body: waiting ? `${waiting > 1 ? `${waiting} boxes are` : 'Your box is'} ready. Open it on your card.` : `You won: ${won.join(', ')}. Show your card at the counter.` });
+  }
   return out;
+}
+
+/** The link to open a mystery box on the web card (Google "links" module). */
+function linksModule(d: WalletPassData) {
+  if (!d.mystery?.boxes.length || !d.cardUrl) return undefined;
+  const waiting = d.mystery.boxes.some((b) => !b.opened);
+  return { uris: [{ id: 'open_box', uri: d.cardUrl, description: waiting ? 'Open your mystery box' : 'See your prize' }] };
 }
 
 export function buildLoyaltyObject(d: WalletPassData, issuerId: string, classId: string) {
@@ -90,6 +102,7 @@ export function buildLoyaltyObject(d: WalletPassData, issuerId: string, classId:
     secondaryLoyaltyPoints: secondaryLoyaltyPoints(d),
     barcode: { type: 'QR_CODE' as const, value: d.qrPayload, alternateText: d.manualCode },
     textModulesData: textModules(d),
+    ...(linksModule(d) ? { linksModuleData: linksModule(d) } : {}),
   };
 }
 

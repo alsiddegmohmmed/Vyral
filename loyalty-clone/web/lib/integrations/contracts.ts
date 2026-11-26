@@ -69,6 +69,10 @@ export type WalletPassData = {
    * over its daily budget updates silently. Undefined = alerts allowed (tests, previews).
    */
   appleAlert?: { reward: boolean; news: boolean; note: boolean };
+  /** mystery box cards: prizes won and not yet handed over (opened = revealed on the web card) */
+  mystery?: { boxes: { name: string; tier: string; opened: boolean }[] };
+  /** the customer's web card, where a mystery box is opened */
+  cardUrl?: string;
   campaign: {
     id: string; name: string; programName: string; business: string;
     googleClassId?: string;

@@ -65,7 +65,7 @@ export function buildPassJson(d: WalletPassData, cfg: PassJsonConfig) {
   // Secondary: reward. The value changes when a reward becomes available (and with each
   // extra one), and only then carries a changeMessage, so earning a reward notifies and
   // redeeming it does not.
-  const reward: Field = rewardReady
+  let reward: Field = rewardReady
     ? {
         key: 'reward',
         label: 'Reward',
@@ -75,6 +75,20 @@ export function buildPassJson(d: WalletPassData, cfg: PassJsonConfig) {
     : { key: 'reward', label: 'Reward', value: c.reward.name };
 
   const backFields: Field[] = [];
+  // Mystery box: "Ready to open" alerts once (a new value with a changeMessage); revealing
+  // the prize on the web card changes it to "You won …" silently. The back carries the link.
+  if (d.mystery) {
+    const boxes = d.mystery.boxes, waiting = boxes.filter((b) => !b.opened).length, won = boxes.filter((b) => b.opened).map((b) => b.name);
+    reward = waiting
+      ? { key: 'reward', label: 'Mystery box', value: waiting > 1 ? `${waiting} boxes ready to open` : 'Ready to open',
+          ...(d.appleAlert?.reward === false ? {} : { changeMessage: 'Your mystery box is ready. Open it on your card.' }) }
+      : won.length ? { key: 'reward', label: won.length > 1 ? 'You won' : 'You won', value: won.join(', ') }
+      : { key: 'reward', label: 'Reward', value: 'Mystery box' };
+    if (d.cardUrl && boxes.length) {
+      const text = waiting ? 'Open your mystery box' : 'See your prize';
+      backFields.push({ key: 'open_box', label: 'Mystery box', value: d.cardUrl, attributedValue: `<a href='${escapeHtml(d.cardUrl)}'>${text}</a>` });
+    }
+  }
   // News and note only appear when set; each change of text notifies with the text itself.
   if (d.newsText) backFields.push({ key: 'news', label: `News from ${c.business}`, value: d.newsText, ...(d.appleAlert?.news === false ? {} : { changeMessage: '%@' }) });
   if (d.noteText) backFields.push({ key: 'note', label: 'Message', value: d.noteText, ...(d.appleAlert?.note === false ? {} : { changeMessage: '%@' }) });

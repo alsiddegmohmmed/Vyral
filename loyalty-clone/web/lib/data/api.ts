@@ -447,8 +447,10 @@ export async function getPublicCard(serial: string): Promise<PublicCard | null> 
 /** The customer opens a mystery box on their web card. The prize was drawn when the card filled; this only reveals it. */
 export async function openPrize(serial: string, prizeId: string) {
   if (!/^[0-9A-Z]{26}$/.test(serial) || !/^[0-9a-f-]{36}$/.test(prizeId)) return false;
-  const r = await one(`update card_prizes cp set opened_at = coalesce(cp.opened_at, now())
-                         from cards k where k.serial = $1 and cp.card_id = k.id and cp.id = $2 and cp.redeemed_at is null returning cp.id`, [serial, prizeId]);
+  const r = await one<{ cardId: string }>(`update card_prizes cp set opened_at = coalesce(cp.opened_at, now())
+                         from cards k where k.serial = $1 and cp.card_id = k.id and cp.id = $2 and cp.redeemed_at is null returning cp.card_id`, [serial, prizeId]);
+  // the wallet pass swaps "Ready to open" for "You won …" (silent: no reason, no alert)
+  if (r) queueWalletPush(r.cardId);
   return !!r;
 }
 
