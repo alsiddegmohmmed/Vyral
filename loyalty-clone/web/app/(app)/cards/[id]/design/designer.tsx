@@ -10,6 +10,7 @@ import { ConfirmDialog, Tabs } from '@/components/ui/overlays';
 import { ColorField } from '@/components/ui/color-field';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { PassPreview } from '@/components/loyalty/pass-preview';
+import { MysteryEditor, prizesValid, starterPrizes } from '@/components/loyalty/mystery-editor';
 import { stampIcons } from '@/components/loyalty/stamp-strip';
 import type { Campaign, CardLink, FieldType, FormField, Location } from '@/lib/data/types';
 import { activateAction, saveCardLocationsAction, saveDesignAction, saveFieldsAction } from '../../actions';
@@ -109,6 +110,7 @@ export function Designer({ campaign, locations }: { campaign: Campaign; location
     const full = {
       name: c.name, programName: c.programName, description: c.description, howToEarn: c.howToEarn, terms: c.terms, hideTerms: c.hideTerms,
       stampMessage: c.stampMessage, rewardMessage: c.rewardMessage, reward: c.reward, design: c.design, links: c.links,
+      prizes: c.prizes, ...(live ? {} : { rewardMode: c.rewardMode }),
       consentEnabled: c.consentEnabled, consentText: c.consentText, defaultCountry: c.defaultCountry,
       stampCooldownMinutes: c.stampCooldownMinutes, maxStampsPerTransaction: c.maxStampsPerTransaction, maxStampsPerDay: c.maxStampsPerDay,
       stampValueCents: c.stampValueCents,
@@ -187,12 +189,33 @@ export function Designer({ campaign, locations }: { campaign: Campaign; location
     </div>
   );
 
+  // switching to a mystery box keeps the old reward as the common prize; switching back takes the first prize
+  const setMode = (mode: 'single' | 'mystery') => setC((x) => mode === x.rewardMode ? x : mode === 'mystery'
+    ? { ...x, rewardMode: 'mystery', prizes: x.prizes.length >= 2 ? x.prizes : starterPrizes(x.reward.name), reward: { ...x.reward, name: 'Mystery box' } }
+    : { ...x, rewardMode: 'single', reward: { ...x.reward, name: x.prizes[0]?.name || '' } });
+
   const detailsTab = (
     <div className="flex flex-col gap-5">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Reward" required hint="What customers get, e.g. “Free coffee”."><TextInput value={c.reward.name} maxLength={60} onChange={(e) => set('reward', { ...c.reward, name: e.target.value })} /></Field>
-        <Field label="Reward details" hint="Optional, e.g. “Any hot drink, any size”."><TextInput value={c.reward.details} maxLength={120} onChange={(e) => set('reward', { ...c.reward, details: e.target.value })} /></Field>
-      </div>
+      <fieldset disabled={live}>
+        <legend className="text-sm font-semibold">A full card gets</legend>
+        <div className="mt-2 inline-flex gap-1 rounded-md bg-surface p-1">
+          {([['single', 'One reward'], ['mystery', 'Mystery box']] as const).map(([v, l]) => (
+            <label key={v} className={live ? 'cursor-not-allowed' : 'cursor-pointer'}>
+              <input type="radio" name="designer-reward-mode" value={v} checked={c.rewardMode === v} onChange={() => setMode(v)} className="peer sr-only" />
+              <span className="flex h-9 items-center rounded-sm px-3.5 text-sm font-medium text-text-muted peer-checked:bg-surface-raised peer-checked:font-semibold peer-checked:text-text peer-checked:shadow-card peer-focus-visible:ring-2 peer-focus-visible:ring-focus">{l}</span>
+            </label>
+          ))}
+        </div>
+        {live && <p className="mt-2 text-xs text-text-muted">Locked after the card went live. You can still edit the prizes.</p>}
+      </fieldset>
+      {c.rewardMode === 'single' ? (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Reward" required hint="What customers get, e.g. “Free coffee”."><TextInput value={c.reward.name} maxLength={60} onChange={(e) => set('reward', { ...c.reward, name: e.target.value })} /></Field>
+          <Field label="Reward details" hint="Optional, e.g. “Any hot drink, any size”."><TextInput value={c.reward.details} maxLength={120} onChange={(e) => set('reward', { ...c.reward, details: e.target.value })} /></Field>
+        </div>
+      ) : (
+        <MysteryEditor prizes={c.prizes} onChange={(prizes) => set('prizes', prizes)} idPrefix="designer-prize" />
+      )}
       <Field label="About this card"><Textarea value={c.description} max={500} onChange={(e) => set('description', e.target.value)} /></Field>
       <Field label="How to earn stamps"><Textarea value={c.howToEarn} max={300} onChange={(e) => set('howToEarn', e.target.value)} /></Field>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -295,7 +318,7 @@ export function Designer({ campaign, locations }: { campaign: Campaign; location
         {live && <Banner tone="info" title="This card is live">The number of stamps and expiry are locked. Colours and text can still change.</Banner>}
         <Tabs tabs={[
           { value: 'design', label: 'Design', content: designTab },
-          { value: 'details', label: 'Details', hasError: !c.reward.name.trim(), content: detailsTab },
+          { value: 'details', label: 'Details', hasError: !c.reward.name.trim() || (c.rewardMode === 'mystery' && !prizesValid(c.prizes)), content: detailsTab },
           { value: 'form', label: 'Signup form', hasError: !hasContact, content: formTab },
           { value: 'locations', label: 'Locations', content: locationsTab },
           { value: 'terms', label: 'Terms & limits', content: termsTab },
@@ -305,7 +328,7 @@ export function Designer({ campaign, locations }: { campaign: Campaign; location
           <Button onClick={save} loading={pending} disabled={!dirty}><Save aria-hidden className="size-4" /> {dirty ? 'Save changes' : 'Saved'}</Button>
           {!live && (
             <ConfirmDialog
-              trigger={<Button variant="secondary" disabled={dirty || !c.reward.name.trim() || !hasContact}><Rocket aria-hidden className="size-4" /> Go live</Button>}
+              trigger={<Button variant="secondary" disabled={dirty || !c.reward.name.trim() || !hasContact || (c.rewardMode === 'mystery' && !prizesValid(c.prizes))}><Rocket aria-hidden className="size-4" /> Go live</Button>}
               title={`Make “${c.name}” live?`} action="Go live" tone="primary"
               onConfirm={() => start(async () => { const r = await activateAction(c.id); if (r?.error) setMsg({ tone: 'danger', text: r.error }); })}
             >

@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Banner } from '@/components/ui/feedback';
 import { Field, TextInput } from '@/components/ui/field';
 import { PassPreview } from '@/components/loyalty/pass-preview';
+import { MysteryEditor, prizesValid, starterPrizes } from '@/components/loyalty/mystery-editor';
+import type { Prize } from '@/lib/data/types';
 import { stampIcons } from '@/components/loyalty/stamp-strip';
 import { BUSINESS_TYPES, STAMP_CHOICES, THEMES, themeById } from '@/lib/card-presets';
 import { cn } from '@/lib/cn';
@@ -19,13 +21,14 @@ type StepId = 'type' | 'look' | 'reward' | 'where' | 'review';
 type State = {
   typeId: string | null; name: string; nameTouched: boolean; programName: string; themeId: string; icon: string;
   totalStamps: number; reward: string; locIds: string[]; step: number;
+  rewardMode: 'single' | 'mystery'; prizes: Prize[];
 };
 const KEY = 'garuka:new-card';
 const ICON_NAMES: Record<string, string> = { cup: 'Cup', soda: 'Juice', scissors: 'Scissors', dumbbell: 'Dumbbell', utensils: 'Plate', croissant: 'Croissant', star: 'Star', heart: 'Heart', paw: 'Paw', flower: 'Flower' };
 
 export function CardWizard({ orgName, locations }: { orgName: string; locations: { id: string; name: string }[] }) {
   const steps: StepId[] = ['type', 'look', 'reward', ...(locations.length ? (['where'] as const) : []), 'review'];
-  const initial: State = { typeId: null, name: '', nameTouched: false, programName: orgName, themeId: 'jacaranda', icon: 'star', totalStamps: 10, reward: '', locIds: locations.map((l) => l.id), step: 0 };
+  const initial: State = { typeId: null, name: '', nameTouched: false, programName: orgName, themeId: 'jacaranda', icon: 'star', totalStamps: 10, reward: '', locIds: locations.map((l) => l.id), step: 0, rewardMode: 'single', prizes: [] };
   const [s, setS] = useState<State>(initial);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -57,18 +60,20 @@ export function CardWizard({ orgName, locations }: { orgName: string; locations:
   const theme = themeById(s.themeId);
   const type = BUSINESS_TYPES.find((b) => b.id === s.typeId);
   const design = {
-    business: s.programName || orgName, programName: s.programName || orgName, reward: s.reward || type?.reward || 'Your reward',
+    business: s.programName || orgName, programName: s.programName || orgName,
+    reward: s.rewardMode === 'mystery' ? 'Mystery box' : s.reward || type?.reward || 'Your reward',
     total: s.totalStamps, filled: Math.min(filled, s.totalStamps), icon: s.icon,
     background: theme.background, foreground: theme.foreground, label: theme.label, stamp: theme.stamp, logoText: (s.programName || orgName).slice(0, 24),
   };
-  const canNext = stepId === 'look' ? !!s.name.trim() : stepId === 'reward' ? !!s.reward.trim() : true;
+  const canNext = stepId === 'look' ? !!s.name.trim() : stepId === 'reward' ? (s.rewardMode === 'mystery' ? prizesValid(s.prizes) : !!s.reward.trim()) : true;
 
   const create = (goLive: boolean) => start(async () => {
     setError(null);
     // success redirects away, so forget the answers now and put them back on an error
     try { sessionStorage.removeItem(KEY); } catch { /* storage blocked */ }
     const r = await createCardFromWizardAction({
-      name: s.name, programName: s.programName, icon: s.icon, totalStamps: s.totalStamps, reward: s.reward,
+      name: s.name, programName: s.programName, icon: s.icon, totalStamps: s.totalStamps,
+      reward: s.rewardMode === 'mystery' ? 'Mystery box' : s.reward, rewardMode: s.rewardMode, prizes: s.rewardMode === 'mystery' ? s.prizes : [],
       theme: { background: theme.background, foreground: theme.foreground, label: theme.label, stamp: theme.stamp },
       locationIds: s.locIds, goLive,
     });
@@ -180,9 +185,25 @@ export function CardWizard({ orgName, locations }: { orgName: string; locations:
                 </div>
                 <p className="mt-2 text-xs text-text-muted">Need more than 12? Set up to 30 in the designer before going live.</p>
               </fieldset>
-              <Field label="Reward" required hint="What a full card gets, e.g. “Free coffee”.">
-                <TextInput value={s.reward} maxLength={60} onChange={(e) => setS((x) => ({ ...x, reward: e.target.value }))} />
-              </Field>
+              <fieldset>
+                <legend className="text-sm font-semibold">A full card gets</legend>
+                <div className="mt-2 inline-flex gap-1 rounded-md bg-surface p-1">
+                  {([['single', 'One reward'], ['mystery', 'Mystery box']] as const).map(([v, l]) => (
+                    <label key={v} className="cursor-pointer">
+                      <input type="radio" name="rewardMode" value={v} checked={s.rewardMode === v} className="peer sr-only"
+                        onChange={() => setS((x) => ({ ...x, rewardMode: v, prizes: v === 'mystery' && x.prizes.length < 2 ? starterPrizes(x.reward) : x.prizes }))} />
+                      <span className="flex h-9 items-center rounded-sm px-3.5 text-sm font-medium text-text-muted peer-checked:bg-surface-raised peer-checked:font-semibold peer-checked:text-text peer-checked:shadow-card peer-focus-visible:ring-2 peer-focus-visible:ring-focus">{l}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+              {s.rewardMode === 'single' ? (
+                <Field label="Reward" required hint="What a full card gets, e.g. “Free coffee”.">
+                  <TextInput value={s.reward} maxLength={60} onChange={(e) => setS((x) => ({ ...x, reward: e.target.value }))} />
+                </Field>
+              ) : (
+                <MysteryEditor prizes={s.prizes} onChange={(prizes) => setS((x) => ({ ...x, prizes }))} idPrefix="wizard-prize" />
+              )}
             </div>
           )}
 
@@ -208,7 +229,7 @@ export function CardWizard({ orgName, locations }: { orgName: string; locations:
             <dl className="max-w-xl divide-y divide-border rounded-lg border border-border bg-surface-raised">
               {([
                 ['Card name', s.name, 1], ['Name on the card', s.programName || orgName, 1], ['Colours and stamp', `${theme.name}, ${ICON_NAMES[s.icon] ?? s.icon}`, 1],
-                ['Reward', `${s.reward} after ${s.totalStamps} stamps`, 2],
+                ['Reward', s.rewardMode === 'mystery' ? `Mystery box of ${s.prizes.length} prizes after ${s.totalStamps} stamps` : `${s.reward} after ${s.totalStamps} stamps`, 2],
                 ...(locations.length ? [['Locations', s.locIds.length ? locations.filter((l) => s.locIds.includes(l.id)).map((l) => l.name).join(', ') : 'Decide later', 3] as const] : []),
               ] as const).map(([k, v, step]) => (
                 <div key={k} className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 px-4 py-3">

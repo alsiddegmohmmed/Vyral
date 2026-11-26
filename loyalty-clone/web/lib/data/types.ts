@@ -25,6 +25,8 @@ export type Campaign = {
   terms: string; hideTerms: boolean;
   stampMessage: string; rewardMessage: string; newsText?: string; newsUpdatedAt?: string;
   reward: { name: string; details: string; costCents?: number };
+  /** 'mystery': a full card draws one of `prizes` by weight (migration 0008) */
+  rewardMode: 'single' | 'mystery'; prizes: Prize[];
   design: { background: string; foreground: string; label: string; stamp: string; icon: string; logoText: string; logoUrl?: string; iconUrl?: string; stampUrl?: string };
   fields: FormField[]; links: CardLink[]; locationIds: string[];
   defaultCountry: string; consentEnabled: boolean; consentText: string;
@@ -85,7 +87,10 @@ export type Automation = {
 
 export type IdempotencyRecord = { orgId: string; key: string; requestHash: string; result: TxResult };
 
-export type TxResult = { cardId: string; earned: number; redeemed: number; currentStamps: number; rewardsAvailable: number; replayed: boolean };
+export type PrizeTier = 'common' | 'rare' | 'legendary';
+export type Prize = { name: string; weight: number; tier: PrizeTier };
+export type WonPrize = { name: string; tier: PrizeTier };
+export type TxResult = { cardId: string; earned: number; redeemed: number; currentStamps: number; rewardsAvailable: number; replayed: boolean; prizesEarned: WonPrize[]; prizesRedeemed: WonPrize[] };
 
 export type DB = {
   users: User[]; orgs: Org[]; members: OrgMember[]; campaigns: Campaign[]; customers: Customer[];
@@ -99,6 +104,8 @@ export type DB = {
 export type PublicCard = {
   serial: string; firstName: string; currentStamps: number; rewardsAvailable: number; manualCode: string;
   qrPayload: string; noteText?: string; status: Card['status']; expired: boolean;
-  campaign: Pick<Campaign, 'name' | 'programName' | 'totalStamps' | 'reward' | 'design' | 'description' | 'howToEarn' | 'terms' | 'hideTerms' | 'links' | 'newsText' | 'status'> & { business: string };
+  campaign: Pick<Campaign, 'name' | 'programName' | 'totalStamps' | 'reward' | 'rewardMode' | 'design' | 'description' | 'howToEarn' | 'terms' | 'hideTerms' | 'links' | 'newsText' | 'status'> & { business: string };
+  /** mystery box prizes won and not yet handed over, oldest first */
+  prizes: (WonPrize & { id: string; opened: boolean })[];
   locations: Pick<Location, 'name' | 'addressOnCard'>[];
 };

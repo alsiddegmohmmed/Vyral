@@ -262,3 +262,28 @@ test.describe('F02 self-filling preview', () => {
     await expect(page.getByRole('button', { name: /filling/ })).toHaveCount(0);
   });
 });
+
+test.describe('F02 mystery box in the designer', () => {
+  test.beforeEach(async ({ loginAsOwner }) => {
+    await loginAsOwner();
+    const org = await seedOrg();
+    await sql(`delete from campaigns where org_id = $1 and short_code not in ('neza1cup','neza2pas')`, [org!.id]);
+  });
+
+  test('F02-E9 switch a draft to a mystery box: Go live waits for named prizes, then it saves', async ({ page }) => {
+    const id = await createCard(page, 'Designer box');
+    await page.getByRole('tab', { name: 'Details' }).click();
+    await page.locator('label', { has: page.getByRole('radio', { name: 'Mystery box' }) }).click();
+    await expect(page.getByLabel('Prize 1', { exact: true })).toHaveValue('Free coffee');
+    await expect(page.getByRole('tab', { name: /Details.*has errors/ })).toBeVisible();
+    await page.getByLabel('Prize 2', { exact: true }).fill('Free cake');
+    await page.getByLabel('Prize 3', { exact: true }).fill('Free lunch');
+    await page.getByRole('button', { name: 'Save changes' }).click();
+    await expect(page.getByText('Saved.', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Go live' })).toBeEnabled();
+    const c = await one<{ reward_mode: string; n: number; reward: string }>(
+      `select c.reward_mode, (select count(*)::int from reward_prizes p where p.campaign_id = c.id) as n, r.name as reward
+         from campaigns c join rewards r on r.campaign_id = c.id and r.position = 1 where c.id = $1`, [id]);
+    expect(c).toMatchObject({ reward_mode: 'mystery', n: 3, reward: 'Mystery box' });
+  });
+});

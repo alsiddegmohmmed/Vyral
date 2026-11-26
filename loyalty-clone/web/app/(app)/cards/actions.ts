@@ -98,6 +98,7 @@ export async function saveAutomationAction(campaignId: string, kind: 'birthday' 
 
 export type WizardInput = {
   name: string; programName: string; icon: string; totalStamps: number; reward: string;
+  rewardMode: 'single' | 'mystery'; prizes: { name: string; weight: number; tier: 'common' | 'rare' | 'legendary' }[];
   theme: { background: string; foreground: string; label: string; stamp: string };
   locationIds: string[]; goLive: boolean;
 };
@@ -117,6 +118,7 @@ export async function createCardFromWizardAction(input: WizardInput): Promise<Ac
   if (reward.length > 60) return { error: 'Reward: 60 characters max.', step: 3 };
   if (!Number.isInteger(input.totalStamps) || input.totalStamps < 1 || input.totalStamps > 30) return { error: 'Choose between 1 and 30 stamps.', step: 3 };
   if (!Object.values(input.theme).every((c) => /^#[0-9A-Fa-f]{6}$/.test(c))) return { error: 'Choose one of the colour themes.', step: 2 };
+  if (input.rewardMode === 'mystery' && (input.prizes.length < 2 || input.prizes.some((p) => !p.name.trim()))) return { error: 'A mystery box needs at least 2 named prizes.', step: 3 };
   let id: string;
   try {
     const c = await api.createCampaign(ctx, name);
@@ -125,6 +127,7 @@ export async function createCardFromWizardAction(input: WizardInput): Promise<Ac
     await api.updateCampaign(ctx, id, {
       programName, totalStamps: input.totalStamps, reward: { ...c.reward, name: reward },
       design: { ...c.design, ...input.theme, icon: input.icon, logoText: programName.slice(0, 24) },
+      ...(input.rewardMode === 'mystery' ? { rewardMode: 'mystery' as const, prizes: input.prizes } : {}),
     });
     if (input.locationIds.length) await api.setCampaignLocations(ctx, id, input.locationIds);
     if (input.goLive) await api.activateCampaign(ctx, id);

@@ -32,6 +32,13 @@ Studied 2026-11-25/26 at `trystampmate.com/start` in the in-app browser.
 - **Review step:** every answer has a "Change" link. It ends with two outcomes: **Create and go live** (straight to the overview with the QR) or **Fine-tune in the designer first** (a draft).
 - **Tap the card to add a stamp:** for pointer users. Keyboard and screen-reader users get a visible **Add a stamp** button (axe flagged a card-as-button whose name didn't match its text).
 
-**Not taken yet:**
-- **The mystery box** (weighted prize tiers). It needs new reward logic on the backend: a prize table, a random draw at reward time, and how the counter shows it. Left as a separate decision.
+**Mystery box: built later the same day** (migration `0008_mystery_box.sql`):
+- **Setup:** a card is either "one reward" or a "mystery box" of 2–6 prizes. Each prize has a relative chance (1–100) and a tier (Common, Rare, Legendary). It's set in the wizard's reward step or the designer's Details tab, which shows an odds bar, "about 1 in N" wording, and **Try a box** (the same weighted draw, run locally).
+- **The draw:** when a card fills, `apply_card_transaction` calls `draw_prize()` under the card lock and the idempotency key, so a replayed or doubled scan can't redraw. The won prize's name and tier are snapshotted in `card_prizes`, and the ledger events carry them in `meta`.
+- **Customer:** the web card shows "Open your mystery box" and reveals the prize; the join page reads "N stamps, then a mystery box on us".
+- **Counter:** the scanner names the exact prize to hand over ("Give Free pastry · Mystery box · Rare") and confirms "Hand over: …". The oldest prize is given first.
+- **Rules:** the mode is locked once the card is live (the prizes can still be edited, and only future draws change), and going live needs at least 2 prizes.
+- **Not done:** the wallet pass shows "Mystery box ready" rather than the prize name. Showing the prize name there is a follow-up.
+
+**Not taken:**
 - **The Google business search.** It needs a Places API key.

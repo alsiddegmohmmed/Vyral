@@ -13,7 +13,7 @@ import { toE164 } from '@/lib/phone';
 import type { TxErrorKey } from './rules';
 import type { ReportBundle, UnpairedReason } from '@/lib/scanner-health';
 import { hashPassword, verifyPassword } from './password';
-import type { Automation, Campaign, CardEvent, FormField, Location, Message, Org, PublicCard, ScannerDevice, TxResult } from './types';
+import type { Automation, Campaign, CardEvent, FormField, Location, Message, Org, PublicCard, ScannerDevice, TxResult, WonPrize } from './types';
 
 export type OrgContext = { orgId: string; userId: string | null; deviceId?: string; role: 'owner' | 'staff' | 'device'; actorLabel: string };
 
@@ -187,11 +187,12 @@ const CAMPAIGN_SELECT = `
     (select json_build_object('name', r.name, 'details', coalesce(r.details, ''), 'costCents', r.cost_cents) from rewards r where r.campaign_id = c.id and r.position = 1) as reward_json,
     coalesce((select json_agg(json_build_object('key', f.key, 'label', f.label, 'type', f.type, 'required', f.required) order by f.position) from campaign_fields f where f.campaign_id = c.id), '[]') as fields_json,
     coalesce((select json_agg(json_build_object('kind', l.kind, 'label', l.label, 'value', l.value) order by l.position) from campaign_links l where l.campaign_id = c.id), '[]') as links_json,
-    coalesce((select json_agg(cl.location_id) from campaign_locations cl where cl.campaign_id = c.id), '[]') as location_ids_json
+    coalesce((select json_agg(cl.location_id) from campaign_locations cl where cl.campaign_id = c.id), '[]') as location_ids_json,
+    coalesce((select json_agg(json_build_object('name', p.name, 'weight', p.weight, 'tier', p.tier) order by p.position) from reward_prizes p where p.campaign_id = c.id), '[]') as prizes_json
   from campaigns c`;
 
 type CampaignRow = Record<string, unknown> & {
-  rewardJson: Campaign['reward'] | null; fieldsJson: FormField[]; linksJson: Campaign['links']; locationIdsJson: string[];
+  rewardJson: Campaign['reward'] | null; fieldsJson: FormField[]; linksJson: Campaign['links']; locationIdsJson: string[]; prizesJson: Campaign['prizes'];
 };
 
 function toCampaign(r: CampaignRow): Campaign {
@@ -202,6 +203,7 @@ function toCampaign(r: CampaignRow): Campaign {
     stampMessage: r.stampMessage as string, rewardMessage: r.rewardMessage as string,
     newsText: (r.newsText as string) ?? undefined, newsUpdatedAt: (r.newsUpdatedAt as string) ?? undefined,
     reward: { name: r.rewardJson?.name ?? '', details: r.rewardJson?.details ?? '', costCents: r.rewardJson?.costCents ?? undefined },
+    rewardMode: (r.rewardMode as Campaign['rewardMode']) ?? 'single', prizes: r.prizesJson ?? [],
     design: {
       background: r.backgroundColor as string, foreground: r.foregroundColor as string, label: r.labelColor as string,
       stamp: r.stampColor as string, icon: r.stampIcon as string, logoText: (r.logoText as string) ?? '',
@@ -269,6 +271,7 @@ export async function createCampaign(ctx: OrgContext, name: string): Promise<Cam
 }
 
 export type CampaignPatch = Partial<Pick<Campaign,
+  'rewardMode' | 'prizes' |
   'name' | 'totalStamps' | 'programName' | 'description' | 'howToEarn' | 'terms' | 'hideTerms' | 'stampMessage' | 'rewardMessage' |
   'reward' | 'design' | 'links' | 'defaultCountry' | 'consentEnabled' | 'consentText' | 'expiryMode' | 'expiryDate' | 'expiryDays' |
   'stampCooldownMinutes' | 'maxStampsPerTransaction' | 'maxStampsPerDay' | 'stampValueCents'>>;
@@ -276,7 +279,7 @@ export type CampaignPatch = Partial<Pick<Campaign,
 export async function updateCampaign(ctx: OrgContext, id: string, patch: CampaignPatch) {
   const c = await getCampaign(ctx, id);
   if (c.status !== 'draft') {
-    for (const k of ['totalStamps', 'expiryMode', 'expiryDate', 'expiryDays'] as const) {
+    for (const k of ['totalStamps', 'expiryMode', 'expiryDate', 'expiryDays', 'rewardMode'] as const) {
       if (k in patch && patch[k] !== c[k]) throw new DataError('locked_field', 'This can’t change after the card went live.');
     }
   }
@@ -289,6 +292,14 @@ export async function updateCampaign(ctx: OrgContext, id: string, patch: Campaig
   }
   if (n.name.length > 60) throw new DataError('invalid', 'Card name: 60 characters max.');
   if (n.reward.name.length > 60) throw new DataError('invalid', 'Reward: 60 characters max.');
+  if (patch.prizes) {
+    if (patch.prizes.length > 6) throw new DataError('invalid', 'A mystery box holds up to 6 prizes.');
+    for (const p of patch.prizes) {
+      if (!p.name.trim() || p.name.trim().length > 60) throw new DataError('invalid', 'Give every prize a name (60 characters max).');
+      if (!Number.isInteger(p.weight) || p.weight < 1 || p.weight > 100) throw new DataError('invalid', 'Each prize’s chance is a whole number from 1 to 100.');
+      if (!['common', 'rare', 'legendary'].includes(p.tier)) throw new DataError('invalid', 'Choose common, rare or legendary.');
+    }
+  }
   for (const col of [n.design.background, n.design.foreground, n.design.label, n.design.stamp]) {
     if (!/^#[0-9A-Fa-f]{6}$/.test(col)) throw new DataError('invalid', 'Use colours like #1F3B2C.');
   }
@@ -309,6 +320,8 @@ export async function updateCampaign(ctx: OrgContext, id: string, patch: Campaig
         n.stampCooldownMinutes, n.maxStampsPerTransaction, n.maxStampsPerDay, n.stampValueCents ?? null,
         n.reward.name, n.reward.details, n.reward.costCents ?? null]);
     if (patch.links) await q('select replace_campaign_links($1, $2)', [id, JSON.stringify(patch.links)]);
+    if (patch.rewardMode && patch.rewardMode !== c.rewardMode) await q('update campaigns set reward_mode = $2 where id = $1', [id, patch.rewardMode]);
+    if (patch.prizes) await q('select replace_reward_prizes($1, $2)', [id, JSON.stringify(patch.prizes.map((p) => ({ ...p, name: p.name.trim() })))]);
   } catch (e) {
     if (pgCode(e) === '23505') throw new DataError('name_taken', 'You already have a card with this name.');
     if (pgCode(e) === '23514') throw new DataError('invalid', 'One of the values isn’t allowed. Check lengths and dates.');
@@ -333,6 +346,7 @@ export async function activateCampaign(ctx: OrgContext, id: string) {
   if (o.planStatus === 'locked') throw new DataError('locked', 'Your account is locked. Choose a plan to activate cards.');
   const c = await getCampaign(ctx, id);
   if (!c.reward.name.trim()) throw new DataError('invalid', 'Name the reward before going live.');
+  if (c.rewardMode === 'mystery' && c.prizes.length < 2) throw new DataError('invalid', 'A mystery box needs at least 2 prizes.');
   await q(`update campaigns set status = 'live', activated_at = coalesce(activated_at, now()) where id = $1 and org_id = $2 and status = 'draft'`, [id, ctx.orgId]);
 }
 
@@ -362,7 +376,7 @@ export async function setCampaignLocations(ctx: OrgContext, id: string, location
 
 // ---------------------------------------------------------------- public: join + card
 
-export type PublicCampaign = Pick<Campaign, 'name' | 'programName' | 'description' | 'howToEarn' | 'terms' | 'hideTerms' | 'reward' | 'design' | 'fields' | 'defaultCountry' | 'consentEnabled' | 'consentText' | 'totalStamps' | 'status'> & { business: string; shortCode: string };
+export type PublicCampaign = Pick<Campaign, 'name' | 'programName' | 'description' | 'howToEarn' | 'terms' | 'hideTerms' | 'reward' | 'rewardMode' | 'design' | 'fields' | 'defaultCountry' | 'consentEnabled' | 'consentText' | 'totalStamps' | 'status'> & { business: string; shortCode: string };
 
 export async function getPublicCampaign(shortCode: string): Promise<PublicCampaign | null> {
   if (!/^[0-9a-z]{4,16}$/.test(shortCode)) return null;
@@ -370,7 +384,7 @@ export async function getPublicCampaign(shortCode: string): Promise<PublicCampai
   if (!r) return null;
   const c = toCampaign(r);
   const { name, programName, description, howToEarn, terms, hideTerms, reward, design, fields, defaultCountry, consentEnabled, consentText, totalStamps, status } = c;
-  return { name, programName, description, howToEarn, terms, hideTerms, reward: { name: reward.name, details: reward.details }, design, fields, defaultCountry, consentEnabled, consentText, totalStamps, status, business: r.business, shortCode };
+  return { name, programName, description, howToEarn, terms, hideTerms, reward: { name: reward.name, details: reward.details }, rewardMode: c.rewardMode, design, fields, defaultCountry, consentEnabled, consentText, totalStamps, status, business: r.business, shortCode };
 }
 
 export type JoinInput = { values: Record<string, string>; consent: boolean; ip?: string };
@@ -413,6 +427,8 @@ export async function getPublicCard(serial: string): Promise<PublicCard | null> 
   if (!k) return null;
   const cr = await one<CampaignRow>(`${CAMPAIGN_SELECT} where c.id = $1`, [k.campaignId]);
   const c = toCampaign(cr!);
+  const prizes = await q<{ id: string; prizeName: string; tier: WonPrize['tier']; openedAt: string | null }>(
+    `select id, prize_name, tier, opened_at from card_prizes where card_id = $1 and redeemed_at is null order by earned_at, id`, [k.id]);
   const locs = await q<{ name: string; addressOnCard: string }>(
     `select l.name, coalesce(l.address_on_card, l.address, '') as address_on_card from campaign_locations cl join locations l on l.id = cl.location_id where cl.campaign_id = $1 and l.show_on_card`, [c.id]);
   return {
@@ -420,17 +436,26 @@ export async function getPublicCard(serial: string): Promise<PublicCard | null> 
     manualCode: k.manualCode as string, qrPayload: encodeBarcode(k.barcodeToken), noteText: (k.noteText as string) ?? undefined,
     status: k.status as 'active' | 'deleted', expired: k.expired,
     campaign: {
-      name: c.name, programName: c.programName, totalStamps: c.totalStamps, reward: c.reward, design: c.design, description: c.description,
+      name: c.name, programName: c.programName, totalStamps: c.totalStamps, reward: c.reward, rewardMode: c.rewardMode, design: c.design, description: c.description,
       howToEarn: c.howToEarn, terms: c.terms, hideTerms: c.hideTerms, links: c.links, newsText: c.newsText, status: c.status, business: k.business,
     },
     locations: locs,
+    prizes: prizes.map((p) => ({ id: p.id, name: p.prizeName, tier: p.tier, opened: !!p.openedAt })),
   };
+}
+
+/** The customer opens a mystery box on their web card. The prize was drawn when the card filled; this only reveals it. */
+export async function openPrize(serial: string, prizeId: string) {
+  if (!/^[0-9A-Z]{26}$/.test(serial) || !/^[0-9a-f-]{36}$/.test(prizeId)) return false;
+  const r = await one(`update card_prizes cp set opened_at = coalesce(cp.opened_at, now())
+                         from cards k where k.serial = $1 and cp.card_id = k.id and cp.id = $2 and cp.redeemed_at is null returning cp.id`, [serial, prizeId]);
+  return !!r;
 }
 
 // ---------------------------------------------------------------- scanner
 
 export type ScanLookup =
-  | { ok: true; card: { id: string; firstName: string; currentStamps: number; rewardsAvailable: number; totalStampsEarned: number; lastVisitAt: string; campaignName: string; totalStamps: number; rewardName: string; maxStampsPerTransaction: number; design: Campaign['design'] } }
+  | { ok: true; card: { id: string; firstName: string; currentStamps: number; rewardsAvailable: number; totalStampsEarned: number; lastVisitAt: string; campaignName: string; totalStamps: number; rewardName: string; maxStampsPerTransaction: number; design: Campaign['design']; rewardMode: Campaign['rewardMode']; prizes: WonPrize[] } }
   | { ok: false; error: 'invalid_code' | 'card_not_found' | 'card_replaced' | TxErrorKey };
 
 export async function scanLookup(ctx: OrgContext, code: { qr?: string; manual?: string }): Promise<ScanLookup> {
@@ -448,7 +473,8 @@ export async function scanLookup(ctx: OrgContext, code: { qr?: string; manual?: 
   } else return { ok: false, error: 'card_not_found' };
   const r = await one<Record<string, unknown> & { customerName: string; status: string }>(
     `select k.id, k.status, k.current_stamps, k.rewards_available, k.total_stamps_earned, k.last_visit_at, cu.name as customer_name,
-            c.name as campaign_name, c.total_stamps, c.max_stamps_per_transaction, c.background_color, c.foreground_color, c.label_color, c.stamp_color, c.stamp_icon, c.logo_text,
+            c.name as campaign_name, c.total_stamps, c.max_stamps_per_transaction, c.reward_mode,
+            coalesce((select json_agg(json_build_object('name', cp.prize_name, 'tier', cp.tier) order by cp.earned_at, cp.id) from card_prizes cp where cp.card_id = k.id and cp.redeemed_at is null), '[]') as prizes_json, c.background_color, c.foreground_color, c.label_color, c.stamp_color, c.stamp_icon, c.logo_text,
             (select r.name from rewards r where r.campaign_id = c.id and r.position = 1) as reward_name
        from cards k join customers cu on cu.id = k.customer_id join campaigns c on c.id = k.campaign_id
       where k.org_id = $1 and ${where}`, [ctx.orgId, param]);
@@ -461,6 +487,7 @@ export async function scanLookup(ctx: OrgContext, code: { qr?: string; manual?: 
       totalStampsEarned: r.totalStampsEarned as number, lastVisitAt: r.lastVisitAt as string, campaignName: r.campaignName as string,
       totalStamps: r.totalStamps as number, rewardName: (r.rewardName as string) ?? 'reward', maxStampsPerTransaction: r.maxStampsPerTransaction as number,
       design: { background: r.backgroundColor as string, foreground: r.foregroundColor as string, label: r.labelColor as string, stamp: r.stampColor as string, icon: r.stampIcon as string, logoText: (r.logoText as string) ?? '' },
+      rewardMode: (r.rewardMode as Campaign['rewardMode']) ?? 'single', prizes: (r.prizesJson as WonPrize[]) ?? [],
     },
   };
 }
@@ -474,12 +501,12 @@ export async function applyCardTransaction(
 ): Promise<{ ok: true; result: TxResult } | { ok: false; error: TxErrorKey | 'card_not_found' | 'idempotency_key_reused' }> {
   if (!/^[0-9a-f-]{36}$/.test(input.cardId)) return { ok: false, error: 'card_not_found' };
   try {
-    const r = await one<{ r: { card: Record<string, number | string>; earned: number; redeemed: number; replayed: boolean } }>(
+    const r = await one<{ r: { card: Record<string, number | string>; earned: number; redeemed: number; replayed: boolean; prizes_earned?: WonPrize[]; prizes_redeemed?: WonPrize[] } }>(
       'select apply_card_transaction($1,$2,$3,$4,$5,$6,$7,$8,$9) as r',
       [ctx.orgId, input.cardId, input.stamps, input.redeem, input.source, ctx.userId, ctx.actorLabel, input.idempotencyKey, ctx.deviceId ?? null]);
     const res = r!.r;
     if (!res.replayed) queueWalletPush(input.cardId, res.earned > 0 ? 'reward_earned' : undefined);
-    return { ok: true, result: { cardId: input.cardId, earned: res.earned, redeemed: res.redeemed, currentStamps: res.card.current_stamps as number, rewardsAvailable: res.card.rewards_available as number, replayed: res.replayed } };
+    return { ok: true, result: { cardId: input.cardId, earned: res.earned, redeemed: res.redeemed, currentStamps: res.card.current_stamps as number, rewardsAvailable: res.card.rewards_available as number, replayed: res.replayed, prizesEarned: res.prizes_earned ?? [], prizesRedeemed: res.prizes_redeemed ?? [] } };
   } catch (e) {
     const m = pgMessage(e);
     if (m === 'card_not_found' || m === 'idempotency_key_reused') return { ok: false, error: m };

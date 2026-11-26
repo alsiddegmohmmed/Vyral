@@ -19,7 +19,7 @@ export default async function JoinPage({ params }: { params: Promise<{ code: str
       <div className="mx-auto w-full max-w-[440px] bg-bg sm:my-8 sm:overflow-hidden sm:rounded-xl sm:shadow-pop">
         <header className="px-5 pb-6 pt-8" style={{ background: d.background, color: d.foreground }}>
           {d.logoUrl ? <img src={d.logoUrl} alt={c.business} className="h-10 max-w-[180px] object-contain object-left" /> : <p className="text-sm font-semibold" style={{ color: d.label }}>{c.business}</p>}
-          <h1 className="mt-1 text-2xl">{c.totalStamps} stamps, then {c.reward.name.toLowerCase()} on us</h1>
+          <h1 className="mt-1 text-2xl">{c.rewardMode === 'mystery' ? `${c.totalStamps} stamps, then a mystery box on us` : `${c.totalStamps} stamps, then ${c.reward.name.toLowerCase()} on us`}</h1>
           {c.description && <p className="mt-2 text-sm opacity-90">{c.description}</p>}
           <StampStrip total={c.totalStamps} filled={0} icon={d.icon} image={d.stampUrl} stamp={d.stamp} empty={`${d.foreground}66`} background={d.background} className="mt-5 w-full" />
         </header>

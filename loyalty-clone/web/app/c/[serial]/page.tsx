@@ -6,6 +6,7 @@ import { getPublicCard } from '@/lib/data/api';
 import { StampStrip } from '@/components/loyalty/stamp-strip';
 import { Banner } from '@/components/ui/feedback';
 import { LiveRefresh } from './live-refresh';
+import { MysteryBoxes } from './mystery-boxes';
 
 export const metadata: Metadata = { title: 'Your card', robots: { index: false, follow: false }, referrer: 'no-referrer' };
 
@@ -31,7 +32,9 @@ export default async function CardPage({ params, searchParams }: { params: Promi
             {dead ? 'This card no longer works.' : card.rewardsAvailable > 0 ? 'Your reward is ready. Show this card at the counter.' : `${toGo} more ${toGo === 1 ? 'stamp' : 'stamps'} to ${c.reward.name.toLowerCase()}.`}
           </p>
         </header>
-        {card.rewardsAvailable > 0 && !dead && (
+        {c.rewardMode === 'mystery' && card.prizes.length > 0 && !dead ? (
+          <MysteryBoxes serial={card.serial} boxes={card.prizes} />
+        ) : card.rewardsAvailable > 0 && !dead && (
           <p className="flex items-center gap-2 bg-success-bg px-5 py-3 text-sm font-semibold text-success"><Gift aria-hidden className="size-4" /> {card.rewardsAvailable} × {c.reward.name}</p>
         )}
         {card.noteText && <div className="border-b border-border px-5 py-4"><p className="text-sm">{card.noteText}</p></div>}
@@ -61,7 +64,7 @@ export default async function CardPage({ params, searchParams }: { params: Promi
           <summary className="cursor-pointer font-semibold">About this card</summary>
           <dl className="mt-3 flex flex-col gap-3">
             {c.howToEarn && <div><dt className="text-text-muted">How to earn</dt><dd>{c.howToEarn}</dd></div>}
-            <div><dt className="text-text-muted">Your reward</dt><dd>{c.reward.name}{c.reward.details ? ` — ${c.reward.details}` : ''}</dd></div>
+            <div><dt className="text-text-muted">Your reward</dt><dd>{c.rewardMode === 'mystery' ? 'A mystery box: every full card draws one of the business’s prizes.' : <>{c.reward.name}{c.reward.details ? ` — ${c.reward.details}` : ''}</>}</dd></div>
             {card.locations.length > 0 && <div><dt className="text-text-muted">Find us</dt>{card.locations.map((l) => <dd key={l.name} className="flex items-start gap-1.5"><MapPin aria-hidden className="mt-0.5 size-4 shrink-0" />{l.name}: {l.addressOnCard}</dd>)}</div>}
             {c.links.length > 0 && <div><dt className="text-text-muted">Links</dt>{c.links.map((l) => (
               <dd key={l.label}><a className="underline" href={l.kind === 'whatsapp' ? `https://wa.me/${l.value.replace(/\D/g, '')}` : l.kind === 'instagram' ? `https://instagram.com/${l.value}` : l.kind === 'phone' ? `tel:${l.value}` : l.kind === 'email' ? `mailto:${l.value}` : l.value} rel="noopener noreferrer" target="_blank">{l.label}</a></dd>
