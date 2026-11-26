@@ -11,6 +11,8 @@ import { MysteryEditor, prizesValid, starterPrizes } from '@/components/loyalty/
 import { BUSINESS_TYPES, STAMP_CHOICES, THEMES, themeById } from '@/lib/card-presets';
 import { cn } from '@/lib/cn';
 import type { Prize } from '@/lib/data/types';
+import { analyseLogo, type LogoResult } from '@/lib/logo-canvas';
+import { ImagePlus, Loader2 } from 'lucide-react';
 import { createCardFromWizardAction } from '@/app/(app)/cards/actions';
 
 // New-card wizard, inside the dashboard shell. The question card, tiles, inputs and
@@ -23,6 +25,7 @@ type State = {
   typeId: string | null; name: string; nameTouched: boolean; programName: string; themeId: string; icon: string;
   totalStamps: number; reward: string; locIds: string[]; step: number;
   rewardMode: 'single' | 'mystery'; prizes: Prize[];
+  logo: LogoResult | null; logoStamp: boolean;
 };
 const KEY = 'garuka:new-card';
 const ICON_NAMES: Record<string, string> = { cup: 'Cup', soda: 'Juice', scissors: 'Scissors', dumbbell: 'Dumbbell', utensils: 'Plate', croissant: 'Croissant', star: 'Star', heart: 'Heart', paw: 'Paw', flower: 'Flower' };
@@ -37,7 +40,7 @@ const pillPrimary = 'inline-flex h-[54px] w-full items-center justify-center gap
 export function CardWizard({ orgName, locations }: { orgName: string; locations: { id: string; name: string }[] }) {
   const steps: StepId[] = ['intro', 'type', 'look', 'reward', ...(locations.length ? (['where'] as const) : []), 'review'];
   const questions = steps.length - 1; // the intro isn't counted
-  const initial: State = { typeId: null, name: '', nameTouched: false, programName: orgName, themeId: 'jacaranda', icon: 'star', totalStamps: 10, reward: '', locIds: locations.map((l) => l.id), step: 0, rewardMode: 'single', prizes: [] };
+  const initial: State = { typeId: null, name: '', nameTouched: false, programName: orgName, themeId: 'jacaranda', icon: 'star', totalStamps: 10, reward: '', locIds: locations.map((l) => l.id), step: 0, rewardMode: 'single', prizes: [], logo: null, logoStamp: true };
   const [s, setS] = useState<State>(initial);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -66,13 +69,27 @@ export function CardWizard({ orgName, locations }: { orgName: string; locations:
     setFilled(Math.min(3, t.stamps)); setPlaying(true); setError(null);
   };
 
-  const theme = themeById(s.themeId);
+  const [reading, setReading] = useState(false);
+  const [logoError, setLogoError] = useState<string | null>(null);
+  const onLogo = async (file: File | undefined) => {
+    if (!file) return;
+    setReading(true); setLogoError(null);
+    try {
+      const logo = await analyseLogo(file);
+      setS((x) => ({ ...x, logo, logoStamp: !!logo.symbol, themeId: 'logo' }));
+    } catch (e) { setLogoError((e as Error).message); }
+    setReading(false);
+  };
+  const logoTheme = s.logo ? { id: 'logo', name: 'From your logo', ...s.logo.theme } : null;
+  const theme = s.themeId === 'logo' && logoTheme ? logoTheme : themeById(s.themeId);
   const type = BUSINESS_TYPES.find((b) => b.id === s.typeId);
   const design = {
     business: s.programName || orgName, programName: s.programName || orgName,
     reward: s.rewardMode === 'mystery' ? 'Mystery box' : s.reward || type?.reward || 'Your reward',
     total: s.totalStamps, filled: Math.min(filled, s.totalStamps), icon: s.icon,
-    background: theme.background, foreground: theme.foreground, label: theme.label, stamp: theme.stamp, logoText: (s.programName || orgName).slice(0, 24),
+    background: theme.background, foreground: theme.foreground, label: theme.label, stamp: theme.stamp,
+    logoText: s.logo?.wordmark ? '' : (s.programName || orgName).slice(0, 24),
+    logoUrl: s.logo?.wordmark, stampUrl: s.logo?.symbol && s.logoStamp ? s.logo.symbol : undefined,
   };
   const canNext = stepId === 'look' ? !!s.name.trim() : stepId === 'reward' ? (s.rewardMode === 'mystery' ? prizesValid(s.prizes) : !!s.reward.trim()) : true;
 
@@ -85,6 +102,7 @@ export function CardWizard({ orgName, locations }: { orgName: string; locations:
       reward: s.rewardMode === 'mystery' ? 'Mystery box' : s.reward, rewardMode: s.rewardMode, prizes: s.rewardMode === 'mystery' ? s.prizes : [],
       theme: { background: theme.background, foreground: theme.foreground, label: theme.label, stamp: theme.stamp },
       locationIds: s.locIds, goLive,
+      logo: s.logo ? { wordmark: s.logo.wordmark, symbol: s.logoStamp ? s.logo.symbol : undefined } : undefined,
     });
     if (r?.error) {
       try { sessionStorage.setItem(KEY, JSON.stringify(s)); } catch { /* storage blocked */ }
@@ -172,6 +190,38 @@ export function CardWizard({ orgName, locations }: { orgName: string; locations:
 
           {stepId === 'look' && (
             <div className="flex flex-col gap-5">
+              <section aria-labelledby="logo-title" className="rounded-md border border-border p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <h2 id="logo-title" className="text-sm font-semibold tracking-normal">Logo <span className="font-normal text-text-muted">(optional)</span></h2>
+                    <p className="text-xs text-text-muted">{s.logo ? ({ 'icon-text': 'We found a symbol and a wordmark.', 'icon-top': 'We found a symbol above a wordmark.', icon: 'We found a symbol.', text: 'We found a wordmark.' } as const)[s.logo.layout] + ' The card now uses them and your logo’s colours.' : 'Add it and we design the card from it: colours, header and stamp.'}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-pill border border-border bg-surface-raised px-4 text-sm font-semibold hover:bg-surface has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-focus">
+                      {reading ? <Loader2 aria-hidden className="size-4 animate-spin" /> : <ImagePlus aria-hidden className="size-4" />}
+                      {s.logo ? 'Change logo' : 'Upload your logo'}
+                      <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" className="sr-only" aria-label={s.logo ? 'Change logo' : 'Upload your logo'}
+                        onChange={(e) => { void onLogo(e.target.files?.[0]); e.target.value = ''; }} />
+                    </label>
+                    {s.logo && <button type="button" onClick={() => setS((x) => ({ ...x, logo: null, themeId: x.themeId === 'logo' ? (type?.theme ?? 'jacaranda') : x.themeId }))} className="text-sm font-semibold text-text-muted hover:text-text hover:underline">Remove</button>}
+                  </div>
+                </div>
+                {logoError && <p role="alert" className="mt-3 text-sm text-danger">{logoError}</p>}
+                {s.logo && (
+                  <div className="mt-4 flex flex-wrap items-center gap-4">
+                    <div className="flex items-center gap-3 rounded-md p-3" style={{ background: s.logo.theme.background }}>
+                      {s.logo.symbol && <img src={s.logo.symbol} alt="Logo symbol" className="size-10 object-contain" />}
+                      {s.logo.wordmark && <img src={s.logo.wordmark} alt="Logo wordmark" className="h-8 max-w-[160px] object-contain" />}
+                    </div>
+                    {s.logo.symbol && (
+                      <label className="flex items-center gap-2 text-sm">
+                        <input type="checkbox" className="size-4 accent-[var(--tk-color-accent)]" checked={s.logoStamp} onChange={(e) => setS((x) => ({ ...x, logoStamp: e.target.checked }))} />
+                        Use the symbol as your stamp
+                      </label>
+                    )}
+                  </div>
+                )}
+              </section>
               <Field label="Card name" hint="Only you see this, e.g. “Coffee card”.">
                 <TextInput className={inputCls} value={s.name} maxLength={60} autoFocus onChange={(e) => setS((x) => ({ ...x, name: e.target.value, nameTouched: true }))} />
               </Field>
@@ -181,7 +231,7 @@ export function CardWizard({ orgName, locations }: { orgName: string; locations:
               <fieldset>
                 <legend className="text-sm font-semibold">Colours</legend>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {THEMES.map((t) => (
+                  {[...(logoTheme ? [logoTheme] : []), ...THEMES].map((t) => (
                     <label key={t.id} className="cursor-pointer">
                       <input type="radio" name="theme" value={t.id} checked={s.themeId === t.id} onChange={() => setS((x) => ({ ...x, themeId: t.id }))} className="peer sr-only" />
                       <span className="sr-only">{t.name}</span>
@@ -263,7 +313,8 @@ export function CardWizard({ orgName, locations }: { orgName: string; locations:
           {stepId === 'review' && (
             <dl className="divide-y divide-border rounded-md border border-border">
               {([
-                ['Card name', s.name, 'look'], ['Name on the card', s.programName || orgName, 'look'], ['Colours and stamp', `${theme.name}, ${ICON_NAMES[s.icon] ?? s.icon}`, 'look'],
+                ['Card name', s.name, 'look'], ['Name on the card', s.programName || orgName, 'look'],
+                ['Colours and stamp', `${theme.name}, ${s.logo?.symbol && s.logoStamp ? 'your logo’s symbol' : ICON_NAMES[s.icon] ?? s.icon}`, 'look'],
                 ['Reward', s.rewardMode === 'mystery' ? `Mystery box of ${s.prizes.length} prizes after ${s.totalStamps} stamps` : `${s.reward} after ${s.totalStamps} stamps`, 'reward'],
                 ...(locations.length ? [['Locations', s.locIds.length ? locations.filter((l) => s.locIds.includes(l.id)).map((l) => l.name).join(', ') : 'Decide later', 'where'] as const] : []),
               ] as const).map(([k, v, to]) => (

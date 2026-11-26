@@ -35,8 +35,9 @@ export function StampStrip({ total, filled, icon = 'cup', stamp = '#ffffff', emp
           <g key={i} className={landing && on && i === filled - 1 ? 'stamp-land' : undefined}>
             <circle cx={cx} cy={cy} r={r} fill={on ? stamp : 'none'} stroke={on ? stamp : empty} strokeWidth={4} strokeDasharray={on ? undefined : '6 6'} />
             {isReward && <circle cx={cx} cy={cy} r={r + 8} fill="none" stroke={on ? stamp : empty} strokeWidth={3} />}
-            {on && image
-              ? <image href={image} x={cx - r + 4} y={cy - r + 4} width={(r - 4) * 2} height={(r - 4) * 2} preserveAspectRatio="xMidYMid meet" aria-hidden />
+            {image
+              ? <image href={image} x={cx - r + 4} y={cy - r + 4} width={(r - 4) * 2} height={(r - 4) * 2} preserveAspectRatio="xMidYMid meet" aria-hidden
+                  opacity={on ? 1 : 0.22} style={on ? undefined : { filter: 'grayscale(1)' }} />
               : <Icon x={cx - 18} y={cy - 18} width={36} height={36} color={on ? background === 'transparent' ? '#111' : background : empty} strokeWidth={2.2} aria-hidden />}
           </g>
         );

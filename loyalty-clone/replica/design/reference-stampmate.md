@@ -62,3 +62,22 @@ The owner asked for the wizard to "look exactly like" StampMate's /start, in Gar
 | option tiles | 3 columns, 8 px gap, 96 px tall, radius 20, padding 14, grey fill, 22 px accent icon, 14/500 label | the same in surface and accent; selected = accent-subtle plus a 2 px accent ring and a check |
 | inputs and chips | filled grey, no border, rounded | 48 px filled inputs (radius 14), 48 px chips (radius 14) with mono digits |
 | stage | radius 32, warm gradient, phone ~270×565 | radius 32, a Jacaranda gradient with a Sunrise glow and a large faint ring mark; our own 270×565 phone (Night frame, status bar, wallet-style screen); the card fits inside |
+
+## Logo → automatic design (studied 2026-11-26, built the same day)
+
+**Theirs:** the owner uploaded a test logo. The browser sent it to `POST /api/stampmate/start/logo-parts`, which answered with a layout class (`"icon-text"`) and processed images.
+- **Header:** the wordmark, background removed and trimmed (337×84).
+- **Stamp:** a 360×360 square symbol. Empty stamps show the same symbol, greyscale at 22% opacity.
+- **Card colours:** the card background took the logo's own ground (`#EDEDE7`), and the labels took its ink (`#123A2D`).
+
+**Ours, in the browser, with no third party** (`lib/logo-parts.ts`, pure and unit-tested; `lib/logo-canvas.ts`):
+1. Find the background from the border colours, or none if the border is transparent.
+2. Knock the background out to a soft mask.
+3. Split the artwork by empty columns or rows into symbol plus text: side by side (`icon-text`), stacked (`icon-top`), symbol only (`icon`) or wordmark only (`text`).
+4. Read the ink and accent colours.
+5. Build a card theme that passes contrast (text and labels 4.5:1, stamps 3:1).
+
+**Where the parts go:**
+- The wizard's look step: "Upload your logo", what was found, "Use the symbol as your stamp", and a "From your logo" swatch.
+- The images are stored with the new card through the shared `attachCardImage` helper (also used by `/api/images`).
+- A wordmark clears the pass's text logo.

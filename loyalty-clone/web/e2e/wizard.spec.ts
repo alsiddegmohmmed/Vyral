@@ -85,3 +85,30 @@ test('W-E1 answers survive a reload, and an empty reward blocks Next', async ({ 
   await page.getByRole('button', { name: 'Back' }).click();
   await expect(page.getByRole('heading', { name: 'How should the card look?' })).toBeFocused();
 });
+
+test('W-L1 a logo designs the card: symbol becomes the stamp, wordmark the header, colours follow', async ({ page, checkA11y }) => {
+  await page.goto('/cards/new');
+  await page.getByRole('button', { name: 'Start', exact: true }).click();
+  await page.getByRole('button', { name: 'Café' }).click();
+  await page.getByLabel('Card name').fill('Logo card');
+  await page.getByLabel('Upload your logo').setInputFiles('e2e/fixtures/test-logo.png');
+  await expect(page.getByText('We found a symbol and a wordmark.', { exact: false })).toBeVisible();
+  await expect(page.getByRole('img', { name: 'Logo symbol' })).toBeVisible();
+  await expect(page.getByRole('img', { name: 'Logo wordmark' })).toBeVisible();
+  await expect(page.getByRole('radio', { name: 'From your logo' })).toBeChecked();
+  await expect(page.getByLabel('Use the symbol as your stamp')).toBeChecked();
+  await checkA11y('wizard: logo designed');
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  const where = page.getByRole('heading', { name: 'Where can customers use it?' });
+  const review = page.getByRole('heading', { name: 'Ready to go?' });
+  await expect(where.or(review)).toBeVisible();
+  if (await where.isVisible()) await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await expect(page.getByText(/From your logo, your logo’s symbol/)).toBeVisible();
+  await page.getByRole('button', { name: 'Fine-tune in the designer first' }).click();
+  await expect(page).toHaveURL(/\/cards\/[0-9a-f-]{36}\/design$/);
+  const c = await one<{ logo: boolean; stamp: boolean; bg: string; logo_text: string }>(
+    `select logo_image_id is not null as logo, stamp_image_id is not null as stamp, background_color as bg, coalesce(logo_text, '') as logo_text from campaigns where name = 'Logo card'`);
+  // the beige ground of the logo becomes the card's background; the wordmark replaces the pass text
+  expect(c).toMatchObject({ logo: true, stamp: true, bg: '#EDEDE7', logo_text: '' });
+});

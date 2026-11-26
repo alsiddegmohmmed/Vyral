@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import * as api from '@/lib/data/api';
 import { requireOwner } from '@/lib/session';
+import { attachCardImage, pngFromDataUrl } from '@/lib/data/card-images';
 import type { FormField } from '@/lib/data/types';
 
 export type ActionState = { error?: string; ok?: string };
@@ -101,6 +102,8 @@ export type WizardInput = {
   rewardMode: 'single' | 'mystery'; prizes: { name: string; weight: number; tier: 'common' | 'rare' | 'legendary' }[];
   theme: { background: string; foreground: string; label: string; stamp: string };
   locationIds: string[]; goLive: boolean;
+  /** from the logo (lib/logo-canvas): PNG data URLs for the header wordmark and the stamp symbol */
+  logo?: { wordmark?: string; symbol?: string };
 };
 
 /**
@@ -126,10 +129,14 @@ export async function createCardFromWizardAction(input: WizardInput): Promise<Ac
     const programName = input.programName.trim().slice(0, 40) || c.programName;
     await api.updateCampaign(ctx, id, {
       programName, totalStamps: input.totalStamps, reward: { ...c.reward, name: reward },
-      design: { ...c.design, ...input.theme, icon: input.icon, logoText: programName.slice(0, 24) },
+      design: { ...c.design, ...input.theme, icon: input.icon, logoText: input.logo?.wordmark ? '' : programName.slice(0, 24) },
       ...(input.rewardMode === 'mystery' ? { rewardMode: 'mystery' as const, prizes: input.prizes } : {}),
     });
     if (input.locationIds.length) await api.setCampaignLocations(ctx, id, input.locationIds);
+    for (const [kind, url] of [['logo', input.logo?.wordmark], ['stamp', input.logo?.symbol]] as const) {
+      const bytes = pngFromDataUrl(url);
+      if (bytes) { const r = await attachCardImage(ctx, id, kind, bytes); if (!r.ok) return { error: `Logo: ${r.error}`, step: 2 }; }
+    }
     if (input.goLive) await api.activateCampaign(ctx, id);
   } catch (e) {
     const r = fail(e);
