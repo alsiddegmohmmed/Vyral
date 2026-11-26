@@ -1,5 +1,5 @@
 'use client';
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { Cake, HeartHandshake } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/controls';
@@ -14,6 +14,10 @@ export function AutomationEditor({ campaignId, kind, initial, forecast, timezone
   const [a, setA] = useState(initial);
   const [msg, setMsg] = useState<{ tone: 'success' | 'danger'; text: string } | null>(null);
   const [pending, start] = useTransition();
+  // Until React has hydrated, typing would be reset and Save would do nothing: keep the
+  // fields read-only and Save disabled until then (also what made F15-E3 flaky).
+  const [ready, setReady] = useState(false);
+  useEffect(() => setReady(true), []);
   const Icon = kind === 'birthday' ? Cake : HeartHandshake;
   const save = (next = a) => start(async () => {
     const r = await saveAutomationAction(campaignId, kind, { enabled: next.enabled, body: next.body, daysInactive: next.daysInactive, sendHour: next.sendHour });
@@ -32,7 +36,7 @@ export function AutomationEditor({ campaignId, kind, initial, forecast, timezone
       {blocked && <Banner tone="warning" title={blocked} />}
       <Switch label={a.enabled ? 'On' : 'Off'} checked={a.enabled} disabled={!!blocked && !a.enabled} onCheckedChange={(v) => { const n = { ...a, enabled: v }; setA(n); save(n); }} />
       <Field label="Message" hint="{name} becomes the customer’s first name. Under 90 characters shows in full on the lock screen.">
-        <Textarea value={a.body} max={300} onChange={(e) => setA({ ...a, body: e.target.value })} />
+        <Textarea value={a.body} max={300} readOnly={!ready} onChange={(e) => setA({ ...a, body: e.target.value })} />
       </Field>
       <div className="grid grid-cols-2 gap-3">
         {kind === 'winback' && (
@@ -46,7 +50,7 @@ export function AutomationEditor({ campaignId, kind, initial, forecast, timezone
       </div>
       <p className="text-sm tabular text-text-muted">About <strong className="text-text">{forecast} {forecast === 1 ? 'customer' : 'customers'}</strong> in the next 7 days.</p>
       {msg && <Banner tone={msg.tone} title={msg.text} />}
-      <Button variant="secondary" className="self-start" loading={pending} onClick={() => save()}>Save message</Button>
+      <Button variant="secondary" className="self-start" loading={pending} disabled={!ready} onClick={() => save()}>Save message</Button>
     </section>
   );
 }
