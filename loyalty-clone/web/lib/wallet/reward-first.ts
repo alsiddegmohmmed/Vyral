@@ -4,11 +4,13 @@
 // stamp count · QR code with the typed code under it.
 // Pure: no imports, so node --test, the server and client components can all load it.
 
-/** Stamps on the strip: one row up to 10, then two or three even rows. */
+/** Rows of stamps on the strip: one up to 6, two up to 12 (5 + 5 for a 10-stamp card), then three. */
+export const stripRows = (total: number) => (total <= 6 ? 1 : total <= 12 ? 2 : 3);
+
+/** Stamps per row on the strip, so every row is (nearly) full and stamps stay big enough to read. */
 export function stripColumns(total: number): number {
   const n = Math.max(1, Math.floor(total));
-  const rows = n <= 10 ? 1 : n <= 20 ? 2 : 3;
-  return Math.ceil(n / rows);
+  return Math.ceil(n / stripRows(n));
 }
 
 /** Apple shows roughly this many characters of the big reward text before cutting it off. */

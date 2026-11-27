@@ -258,8 +258,8 @@ test('ECv2SigningOnly: rejects an expired intermediate key, an expired message, 
 
 test('strip SVG follows the stamp-strip column rules', () => {
   assert.deepEqual([10, 11, 18, 19, 30].map(stampColumns), [5, 6, 6, 8, 8]);
-  // Reward first: one row up to 10 stamps on the wallet strip, then even rows
-  assert.deepEqual([4, 10, 11, 20, 21, 30].map(stripColumns), [4, 10, 6, 10, 7, 10]);
+  // Reward first: one row up to 6 stamps on the wallet strip, two up to 12 (5 + 5 for 10), then three
+  assert.deepEqual([4, 6, 7, 10, 12, 13, 20, 30].map(stripColumns), [4, 6, 4, 5, 6, 5, 7, 10]);
   const svg = renderStripSvg({ total: 10, filled: 7, stamp: '#ff0000', background: '#000000' });
   assert.match(svg, /^<svg [^>]*width="1125" height="432"/);
   assert.equal((svg.match(/fill="#ff0000"/g) ?? []).length, 7);
