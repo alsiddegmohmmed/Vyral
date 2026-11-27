@@ -21,7 +21,8 @@ const QRStub = () => (
 
 /** While the preview fills itself, the stamp grid keeps one steady name instead of a new count every second. */
 const strip = (d: CardDesign, anim: boolean) => ({
-  total: d.total, filled: d.filled, icon: d.icon, image: d.stampUrl, stamp: d.stamp, empty: `${d.foreground}55`, background: d.background,
+  // the strip sits straight on the card, so it paints no box of its own; icons take the card colour
+  total: d.total, filled: d.filled, icon: d.icon, image: d.stampUrl, stamp: d.stamp, empty: `${d.foreground}55`, background: 'transparent', ink: d.background,
   landing: anim, label: anim ? `Preview: the card filling up to ${d.total} stamps` : undefined, columns: stripColumns(d.total),
 });
 /** Reward first (lib/wallet/reward-first.ts): the same headline the Apple and Google passes show. */
@@ -44,7 +45,7 @@ function AppleFront({ d, anim = false, fit = false }: { d: CardDesign; anim?: bo
           <span className="tabular text-base font-semibold">{go.value}</span>
         </span>
       </div>
-      <div className="mt-3 flex flex-col gap-2 px-4 pb-2 pt-3" style={{ background: 'rgba(0,0,0,.12)' }}>
+      <div className="mt-2 flex flex-col gap-2 px-4 pb-1 pt-2">
         <div className="min-w-0">
           <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: d.label }}>{h.label}</p>
           {/* Apple cuts the big text off after about REWARD_FITS characters; the preview does the same */}

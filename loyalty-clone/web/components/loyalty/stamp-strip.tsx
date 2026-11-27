@@ -12,10 +12,12 @@ export const stampColumns = (total: number) => (total <= 10 ? 5 : total <= 18 ? 
  * The one stamp-grid renderer. Pure SVG so the same markup renders on the server
  * to PNG (pass strip images via resvg) and in the browser (designer, web card, scanner).
  */
-export function StampStrip({ total, filled, icon = 'cup', stamp = '#ffffff', empty = 'rgba(255,255,255,.28)', background = 'transparent', className, image, label, landing, columns }: {
+export function StampStrip({ total, filled, icon = 'cup', stamp = '#ffffff', empty = 'rgba(255,255,255,.28)', background = 'transparent', className, image, label, landing, columns, ink }: {
   total: number; filled: number; icon?: string; stamp?: string; empty?: string; background?: string; className?: string; image?: string;
   /** stamps per row (wallet strip: lib/wallet/reward-first stripColumns); default stampColumns */
   columns?: number;
+  /** icon colour on a filled stamp; defaults to `background` (use it when the strip itself is transparent) */
+  ink?: string;
   /** accessible name; defaults to "N of M stamps" */
   label?: string;
   /** browser only: the newest stamp drops in (self-filling preview) */
@@ -41,7 +43,7 @@ export function StampStrip({ total, filled, icon = 'cup', stamp = '#ffffff', emp
             {image
               ? <image href={image} x={cx - r} y={cy - r} width={r * 2} height={r * 2} preserveAspectRatio="xMidYMid meet" aria-hidden
                   opacity={on ? 1 : 0.22} style={on ? undefined : { filter: 'grayscale(1)' }} />
-              : <Icon x={cx - 18} y={cy - 18} width={36} height={36} color={on ? background === 'transparent' ? '#111' : background : empty} strokeWidth={2.2} aria-hidden />}
+              : <Icon x={cx - 18} y={cy - 18} width={36} height={36} color={on ? ink ?? (background === 'transparent' ? '#111' : background) : empty} strokeWidth={2.2} aria-hidden />}
           </g>
         );
       })}
