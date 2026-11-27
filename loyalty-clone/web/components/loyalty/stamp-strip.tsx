@@ -12,14 +12,16 @@ export const stampColumns = (total: number) => (total <= 10 ? 5 : total <= 18 ? 
  * The one stamp-grid renderer. Pure SVG so the same markup renders on the server
  * to PNG (pass strip images via resvg) and in the browser (designer, web card, scanner).
  */
-export function StampStrip({ total, filled, icon = 'cup', stamp = '#ffffff', empty = 'rgba(255,255,255,.28)', background = 'transparent', className, image, label, landing }: {
+export function StampStrip({ total, filled, icon = 'cup', stamp = '#ffffff', empty = 'rgba(255,255,255,.28)', background = 'transparent', className, image, label, landing, columns }: {
   total: number; filled: number; icon?: string; stamp?: string; empty?: string; background?: string; className?: string; image?: string;
+  /** stamps per row (wallet strip: lib/wallet/reward-first stripColumns); default stampColumns */
+  columns?: number;
   /** accessible name; defaults to "N of M stamps" */
   label?: string;
   /** browser only: the newest stamp drops in (self-filling preview) */
   landing?: boolean;
 }) {
-  const cols = stampColumns(total);
+  const cols = columns ?? stampColumns(total);
   const rows = Math.ceil(total / cols);
   const cell = 100, pad = 14, r = cell / 2 - pad;
   const w = cols * cell, h = rows * cell;

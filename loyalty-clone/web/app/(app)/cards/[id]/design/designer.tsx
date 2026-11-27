@@ -17,6 +17,7 @@ import { GarukaMark } from '@/components/brand/garuka-mark';
 import { THEMES } from '@/lib/card-presets';
 import { cn } from '@/lib/cn';
 import { analyseLogo, type LogoResult } from '@/lib/logo-canvas';
+import { REWARD_FITS } from '@/lib/wallet/reward-first';
 import type { Campaign, CardLink, FieldType, FormField, Location } from '@/lib/data/types';
 import { activateAction, saveCardLocationsAction, saveDesignAction, saveFieldsAction } from '../../actions';
 
@@ -343,7 +344,7 @@ export function Designer({ campaign, locations }: { campaign: Campaign; location
       </fieldset>
       {c.rewardMode === 'single' ? (
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Reward" required hint="What customers get, e.g. “Free coffee”."><TextInput value={c.reward.name} maxLength={60} onChange={(e) => set('reward', { ...c.reward, name: e.target.value })} /></Field>
+          <Field label="Reward" required hint={c.reward.name.length > REWARD_FITS ? `It’s the big text on wallet passes, and Apple cuts it off after about ${REWARD_FITS} characters. Try something shorter, and put the rest in Reward details.` : `What customers get, e.g. “Free coffee”. It’s the big text on the card, so up to ${REWARD_FITS} characters fits best.`}><TextInput value={c.reward.name} maxLength={60} onChange={(e) => set('reward', { ...c.reward, name: e.target.value })} /></Field>
           <Field label="Reward details" hint="Optional, e.g. “Any hot drink, any size”."><TextInput value={c.reward.details} maxLength={120} onChange={(e) => set('reward', { ...c.reward, details: e.target.value })} /></Field>
         </div>
       ) : (

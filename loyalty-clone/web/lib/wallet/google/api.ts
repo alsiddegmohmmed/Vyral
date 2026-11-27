@@ -13,7 +13,7 @@
 //   Message.messageType TEXT | TEXT_AND_NOTIFY: https://developers.google.com/wallet/reference/rest/v1/Message
 // An insert of an existing id answers 409, which is why upserts fall back to PATCH.
 import { getAccessToken } from './jwt';
-import { pointsPatch, type LoyaltyClass, type LoyaltyObject } from './objects';
+import { pointsPatch, type facePoints, type LoyaltyClass, type LoyaltyObject } from './objects';
 
 export const WALLET_API = 'https://walletobjects.googleapis.com/walletobjects/v1';
 
@@ -66,12 +66,12 @@ export async function upsertObject(obj: LoyaltyObject): Promise<'inserted' | 'pa
 }
 
 /**
- * PATCH the stamp balance ("7/10"). notifyPreference NOTIFY_ON_UPDATE is sent only when notify is
- * true. `extra` carries other fields to patch in the same request (e.g. secondaryLoyaltyPoints, state).
+ * PATCH the points (reward headline and stamps, see facePoints). notifyPreference NOTIFY_ON_UPDATE is
+ * sent only when notify is true. `extra` carries other fields to patch in the same request (e.g. state).
  * Returns 'not_found' when the object was never created (the customer never opened the save link).
  */
-export async function patchObjectPoints(objectId: string, balance: string, notify: boolean, extra: Record<string, unknown> = {}): Promise<'patched' | 'not_found'> {
-  const res = await call('PATCH', `/loyaltyObject/${rid(objectId)}`, pointsPatch(balance, notify, extra));
+export async function patchObjectPoints(objectId: string, points: ReturnType<typeof facePoints>, notify: boolean, extra: Record<string, unknown> = {}): Promise<'patched' | 'not_found'> {
+  const res = await call('PATCH', `/loyaltyObject/${rid(objectId)}`, pointsPatch(points, notify, extra));
   if (res.status === 404) return 'not_found';
   await expectOk(res, 'loyaltyObject.patch');
   return 'patched';

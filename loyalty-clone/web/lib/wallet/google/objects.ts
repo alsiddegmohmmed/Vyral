@@ -8,6 +8,7 @@
 // CallbackOptions (url): https://developers.google.com/wallet/reference/rest/v1/CallbackOptions
 // notifyPreference (NotificationSettingsForUpdates): https://developers.google.com/wallet/reference/rest/v1/NotificationSettingsForUpdates
 import type { WalletPassData } from '../../integrations/contracts';
+import { rewardHeadline, stampCount, toGo } from '../reward-first';
 
 type Campaign = WalletPassData['campaign'];
 
@@ -63,15 +64,23 @@ export function objectState(d: Pick<WalletPassData, 'status' | 'expired'>): Loya
   return 'ACTIVE';
 }
 
-export const stampsBalance = (d: Pick<WalletPassData, 'currentStamps' | 'totalStamps'>) => `${d.currentStamps}/${d.totalStamps}`;
+export const stampsBalance = (d: Pick<WalletPassData, 'currentStamps' | 'totalStamps'>) => stampCount(d);
 
-export function loyaltyPoints(d: Pick<WalletPassData, 'currentStamps' | 'totalStamps'>) {
-  return { label: 'Stamps', balance: { string: stampsBalance(d) } };
+type FaceInput = Pick<WalletPassData, 'currentStamps' | 'totalStamps' | 'rewardsAvailable' | 'mystery'> & { campaign: { reward: { name: string } } };
+
+/** Reward first: the main figure is the reward (or what's ready); stamps and visits to go sit beside it. */
+export function loyaltyPoints(d: FaceInput) {
+  const h = rewardHeadline({ rewardName: d.campaign.reward.name, rewardsAvailable: d.rewardsAvailable, currentStamps: d.currentStamps, totalStamps: d.totalStamps, mystery: d.mystery });
+  return { label: h.label, balance: { string: h.value } };
 }
 
-export function secondaryLoyaltyPoints(d: Pick<WalletPassData, 'rewardsAvailable'>) {
-  return { label: 'Rewards', balance: { string: String(d.rewardsAvailable) } };
+export function secondaryLoyaltyPoints(d: Pick<WalletPassData, 'currentStamps' | 'totalStamps'>) {
+  const go = toGo(d);
+  return { label: 'Stamps', balance: { string: go.value === 'Ready' ? stampCount(d) : `${stampCount(d)} · ${go.value} to go` } };
 }
+
+/** Both points blocks, as sent on insert and on every update. */
+export const facePoints = (d: FaceInput) => ({ loyaltyPoints: loyaltyPoints(d), secondaryLoyaltyPoints: secondaryLoyaltyPoints(d) });
 
 function textModules(d: WalletPassData) {
   const out: { id: string; header: string; body: string }[] = [];
@@ -110,14 +119,14 @@ export type LoyaltyClass = ReturnType<typeof buildLoyaltyClass>;
 export type LoyaltyObject = ReturnType<typeof buildLoyaltyObject>;
 
 /**
- * PATCH body for a balance change. `notifyPreference` is ephemeral (it must be sent on each
- * PATCH that should notify), so it is only included when notify is true. The enum value is
- * NOTIFY_ON_UPDATE per the NotificationSettingsForUpdates reference.
+ * PATCH body for a points change (the reward headline and the stamps). `notifyPreference` is
+ * ephemeral (it must be sent on each PATCH that should notify), so it is only included when
+ * notify is true. The enum value is NOTIFY_ON_UPDATE per the NotificationSettingsForUpdates reference.
  */
-export function pointsPatch(balance: string, notify: boolean, extra: Record<string, unknown> = {}) {
+export function pointsPatch(points: ReturnType<typeof facePoints>, notify: boolean, extra: Record<string, unknown> = {}) {
   return {
     ...extra,
-    loyaltyPoints: { label: 'Stamps', balance: { string: balance } },
+    ...points,
     ...(notify ? { notifyPreference: 'NOTIFY_ON_UPDATE' as const } : {}),
   };
 }

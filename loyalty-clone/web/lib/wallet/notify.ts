@@ -7,7 +7,7 @@ import type { WalletPassData } from '@/lib/integrations/contracts';
 import { googleConfig, isNotConfigured } from './config';
 import { pushPassUpdates } from './apple/apns';
 import { addObjectMessage, patchObjectPoints } from './google/api';
-import { objectIdFor, objectState, secondaryLoyaltyPoints, stampsBalance } from './google/objects';
+import { facePoints, objectIdFor, objectState } from './google/objects';
 
 export type NotifyReason = 'reward_earned' | 'broadcast' | 'birthday' | 'winback';
 
@@ -72,10 +72,10 @@ export async function pushCardUpdate(cardId: string, opts: PushCardUpdateOptions
     const d = await passDataFor(cardId, opts.serial);
     if (d && d.cardId === cardId) {
       const objectId = objectIdFor(cfg.issuerId, d.serial);
-      const extra = { secondaryLoyaltyPoints: secondaryLoyaltyPoints(d), state: objectState(d) };
+      const extra = { state: objectState(d) };
       if (opts.message) {
         // Points silently; the message carries the (budgeted) notification.
-        const p = await patchObjectPoints(objectId, stampsBalance(d), false, extra);
+        const p = await patchObjectPoints(objectId, facePoints(d), false, extra);
         if (p === 'patched') {
           const notify = opts.reason ? await claimNotificationSlot(cardId, 'google', opts.reason, opts.messageId) : false;
           await addObjectMessage(objectId, opts.message.header, opts.message.body, notify, opts.messageId);
@@ -85,7 +85,7 @@ export async function pushCardUpdate(cardId: string, opts: PushCardUpdateOptions
       } else {
         // NOTE: the slot is claimed before we know the object exists; a 404 then wastes one slot.
         const notify = opts.reason ? await claimNotificationSlot(cardId, 'google', opts.reason, opts.messageId) : false;
-        const p = await patchObjectPoints(objectId, stampsBalance(d), notify, extra);
+        const p = await patchObjectPoints(objectId, facePoints(d), notify, extra);
         out.google = p === 'patched' ? 'patched' : 'not_saved';
         googleNotified = notify && p === 'patched';
       }

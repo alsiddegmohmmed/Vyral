@@ -5,6 +5,7 @@ import { SegmentedControl } from '@/components/ui/controls';
 import { Button } from '@/components/ui/button';
 import { StampStrip } from './stamp-strip';
 import { useStampLoop } from './use-stamp-loop';
+import { REWARD_FITS, rewardHeadline, stripColumns, toGo } from '@/lib/wallet/reward-first';
 
 export type CardDesign = {
   business: string; programName: string; reward: string; total: number; filled: number; icon: string;
@@ -21,29 +22,41 @@ const QRStub = () => (
 /** While the preview fills itself, the stamp grid keeps one steady name instead of a new count every second. */
 const strip = (d: CardDesign, anim: boolean) => ({
   total: d.total, filled: d.filled, icon: d.icon, image: d.stampUrl, stamp: d.stamp, empty: `${d.foreground}55`, background: d.background,
-  landing: anim, label: anim ? `Preview: the card filling up to ${d.total} stamps` : undefined,
+  landing: anim, label: anim ? `Preview: the card filling up to ${d.total} stamps` : undefined, columns: stripColumns(d.total),
 });
+/** Reward first (lib/wallet/reward-first.ts): the same headline the Apple and Google passes show. */
+const headline = (d: CardDesign) => rewardHeadline({ rewardName: d.reward, rewardsAvailable: full(d) ? 1 : 0, currentStamps: d.filled, totalStamps: d.total });
 const full = (d: CardDesign) => d.filled >= d.total;
 
-/** `fit`: size to the content instead of the pass ratio (inside the phone mockup, so the QR never clips). */
+/**
+ * The Apple store card, Reward first: name and visits to go on top, the reward as the big text
+ * over the stamp strip, the stamp count underneath, the QR code and typed code at the bottom.
+ * `fit`: size to the content instead of the pass ratio (inside the phone mockup, so the QR never clips).
+ */
 function AppleFront({ d, anim = false, fit = false }: { d: CardDesign; anim?: boolean; fit?: boolean }) {
+  const h = headline(d), go = toGo({ currentStamps: d.filled, totalStamps: d.total });
   return (
     <div className={fit ? 'flex w-full flex-col overflow-hidden rounded-xl shadow-pass' : 'flex aspect-[1/1.4] w-full flex-col overflow-hidden rounded-xl shadow-pass'} style={{ background: d.background, color: d.foreground }}>
-      <div className="flex items-center justify-between px-4 pt-4">
-        <span className="flex min-w-0 items-center gap-2 font-bold">{d.logoUrl && <img src={d.logoUrl} alt="" className="h-8 max-w-[110px] object-contain" />}{d.logoText}</span>
-        <span className="text-right">
-          <span className="block text-[10px] font-semibold uppercase tracking-wide" style={{ color: d.label }}>Stamps</span>
-          <span className="tabular text-lg font-semibold">{d.filled}/{d.total}</span>
+      <div className="flex items-center justify-between gap-3 px-4 pt-4">
+        <span className="flex min-w-0 items-center gap-2 font-bold">{d.logoUrl && <img src={d.logoUrl} alt="" className="h-8 max-w-[110px] object-contain" />}<span className="truncate">{d.logoText}</span></span>
+        <span className="shrink-0 text-right">
+          <span className="block text-[10px] font-semibold uppercase tracking-wide" style={{ color: d.label }}>{go.label}</span>
+          <span className="tabular text-base font-semibold">{go.value}</span>
         </span>
       </div>
-      <div className="mt-3 px-4" style={{ background: 'rgba(0,0,0,.12)' }}>
-        <StampStrip {...strip(d, anim)} className="w-full py-3" />
+      <div className="mt-3 flex flex-col gap-2 px-4 pb-2 pt-3" style={{ background: 'rgba(0,0,0,.12)' }}>
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: d.label }}>{h.label}</p>
+          {/* Apple cuts the big text off after about REWARD_FITS characters; the preview does the same */}
+          <p className="truncate text-[26px] font-semibold leading-tight" title={h.value}>{h.value.length > REWARD_FITS + 2 ? `${h.value.slice(0, REWARD_FITS)}…` : h.value}</p>
+        </div>
+        <StampStrip {...strip(d, anim)} className="w-full" />
       </div>
-      <div className="grid grid-cols-2 gap-2 px-4 pt-3 text-sm">
-        <div><p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: d.label }}>Reward</p><p className="font-medium">{d.reward}</p></div>
-        <div className="text-right"><p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: d.label }}>To go</p><p className="tabular font-medium">{full(d) ? 'Ready' : d.total - d.filled}</p></div>
+      <div className="px-4 pt-3 text-sm">
+        <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: d.label }}>Stamps</p>
+        <p className="tabular font-medium">{d.filled}/{d.total}</p>
       </div>
-      <div className={fit ? 'pb-5 pt-4' : 'mt-auto pb-5'}><QRStub /></div>
+      <div className={fit ? 'pb-4 pt-3' : 'mt-auto pb-4'}><QRStub /><p className="mt-1.5 text-center font-mono text-[11px] tracking-[.18em] opacity-80">CARD CODE</p></div>
     </div>
   );
 }
@@ -71,17 +84,18 @@ function AppleBack({ d }: { d: CardDesign }) {
   );
 }
 
+/** Google Wallet, Reward first: the reward is the main figure, the stamps and visits to go beside it. */
 function GoogleCard({ d, anim = false }: { d: CardDesign; anim?: boolean }) {
+  const h = headline(d), go = toGo({ currentStamps: d.filled, totalStamps: d.total });
   return (
     <div className="flex aspect-[1/1.4] w-full flex-col overflow-hidden rounded-2xl shadow-pass" style={{ background: d.background, color: d.foreground }}>
       <div className="flex items-center gap-2 px-4 pt-4">
-        <span className="grid size-8 place-items-center rounded-pill bg-white/90 text-xs font-bold text-black">{d.logoText.slice(0, 1)}</span>
+        <span className="grid size-8 place-items-center rounded-pill bg-white/90 text-xs font-bold text-black">{d.logoText.slice(0, 1) || d.business.slice(0, 1)}</span>
         <span className="text-sm font-medium">{d.business}</span>
       </div>
-      <p className="px-4 pt-3 text-xl font-semibold">{d.programName}</p>
-      <div className="px-4 pt-2">
-        <p className="text-xs opacity-80">Stamps</p>
-        <p className="tabular text-2xl font-semibold">{d.filled}/{d.total}{full(d) && <span className="ml-2 text-sm font-medium">· {d.reward} ready</span>}</p>
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 px-4 pt-4">
+        <div className="min-w-0"><p className="text-xs opacity-80">{h.label}</p><p className="text-xl font-semibold leading-tight [overflow-wrap:anywhere]">{h.value}</p></div>
+        <div className="text-right"><p className="text-xs opacity-80">Stamps</p><p className="tabular text-xl font-semibold">{d.filled}/{d.total}</p>{go.value !== 'Ready' && <p className="tabular text-xs opacity-80">{go.value} to go</p>}</div>
       </div>
       <StampStrip {...strip(d, anim)} className="mx-4 mt-3" />
       <div className="mt-auto pb-5"><QRStub /></div>

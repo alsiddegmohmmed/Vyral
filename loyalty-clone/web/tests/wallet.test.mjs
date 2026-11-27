@@ -19,7 +19,8 @@ registerHooks({
 });
 
 const { buildPassJson, hexToRgb, asChangeMessage } = await import('../lib/wallet/apple/pass-json.ts');
-const { buildLoyaltyClass, buildLoyaltyObject, classIdFor, objectIdFor, pointsPatch } = await import('../lib/wallet/google/objects.ts');
+const { buildLoyaltyClass, buildLoyaltyObject, classIdFor, objectIdFor, pointsPatch, facePoints } = await import('../lib/wallet/google/objects.ts');
+const { stripColumns } = await import('../lib/wallet/reward-first.ts');
 const { signServiceAccountJwt, buildSaveUrl, SAVE_URL_PREFIX } = await import('../lib/wallet/google/jwt.ts');
 const { verifyGoogleCallback, CallbackVerificationError } = await import('../lib/wallet/google/callback.ts');
 const { renderStripSvg, renderStripPng, solidPng, stampColumns } = await import('../lib/wallet/images.ts');
@@ -73,9 +74,12 @@ test('pass.json: storeCard, QR, auth, colours, locations, no changeMessage on st
   assert.equal(p.logoText, 'Kawa');
   assert.equal(p.organizationName, 'Kawa Café');
   assert.equal(p.voided, undefined);
+  // Reward first: the reward is the big primary field, visits to go top right, stamps underneath
   const primary = p.storeCard.primaryFields[0];
-  assert.equal(primary.value, '7/10');
+  assert.equal(primary.key, 'reward'); assert.equal(primary.label, 'Your reward'); assert.equal(primary.value, passData().campaign.reward.name);
   assert.equal('changeMessage' in primary, false);
+  assert.deepEqual(p.storeCard.headerFields, [{ key: 'to_go', label: 'To go', value: '3 visits' }]);
+  assert.deepEqual(p.storeCard.secondaryFields, [{ key: 'stamps', label: 'Stamps', value: '7/10' }]);
   assert.equal(p.locations.length, 10);
   assert.deepEqual(p.locations[0], { latitude: -1.95, longitude: 30.06, relevantText: 'Shop 0 is nearby' });
   const back = Object.fromEntries(p.storeCard.backFields.map((f) => [f.key, f]));
@@ -87,9 +91,9 @@ test('pass.json: storeCard, QR, auth, colours, locations, no changeMessage on st
 });
 
 test('pass.json: reward field changes value and carries rewardMessage only when a reward is available', () => {
-  const none = buildPassJson(passData(), cfg).storeCard.secondaryFields[0];
-  const one = buildPassJson(passData({ rewardsAvailable: 1, currentStamps: 0 }), cfg).storeCard.secondaryFields[0];
-  const two = buildPassJson(passData({ rewardsAvailable: 2 }), cfg).storeCard.secondaryFields[0];
+  const none = buildPassJson(passData(), cfg).storeCard.primaryFields[0];
+  const one = buildPassJson(passData({ rewardsAvailable: 1, currentStamps: 0 }), cfg).storeCard.primaryFields[0];
+  const two = buildPassJson(passData({ rewardsAvailable: 2 }), cfg).storeCard.primaryFields[0];
   assert.equal(none.changeMessage, undefined);
   assert.notEqual(none.value, one.value);
   assert.notEqual(one.value, two.value);
@@ -143,8 +147,9 @@ test('Google object: id, balance 7/10, rewards, barcode, state, text modules', (
   assert.equal(o.id, objectIdFor(issuer, 'S3RIALABCDEF0123456789XYZ'));
   assert.equal(o.classId, classId);
   assert.equal(o.state, 'ACTIVE');
-  assert.deepEqual(o.loyaltyPoints, { label: 'Stamps', balance: { string: '7/10' } });
-  assert.deepEqual(o.secondaryLoyaltyPoints, { label: 'Rewards', balance: { string: '1' } });
+  // Reward first: the reward is the main figure, the stamps and visits to go beside it
+  assert.equal(o.loyaltyPoints.label, 'Reward ready'); assert.match(o.loyaltyPoints.balance.string, / ready$/);
+  assert.deepEqual(o.secondaryLoyaltyPoints, { label: 'Stamps', balance: { string: '7/10 · 3 visits to go' } });
   assert.deepEqual(o.barcode, { type: 'QR_CODE', value: passData().qrPayload, alternateText: 'K7Q2M9XP' });
   assert.equal(o.accountName, 'Aline');
   assert.deepEqual(o.textModulesData.map((t) => t.id), ['news']);
@@ -153,12 +158,13 @@ test('Google object: id, balance 7/10, rewards, barcode, state, text modules', (
   assert.throws(() => objectIdFor(issuer, 'bad serial/..'));
 });
 
-test('Google points patch: notifyPreference only when notify', () => {
-  assert.deepEqual(pointsPatch('7/10', false), { loyaltyPoints: { label: 'Stamps', balance: { string: '7/10' } } });
-  const n = pointsPatch('0/10', true, { secondaryLoyaltyPoints: { label: 'Rewards', balance: { string: '1' } } });
+test('Google points patch: both points blocks, notifyPreference only when notify', () => {
+  const pts = facePoints(passData());
+  assert.deepEqual(pointsPatch(pts, false), pts);
+  const n = pointsPatch(facePoints(passData({ currentStamps: 0, rewardsAvailable: 1 })), true, { state: 'ACTIVE' });
   assert.equal(n.notifyPreference, 'NOTIFY_ON_UPDATE');
-  assert.equal(n.loyaltyPoints.balance.string, '0/10');
-  assert.equal(n.secondaryLoyaltyPoints.balance.string, '1');
+  assert.equal(n.state, 'ACTIVE');
+  assert.equal(n.secondaryLoyaltyPoints.balance.string, '0/10 · 10 visits to go');
 });
 
 // ------------------------------------------------------------------ JWT
@@ -252,6 +258,8 @@ test('ECv2SigningOnly: rejects an expired intermediate key, an expired message, 
 
 test('strip SVG follows the stamp-strip column rules', () => {
   assert.deepEqual([10, 11, 18, 19, 30].map(stampColumns), [5, 6, 6, 8, 8]);
+  // Reward first: one row up to 10 stamps on the wallet strip, then even rows
+  assert.deepEqual([4, 10, 11, 20, 21, 30].map(stripColumns), [4, 10, 6, 10, 7, 10]);
   const svg = renderStripSvg({ total: 10, filled: 7, stamp: '#ff0000', background: '#000000' });
   assert.match(svg, /^<svg [^>]*width="1125" height="432"/);
   assert.equal((svg.match(/fill="#ff0000"/g) ?? []).length, 7);
@@ -321,13 +329,13 @@ test('pushPassUpdates reports malformed tokens as invalid without connecting', a
 test('mystery box on the Apple pass: "Ready to open" alerts once, the prize shows silently, the back links to the card', () => {
   const url = 'https://garuka.example/c/ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   const waiting = buildPassJson(passData({ rewardsAvailable: 1, cardUrl: url, mystery: { boxes: [{ name: 'Free pastry', tier: 'rare', opened: false }] } }), cfg);
-  const r1 = waiting.storeCard.secondaryFields[0];
+  const r1 = waiting.storeCard.primaryFields[0];
   assert.equal(r1.label, 'Mystery box'); assert.equal(r1.value, 'Ready to open');
   assert.match(r1.changeMessage, /mystery box is ready/);
   const link = waiting.storeCard.backFields.find((f) => f.key === 'open_box');
   assert.match(link.attributedValue, /href='https:\/\/garuka\.example\/c\/[A-Z]+'>Open your mystery box</);
   const opened = buildPassJson(passData({ rewardsAvailable: 1, cardUrl: url, mystery: { boxes: [{ name: 'Free pastry', tier: 'rare', opened: true }] } }), cfg);
-  const r2 = opened.storeCard.secondaryFields[0];
+  const r2 = opened.storeCard.primaryFields[0];
   assert.equal(r2.value, 'Free pastry'); assert.equal(r2.changeMessage, undefined, 'revealing the prize must not alert again');
 });
 

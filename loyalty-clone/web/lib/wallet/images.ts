@@ -8,6 +8,7 @@
 //
 // Kept free of `@/` imports so `node --test` can load it directly.
 import { deflateSync, crc32 } from 'node:zlib';
+import { stripColumns } from './reward-first';
 
 /** Columns per row: 5 up to 10 stamps, 6 up to 18, 8 up to 30 (mirrors stampColumns in stamp-strip.tsx). */
 export const stampColumns = (total: number) => (total <= 10 ? 5 : total <= 18 ? 6 : 8);
@@ -38,8 +39,9 @@ export type StripOptions = {
 };
 
 /**
- * The stamp strip as an SVG string. Circles only: filled or dashed-empty, with an
- * extra ring on the last (reward) slot, like the web component. No icons.
+ * The stamp strip as an SVG string, Reward first: a band of stamps along the bottom, the top
+ * left free for the reward text. Circles only: filled or dashed-empty, with an extra ring on the
+ * last (reward) slot, like the web component. No icons.
  */
 export function renderStripSvg(o: StripOptions): string {
   const total = Math.max(1, Math.min(30, Math.floor(o.total)));
@@ -49,9 +51,12 @@ export function renderStripSvg(o: StripOptions): string {
   const empty = safeColour(o.empty, 'rgba(255,255,255,0.45)');
   const background = safeColour(o.background, 'transparent');
 
-  const W = STRIP.width * scale, H = STRIP.height * scale, safeH = STRIP.safeHeight * scale;
-  const cols = stampColumns(total);
+  // Reward first: Apple draws the reward (the primary field) over the top-left of the strip, so
+  // the stamps sit in a band along the bottom: one row up to 10, then two or three rows.
+  const W = STRIP.width * scale, H = STRIP.height * scale;
+  const cols = stripColumns(total);
   const rows = Math.ceil(total / cols);
+  const bandH = (rows === 1 ? 50 : rows === 2 ? 70 : 84) * scale;
   const cell = 100, pad = 14, r = cell / 2 - pad;
   const gw = cols * cell, gh = rows * cell;
 
@@ -68,12 +73,11 @@ export function renderStripSvg(o: StripOptions): string {
     if (i === total - 1) circles.push(`<circle cx="${cx}" cy="${cy}" r="${r + 8}" fill="none" stroke="${on ? stamp : empty}" stroke-width="3"/>`);
   }
 
-  // The grid is fitted (centred, aspect kept) into the bottom safe band, with a small margin.
-  const margin = 6 * scale;
+  const margin = 8 * scale;
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">`,
     background === 'transparent' ? '' : `<rect width="${W}" height="${H}" fill="${background}"/>`,
-    `<svg x="${margin}" y="${H - safeH + margin}" width="${W - 2 * margin}" height="${safeH - 2 * margin}" viewBox="-10 -10 ${gw + 20} ${gh + 20}" preserveAspectRatio="xMidYMid meet">`,
+    `<svg x="${margin}" y="${H - bandH - margin}" width="${W - 2 * margin}" height="${bandH}" viewBox="-10 -10 ${gw + 20} ${gh + 20}" preserveAspectRatio="xMidYMid meet">`,
     ...circles,
     '</svg></svg>',
   ].join('');

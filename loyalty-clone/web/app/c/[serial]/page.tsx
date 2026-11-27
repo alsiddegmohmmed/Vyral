@@ -7,6 +7,7 @@ import { StampStrip } from '@/components/loyalty/stamp-strip';
 import { Banner } from '@/components/ui/feedback';
 import { LiveRefresh } from './live-refresh';
 import { MysteryBoxes } from './mystery-boxes';
+import { rewardHeadline, toGo as visitsToGo } from '@/lib/wallet/reward-first';
 
 export const metadata: Metadata = { title: 'Your card', robots: { index: false, follow: false }, referrer: 'no-referrer' };
 
@@ -15,9 +16,12 @@ export default async function CardPage({ params, searchParams }: { params: Promi
   const card = await getPublicCard(serial);
   if (!card) notFound();
   const c = card.campaign, d = c.design;
-  const toGo = c.totalStamps - card.currentStamps;
   const qrSvg = await QRCode.toString(card.qrPayload, { type: 'svg', margin: 3, errorCorrectionLevel: 'M' });
   const dead = card.status === 'deleted' || card.expired;
+  // Reward first (lib/wallet/reward-first.ts): the same headline as the Apple and Google passes
+  const head = rewardHeadline({ rewardName: c.reward.name, rewardsAvailable: card.rewardsAvailable, currentStamps: card.currentStamps, totalStamps: c.totalStamps,
+    mystery: c.rewardMode === 'mystery' ? { boxes: card.prizes } : undefined });
+  const go = visitsToGo({ currentStamps: card.currentStamps, totalStamps: c.totalStamps });
 
   return (
     <main className="min-h-dvh bg-surface pb-10">
@@ -27,10 +31,17 @@ export default async function CardPage({ params, searchParams }: { params: Promi
         <header className="px-5 pb-6 pt-6" style={{ background: d.background, color: d.foreground }}>
           {d.logoUrl ? <img src={d.logoUrl} alt={c.business} className="h-10 max-w-[180px] object-contain object-left" /> : <p className="text-sm font-semibold" style={{ color: d.label }}>{c.business}</p>}
           <h1 className="mt-1 text-2xl">{card.firstName ? `Hi ${card.firstName}` : c.programName}</h1>
-          <StampStrip total={c.totalStamps} filled={card.currentStamps} icon={d.icon} image={d.stampUrl} stamp={d.stamp} empty={`${d.foreground}66`} background={d.background} className="mt-4 w-full" />
-          <p className="mt-3 text-sm" aria-live="polite">
-            {dead ? 'This card no longer works.' : card.rewardsAvailable > 0 ? 'Your reward is ready. Show this card at the counter.' : `${toGo} more ${toGo === 1 ? 'stamp' : 'stamps'} to ${c.reward.name.toLowerCase()}.`}
-          </p>
+          {!dead && (
+            <div className="mt-4" aria-live="polite">
+              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: d.label }}>{head.label}</p>
+              <p className="text-[1.75rem] font-extrabold leading-tight tracking-[-0.02em] [overflow-wrap:anywhere]">{head.value}</p>
+              <p className="mt-1 text-sm font-semibold tabular" style={{ color: d.label }}>
+                {card.rewardsAvailable > 0 ? 'Show this card at the counter' : `${go.value} to go`} · {card.currentStamps} of {c.totalStamps} stamps
+              </p>
+            </div>
+          )}
+          <StampStrip total={c.totalStamps} filled={card.currentStamps} icon={d.icon} image={d.stampUrl} stamp={d.stamp} empty={`${d.foreground}66`} background={d.background} columns={c.totalStamps <= 6 ? c.totalStamps : c.totalStamps <= 12 ? Math.ceil(c.totalStamps / 2) : undefined} className="mt-4 w-full" />
+          {dead && <p className="mt-3 text-sm">This card no longer works.</p>}
         </header>
         {c.rewardMode === 'mystery' && card.prizes.length > 0 && !dead ? (
           <MysteryBoxes serial={card.serial} boxes={card.prizes} />

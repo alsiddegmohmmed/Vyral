@@ -43,7 +43,7 @@ test.describe('F06 staff stamps a card (owner session)', () => {
     await checkA11y('S30 result');
     expect((await cardById(card.id))!.current_stamps).toBe(2);
     await page.goto(`/c/${card.serial}`);
-    await expect(page.getByText('8 more stamps to free coffee.')).toBeVisible();
+    await expect(page.getByText(/8 visits to go · 2 of 10 stamps/)).toBeVisible();
   });
 
   test('F06-E1 code typed in lowercase with dashes and spaces still finds the card', async ({ page }) => {
@@ -297,7 +297,7 @@ test.describe('F07 earn and redeem', () => {
     await sql('update cards set current_stamps = 9 where id = $1', [card.id]);
     await page.request.post('/api/scan/transaction', { data: { cardId: card.id, stamps: 1, redeem: 0, idempotencyKey: `rd-${Date.now()}` } });
     await page.goto(`/c/${card.serial}`);
-    await expect(page.getByText('Your reward is ready. Show this card at the counter.')).toBeVisible();
+    await expect(page.getByText(/Show this card at the counter ·/)).toBeVisible();
     await expect(page.getByText('1 × Free coffee')).toBeVisible();
     await expectNoHorizontalScroll(page);
   });

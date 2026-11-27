@@ -16,7 +16,8 @@ test.describe('F04 customer joins', () => {
     expect(serial).not.toBeNull();
     await expect(page.getByText('You’re in!')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Hi Aimée' })).toBeVisible();
-    await expect(page.getByText('10 more stamps to free coffee.')).toBeVisible();
+    await expect(page.getByText('Free coffee', { exact: true })).toBeVisible();
+    await expect(page.getByText(/10 visits to go · 0 of 10 stamps/)).toBeVisible();
     await expect(page.getByRole('img', { name: /Your card code/ })).toBeVisible();
     await checkA11y('S23 web card');
     await expectNoHorizontalScroll(page);

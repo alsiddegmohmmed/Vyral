@@ -5,6 +5,7 @@
 // Locations (max 10):   https://developer.apple.com/documentation/walletpasses/pass/locations-data.dictionary
 // Web service keys:     https://developer.apple.com/documentation/walletpasses/adding-a-web-service-to-update-passes
 import type { WalletPassData } from '../../integrations/contracts';
+import { rewardHeadline, stampCount, toGo } from '../reward-first';
 
 export type PassJsonConfig = {
   passTypeIdentifier: string;
@@ -57,37 +58,29 @@ function linkField(l: WalletPassData['campaign']['links'][number], i: number): F
 
 export function buildPassJson(d: WalletPassData, cfg: PassJsonConfig) {
   const c = d.campaign;
-  const rewardReady = d.rewardsAvailable > 0;
-
-  // Primary: stamps. Stamps are always silent, so no changeMessage (architecture.md, pass/changed).
-  const primaryFields: Field[] = [{ key: 'stamps', label: 'Stamps', value: `${d.currentStamps}/${d.totalStamps}` }];
-
-  // Secondary: reward. The value changes when a reward becomes available (and with each
-  // extra one), and only then carries a changeMessage, so earning a reward notifies and
-  // redeeming it does not.
-  let reward: Field = rewardReady
-    ? {
-        key: 'reward',
-        label: 'Reward',
-        value: d.rewardsAvailable > 1 ? `${d.rewardsAvailable} × ${c.reward.name} ready` : `${c.reward.name} ready`,
-        ...(d.appleAlert?.reward === false ? {} : { changeMessage: asChangeMessage(c.rewardMessage) }),
-      }
-    : { key: 'reward', label: 'Reward', value: c.reward.name };
+  // Reward first (lib/wallet/reward-first.ts): the reward is the big primary field over the
+  // stamp strip, visits to go sit top right, and the stamp count goes underneath.
+  // Stamps are always silent. The reward field changes VALUE when a reward becomes ready (or a
+  // mystery box arrives), and only then carries a changeMessage, so earning notifies and
+  // redeeming or revealing does not.
+  const head = rewardHeadline({ rewardName: c.reward.name, rewardsAvailable: d.rewardsAvailable, currentStamps: d.currentStamps, totalStamps: d.totalStamps, mystery: d.mystery });
+  const alertOk = d.appleAlert?.reward !== false;
+  const reward: Field = {
+    key: 'reward', label: head.label, value: head.value,
+    ...(alertOk && head.kind === 'ready' ? { changeMessage: asChangeMessage(c.rewardMessage) } : {}),
+    ...(alertOk && head.kind === 'box_waiting' ? { changeMessage: 'Your mystery box is ready. Open it on your card.' } : {}),
+  };
+  const go = toGo(d);
+  const headerFields: Field[] = [{ key: 'to_go', label: go.label, value: go.value }];
+  const primaryFields: Field[] = [reward];
+  const secondaryFields: Field[] = [{ key: 'stamps', label: 'Stamps', value: stampCount(d) }];
 
   const backFields: Field[] = [];
-  // Mystery box: "Ready to open" alerts once (a new value with a changeMessage); revealing
-  // the prize on the web card changes it to "You won …" silently. The back carries the link.
-  if (d.mystery) {
-    const boxes = d.mystery.boxes, waiting = boxes.filter((b) => !b.opened).length, won = boxes.filter((b) => b.opened).map((b) => b.name);
-    reward = waiting
-      ? { key: 'reward', label: 'Mystery box', value: waiting > 1 ? `${waiting} boxes ready to open` : 'Ready to open',
-          ...(d.appleAlert?.reward === false ? {} : { changeMessage: 'Your mystery box is ready. Open it on your card.' }) }
-      : won.length ? { key: 'reward', label: won.length > 1 ? 'You won' : 'You won', value: won.join(', ') }
-      : { key: 'reward', label: 'Reward', value: 'Mystery box' };
-    if (d.cardUrl && boxes.length) {
-      const text = waiting ? 'Open your mystery box' : 'See your prize';
-      backFields.push({ key: 'open_box', label: 'Mystery box', value: d.cardUrl, attributedValue: `<a href='${escapeHtml(d.cardUrl)}'>${text}</a>` });
-    }
+  // Mystery box: "Ready to open" alerts once (above); revealing the prize on the web card
+  // changes it to "You won …" silently. The back links to the web card, where it's opened.
+  if (d.mystery && d.cardUrl && d.mystery.boxes.length) {
+    const text = d.mystery.boxes.some((b) => !b.opened) ? 'Open your mystery box' : 'See your prize';
+    backFields.push({ key: 'open_box', label: 'Mystery box', value: d.cardUrl, attributedValue: `<a href='${escapeHtml(d.cardUrl)}'>${text}</a>` });
   }
   // News and note only appear when set; each change of text notifies with the text itself.
   if (d.newsText) backFields.push({ key: 'news', label: `News from ${c.business}`, value: d.newsText, ...(d.appleAlert?.news === false ? {} : { changeMessage: '%@' }) });
@@ -122,7 +115,7 @@ export function buildPassJson(d: WalletPassData, cfg: PassJsonConfig) {
     barcodes: [{ format: 'PKBarcodeFormatQR' as const, message: d.qrPayload, messageEncoding: 'iso-8859-1', altText: d.manualCode }],
     ...(locations.length ? { locations } : {}),
     ...(d.status === 'deleted' || d.expired ? { voided: true } : {}),
-    storeCard: { primaryFields, secondaryFields: [reward], backFields },
+    storeCard: { headerFields, primaryFields, secondaryFields, backFields },
   };
 }
 
