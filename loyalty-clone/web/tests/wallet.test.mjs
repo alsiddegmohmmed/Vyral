@@ -331,7 +331,7 @@ test('mystery box on the Apple pass: "Ready to open" alerts once, the prize show
   const waiting = buildPassJson(passData({ rewardsAvailable: 1, cardUrl: url, mystery: { boxes: [{ name: 'Free pastry', tier: 'rare', opened: false }] } }), cfg);
   const r1 = waiting.storeCard.primaryFields[0];
   assert.equal(r1.label, 'Mystery box'); assert.equal(r1.value, 'Ready to open');
-  assert.match(r1.changeMessage, /mystery box is ready/);
+  assert.equal(r1.changeMessage, 'Your mystery box is ready! Tap ••• on your card, then Pass Details, to open it.');
   const link = waiting.storeCard.backFields.find((f) => f.key === 'open_box');
   assert.match(link.attributedValue, /href='https:\/\/garuka\.example\/c\/[A-Z]+'>Open your mystery box</);
   const opened = buildPassJson(passData({ rewardsAvailable: 1, cardUrl: url, mystery: { boxes: [{ name: 'Free pastry', tier: 'rare', opened: true }] } }), cfg);

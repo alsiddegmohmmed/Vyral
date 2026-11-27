@@ -68,7 +68,7 @@ export function buildPassJson(d: WalletPassData, cfg: PassJsonConfig) {
   const reward: Field = {
     key: 'reward', label: head.label, value: head.value,
     ...(alertOk && head.kind === 'ready' ? { changeMessage: asChangeMessage(c.rewardMessage) } : {}),
-    ...(alertOk && head.kind === 'box_waiting' ? { changeMessage: 'Your mystery box is ready. Open it on your card.' } : {}),
+    ...(alertOk && head.kind === 'box_waiting' ? { changeMessage: 'Your mystery box is ready! Tap ••• on your card, then Pass Details, to open it.' } : {}),
   };
   const go = toGo(d);
   const headerFields: Field[] = [{ key: 'to_go', label: go.label, value: go.value }];
